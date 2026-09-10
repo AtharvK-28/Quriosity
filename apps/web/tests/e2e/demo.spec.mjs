@@ -227,7 +227,7 @@ await check("workbench mode hides XP and never speaks unprompted", async () => {
   assert.doesNotMatch(body, /still separable/i, "the tutor spoke unprompted in workbench mode");
 
   // But it answers when invoked.
-  await page.getByRole("button", { name: /Tutor/ }).click();
+  await page.getByRole("button", { name: "Diagnosis" }).click();
   await page.waitForTimeout(200);
   const after = await page.locator("body").innerText();
   assert.match(after, /q\d|Nothing to flag/, "the tutor said nothing when invoked");
@@ -498,6 +498,60 @@ await check("progress reports beliefs as open or worked out", async () => {
 })();
 
 /* -- Report ------------------------------------------------------------------ */
+
+/* -- 8. The team palette, the tutor and the playground ----------------------- */
+
+const theme = () => page.evaluate(() => document.documentElement.dataset.theme);
+
+await check("night is the default theme, and day survives a reload", async () => {
+  await page.goto(`${BASE}/reference`, { waitUntil: "networkidle" });
+  assert.equal(await theme(), "night");
+  await page.getByRole("button", { name: /Switch to day/ }).click();
+  assert.equal(await theme(), "day");
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await theme(), "day", "the day theme did not survive a reload");
+  await page.getByRole("button", { name: /Switch to night/ }).click();
+  assert.equal(await theme(), "night");
+})();
+
+await check("the tutor answers on the bench and says which engine replied", async () => {
+  await freshBench();
+  await page.getByRole("button", { name: /Ask the tutor/ }).click();
+  await page.getByLabel("Your question").fill("What does the Hadamard gate do?");
+  await page.keyboard.press("Enter");
+  await page.waitForSelector("text=/built-in guide|claude/i", { timeout: 30000 });
+  await page.waitForFunction(
+    () => !document.querySelector('[aria-label="The tutor is thinking"]'),
+    null,
+    { timeout: 60000 },
+  );
+  const panel = await page.getByRole("complementary", { name: "Tutor" }).innerText();
+  assert.match(panel, /hadamard/i, "the answer never mentioned the gate it was asked about");
+})();
+
+await check("a gate named by the tutor links to its reference row", async () => {
+  const chip = page
+    .getByRole("complementary", { name: "Tutor" })
+    .getByRole("link", { name: /Hadamard/ })
+    .first();
+  assert.equal(await chip.getAttribute("href"), "/reference#gate-h");
+  await page.keyboard.press("Control+/");
+  await page.waitForSelector('[aria-label="Tutor"]', { state: "detached" });
+})();
+
+await check("the playground collapses on measurement and counts fresh copies", async () => {
+  await page.goto(`${BASE}/playground`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Apply Hadamard" }).click();
+  await page.waitForSelector("text=/50% of the time/");
+  await page.getByRole("button", { name: "Measure", exact: true }).click();
+  await page.waitForSelector("text=/It read \\|[01]⟩/");
+  await page.getByRole("button", { name: "Measure again" }).click();
+  await page.waitForSelector("text=/Still \\|[01]⟩/");
+  await page.getByRole("button", { name: "Measure 100 copies" }).click();
+  const text = await page.locator("main").innerText();
+  const m = /(\d+) measurements/i.exec(text);
+  assert.ok(m && Number(m[1]) === 101, `expected 101 measurements in the tally, got ${m?.[1]}`);
+})();
 
 await browser.close();
 

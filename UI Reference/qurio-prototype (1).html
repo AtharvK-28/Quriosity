@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qurio — Learn Quantum by Doing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#140a2b;
+    --bg-panel:#20123f;
+    --bg-panel-2:#2a1852;
+    --purple-mid:#4a2a82;
+    --purple-line:#3a2266;
+    --purple-light:#9d7fd6;
+    --yellow:#f4c430;
+    --yellow-soft:#ffe58a;
+    --text-primary:#f5efff;
+    --text-muted:#b7a6d9;
+    --text-dim:#8877ad;
+    --radius-s:4px;
+    --radius-m:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg-deep);
+    color:var(--text-primary);
+    font-family:'Inter',sans-serif;
+    line-height:1.55;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    color:var(--text-primary);
+    margin:0;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  ::selection{background:var(--yellow);color:var(--bg-deep);}
+
+  /* ---------- layout helpers ---------- */
+  .page{display:none;min-height:100vh;}
+  .page.active{display:block;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+  .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+
+  /* ---------- background texture ---------- */
+  .starfield{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      radial-gradient(1.5px 1.5px at 20% 30%, rgba(245,239,255,0.5), transparent),
+      radial-gradient(1px 1px at 70% 15%, rgba(245,239,255,0.35), transparent),
+      radial-gradient(1.5px 1.5px at 85% 60%, rgba(245,239,255,0.4), transparent),
+      radial-gradient(1px 1px at 40% 80%, rgba(245,239,255,0.3), transparent),
+      radial-gradient(1.5px 1.5px at 55% 45%, rgba(245,239,255,0.4), transparent),
+      radial-gradient(1px 1px at 10% 65%, rgba(245,239,255,0.3), transparent);
+    background-repeat:no-repeat;
+    background-size:100% 100%;
+    opacity:0.6;
+  }
+
+  /* ================= PUBLIC NAV ================= */
+  .pub-nav{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:26px 32px;max-width:1180px;margin:0 auto;}
+  .brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;}
+  .brand-mark{width:26px;height:26px;position:relative;flex-shrink:0;}
+  .pub-nav-links{display:flex;align-items:center;gap:28px;font-size:14px;color:var(--text-muted);}
+  .pub-nav-links a{text-decoration:none;}
+  .pub-nav-links a:hover{color:var(--text-primary);}
+  .btn-ghost-nav{border:1px solid var(--purple-line);padding:9px 18px;border-radius:var(--radius-s);color:var(--text-primary);background:transparent;font-size:14px;transition:border-color .15s;}
+  .btn-ghost-nav:hover{border-color:var(--yellow);}
+
+  /* ================= HERO ================= */
+  .hero{position:relative;z-index:1;padding:56px 0 90px;}
+  .hero-grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:56px;align-items:center;}
+  .hero h1{font-size:56px;line-height:1.06;max-width:560px;}
+  .hero .eyebrow-line{width:40px;height:3px;background:var(--yellow);margin-bottom:22px;border-radius:2px;}
+  .hero p.lede{color:var(--text-muted);font-size:17px;max-width:480px;margin:22px 0 34px;}
+  .hero-actions{display:flex;gap:14px;flex-wrap:wrap;}
+  .btn-primary{background:var(--yellow);color:#241305;border:none;padding:14px 26px;border-radius:var(--radius-s);font-weight:600;font-size:15px;transition:transform .15s, box-shadow .15s;}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(244,196,48,0.25);}
+  .btn-secondary{background:transparent;border:1px solid var(--purple-line);color:var(--text-primary);padding:14px 26px;border-radius:var(--radius-s);font-weight:600;font-size:15px;transition:border-color .15s;}
+  .btn-secondary:hover{border-color:var(--yellow);}
+
+  .hero-visual{display:flex;justify-content:center;align-items:center;}
+
+  /* ---------- why section ---------- */
+  .why{position:relative;z-index:1;padding:20px 0 100px;}
+  .why-row{display:grid;grid-template-columns:280px 1fr;gap:40px;padding:30px 0;border-top:1px solid var(--purple-line);}
+  .why-row:last-child{border-bottom:1px solid var(--purple-line);}
+  .why-stat{font-family:'Space Grotesk',sans-serif;font-size:34px;color:var(--yellow);font-weight:600;}
+  .why-label{color:var(--text-dim);font-size:13px;margin-top:6px;}
+  .why-text{color:var(--text-muted);font-size:16px;max-width:640px;padding-top:4px;}
+  .why-text strong{color:var(--text-primary);font-weight:600;}
+
+  .pub-footer{position:relative;z-index:1;padding:34px 0 46px;border-top:1px solid var(--purple-line);color:var(--text-dim);font-size:13px;}
+
+  /* ================= AUTH ================= */
+  .auth-shell{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 24px;}
+  .auth-card{width:100%;max-width:420px;background:var(--bg-panel);border:1px solid var(--purple-line);border-radius:var(--radius-m);padding:40px 36px;}
+  .auth-back{display:inline-flex;align-items:center;gap:6px;color:var(--text-dim);font-size:13px;text-decoration:none;margin-bottom:26px;}
+  .auth-back:hover{color:var(--text-muted);}
+  .auth-card h2{font-size:26px;margin-bottom:6px;}
+  .auth-sub{color:var(--text-dim);font-size:14px;margin-bottom:28px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13px;color:var(--text-muted);margin-bottom:7px;}
+  .field input{width:100%;background:var(--bg-deep);border:1px solid var(--purple-line);color:var(--text-primary);padding:11px 13px;border-radius:var(--radius-s);font-size:14px;font-family:inherit;}
+  .field input:focus{outline:none;border-color:var(--yellow);}
+  .auth-submit{width:100%;margin-top:8px;}
+  .auth-switch{text-align:center;margin-top:22px;font-size:14px;color:var(--text-dim);}
+  .auth-switch button{background:none;border:none;color:var(--yellow-soft);font-size:14px;padding:0;}
+  .auth-note{margin-top:22px;padding:12px 14px;background:rgba(244,196,48,0.08);border:1px solid rgba(244,196,48,0.25);border-radius:var(--radius-s);font-size:12.5px;color:var(--text-muted);}
+
+  /* ================= APP SHELL (post-login) ================= */
+  .app-nav{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid var(--purple-line);}
+  .app-nav-right{display:flex;align-items:center;gap:18px;}
+  .user-chip{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-muted);}
+  .user-dot{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--yellow),var(--purple-light));display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;color:#241305;}
+  .btn-text{background:none;border:none;color:var(--text-dim);font-size:13px;}
+  .btn-text:hover{color:var(--text-muted);}
+
+  .dash-wrap{position:relative;z-index:1;padding:48px 0 80px;}
+  .dash-head{margin-bottom:38px;}
+  .dash-head h2{font-size:30px;}
+  .dash-head p{color:var(--text-muted);margin-top:8px;font-size:15px;}
+
+  .path-track{display:flex;flex-direction:column;gap:14px;}
+  .module-card{display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center;background:var(--bg-panel);border:1px solid var(--purple-line);border-radius:var(--radius-m);padding:22px 24px;transition:border-color .15s;}
+  .module-card.available{border-color:var(--purple-mid);}
+  .module-card.available:hover{border-color:var(--yellow);}
+  .module-card.locked{opacity:0.55;}
+  .module-num{width:42px;height:42px;border-radius:50%;border:1px solid var(--purple-line);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-dim);flex-shrink:0;}
+  .module-card.available .module-num{border-color:var(--yellow);color:var(--yellow);}
+  .module-title{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;}
+  .module-desc{color:var(--text-dim);font-size:13.5px;margin-top:4px;}
+  .module-tag{font-size:11.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.04em;margin-top:6px;display:inline-block;}
+  .btn-small{background:var(--yellow);color:#241305;border:none;padding:10px 18px;border-radius:var(--radius-s);font-weight:600;font-size:13.5px;white-space:nowrap;}
+  .btn-small:hover{transform:translateY(-1px);}
+  .btn-small-outline{background:transparent;border:1px solid var(--purple-line);color:var(--text-dim);padding:10px 18px;border-radius:var(--radius-s);font-size:13.5px;white-space:nowrap;}
+
+  /* ================= VIDEO PAGE ================= */
+  .lesson-wrap{position:relative;z-index:1;padding:44px 0 80px;max-width:860px;margin:0 auto;}
+  .lesson-crumb{color:var(--text-dim);font-size:13px;margin-bottom:18px;}
+  .lesson-crumb button{background:none;border:none;color:var(--text-dim);font-size:13px;padding:0;text-decoration:underline;}
+  .lesson-wrap h2{font-size:28px;margin-bottom:10px;}
+  .lesson-wrap p.lesson-sub{color:var(--text-muted);margin-bottom:26px;font-size:15px;}
+  .video-frame{background:#0d0620;border:1px solid var(--purple-line);border-radius:var(--radius-m);aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+  .video-frame video{width:100%;height:100%;object-fit:cover;}
+  .video-placeholder{text-align:center;color:var(--text-dim);padding:20px;}
+  .video-placeholder .ph-icon{width:52px;height:52px;margin:0 auto 14px;opacity:.5;}
+  .video-placeholder p{font-size:13.5px;max-width:320px;margin:0 auto;}
+  .lesson-below{display:flex;align-items:center;justify-content:space-between;margin-top:22px;flex-wrap:wrap;gap:14px;}
+  .lesson-status{font-size:13.5px;color:var(--text-dim);}
+  .lesson-status.done{color:var(--yellow-soft);}
+
+  /* ================= PLAYGROUND ================= */
+  .pg-wrap{position:relative;z-index:1;padding:44px 0 80px;}
+  .pg-head{margin-bottom:30px;}
+  .pg-head h2{font-size:28px;}
+  .pg-head p{color:var(--text-muted);margin-top:8px;font-size:15px;max-width:640px;}
+  .pg-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start;}
+  @media (max-width:860px){.pg-grid{grid-template-columns:1fr;}}
+
+  .pg-panel{background:var(--bg-panel);border:1px solid var(--purple-line);border-radius:var(--radius-m);padding:28px;}
+  .pg-panel h3{font-size:15px;color:var(--text-muted);font-weight:600;margin-bottom:20px;text-transform:none;}
+
+  .slider-row{margin-bottom:22px;}
+  .slider-row label{display:flex;justify-content:space-between;font-size:13.5px;color:var(--text-muted);margin-bottom:9px;}
+  .slider-row label .val{color:var(--yellow-soft);font-family:'IBM Plex Mono',monospace;}
+  input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--purple-line);outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--yellow);cursor:pointer;border:2px solid var(--bg-panel);}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--yellow);cursor:pointer;border:2px solid var(--bg-panel);}
+
+  .gate-row{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;}
+  .gate-btn{flex:1;min-width:64px;background:var(--bg-deep);border:1px solid var(--purple-line);color:var(--text-primary);padding:12px 8px;border-radius:var(--radius-s);font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;transition:border-color .15s, background .15s;}
+  .gate-btn:hover{border-color:var(--yellow);background:var(--bg-panel-2);}
+
+  .state-eq{background:var(--bg-deep);border:1px solid var(--purple-line);border-radius:var(--radius-s);padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:14.5px;color:var(--yellow-soft);margin-bottom:22px;overflow-x:auto;white-space:nowrap;}
+
+  .prob-row{margin-bottom:14px;}
+  .prob-label{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:6px;color:var(--text-muted);}
+  .prob-label .p-val{font-family:'IBM Plex Mono',monospace;color:var(--text-primary);}
+  .prob-bar-track{height:9px;background:var(--bg-deep);border-radius:5px;overflow:hidden;}
+  .prob-bar-fill{height:100%;border-radius:5px;transition:width .35s ease;}
+  .prob-bar-fill.p0{background:linear-gradient(90deg,var(--purple-mid),var(--purple-light));}
+  .prob-bar-fill.p1{background:linear-gradient(90deg,#a37a00,var(--yellow));}
+
+  .measure-row{display:flex;gap:10px;margin-top:24px;}
+  .measure-result{margin-top:16px;font-size:14px;color:var(--text-muted);min-height:20px;}
+  .measure-result strong{color:var(--yellow-soft);font-family:'IBM Plex Mono',monospace;font-size:16px;}
+
+  .bloch-wrap{display:flex;flex-direction:column;align-items:center;}
+  .bloch-svg{width:100%;max-width:340px;}
+
+  .pg-footer-note{margin-top:26px;font-size:12.5px;color:var(--text-dim);background:rgba(157,127,214,0.08);border:1px solid var(--purple-line);border-radius:var(--radius-s);padding:12px 14px;}
+</style>
+</head>
+<body>
+<div class="starfield"></div>
+
+<!-- ======================================================= -->
+<!-- LANDING PAGE                                             -->
+<!-- ======================================================= -->
+<section id="page-landing" class="page active">
+  <nav class="pub-nav">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="11" stroke="#f4c430" stroke-width="1.4"/>
+        <ellipse cx="13" cy="13" rx="11" ry="4" stroke="#9d7fd6" stroke-width="1.2"/>
+        <circle cx="13" cy="13" r="2.2" fill="#f4c430"/>
+      </svg>
+      Qurio
+    </div>
+    <div class="pub-nav-links">
+      <a href="#" onclick="return false;">Curriculum</a>
+      <button class="btn-ghost-nav" onclick="showPage('page-login')">Sign in</button>
+    </div>
+  </nav>
+
+  <header class="hero wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow-line"></div>
+        <h1>Quantum computing, learned by actually doing it.</h1>
+        <p class="lede">Qubits, superposition and entanglement stop being abstract the moment you can turn a dial and watch the state change. Qurio pairs short lessons with a live simulator, so every idea gets tested by hand before it has to make sense on paper.</p>
+        <div class="hero-actions">
+          <button class="btn-primary" onclick="showPage('page-signup')">Get started free</button>
+          <button class="btn-secondary" onclick="showPage('page-login')">Sign in</button>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <svg width="100%" viewBox="0 0 320 320" style="max-width:360px;">
+          <defs>
+            <radialGradient id="heroGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#4a2a82" stop-opacity="0.55"/>
+              <stop offset="100%" stop-color="#4a2a82" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <circle cx="160" cy="160" r="150" fill="url(#heroGlow)"/>
+          <g id="heroSphere" style="transform-origin:160px 160px;">
+            <circle cx="160" cy="160" r="108" stroke="#3a2266" stroke-width="1.3" fill="none"/>
+            <ellipse cx="160" cy="160" rx="108" ry="38" stroke="#3a2266" stroke-width="1.1" fill="none"/>
+            <ellipse cx="160" cy="160" rx="42" ry="108" stroke="#3a2266" stroke-width="1.1" fill="none"/>
+            <line x1="160" y1="52" x2="160" y2="268" stroke="#5a3a94" stroke-width="1"/>
+            <circle cx="160" cy="52" r="3" fill="#b7a6d9"/>
+            <circle cx="160" cy="268" r="3" fill="#b7a6d9"/>
+            <text x="160" y="40" text-anchor="middle" fill="#b7a6d9" font-family="IBM Plex Mono" font-size="13">|0⟩</text>
+            <text x="160" y="288" text-anchor="middle" fill="#b7a6d9" font-family="IBM Plex Mono" font-size="13">|1⟩</text>
+            <line id="heroVecLine" x1="160" y1="160" x2="230" y2="112" stroke="#f4c430" stroke-width="2.4"/>
+            <circle id="heroVecDot" cx="230" cy="112" r="5.5" fill="#f4c430"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <section class="why wrap">
+    <div class="why-row">
+      <div>
+        <div class="why-stat">2 states, at once</div>
+        <div class="why-label">SUPERPOSITION</div>
+      </div>
+      <p class="why-text">A classical bit is a 0 or a 1. A qubit can hold <strong>both at the same time</strong>, weighted by probability — which is what gives quantum computers their edge on certain problems classical machines struggle with.</p>
+    </div>
+    <div class="why-row">
+      <div>
+        <div class="why-stat">Millions in R&D</div>
+        <div class="why-label">WHY IT MATTERS NOW</div>
+      </div>
+      <p class="why-text">Governments and companies are racing to build quantum-ready talent for drug discovery, cryptography, materials science and logistics. <strong>The workforce gap is the current bottleneck</strong> — not the hardware.</p>
+    </div>
+    <div class="why-row">
+      <div>
+        <div class="why-stat">Theory ≠ intuition</div>
+        <div class="why-label">WHY MOST COURSES FALL SHORT</div>
+      </div>
+      <p class="why-text">Most resources stay static and mathematical. Qurio's approach: watch a short concept video, then <strong>immediately manipulate the state yourself</strong> in a live simulator before moving on.</p>
+    </div>
+  </section>
+
+  <footer class="pub-footer wrap">
+    Qurio — prototype build for Smart India Hackathon, Problem Statement 4.
+  </footer>
+</section>
+
+<!-- ======================================================= -->
+<!-- LOGIN                                                    -->
+<!-- ======================================================= -->
+<section id="page-login" class="page">
+  <div class="auth-shell">
+    <div class="auth-card">
+      <a class="auth-back" href="#" onclick="showPage('page-landing');return false;">← Back</a>
+      <h2>Welcome back</h2>
+      <p class="auth-sub">Sign in to pick up where you left off.</p>
+      <form onsubmit="handleLogin(event)">
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="login-pass">Password</label>
+          <input id="login-pass" type="password" placeholder="••••••••" required>
+        </div>
+        <button class="btn-primary auth-submit" type="submit">Sign in</button>
+      </form>
+      <div class="auth-switch">New here? <button onclick="showPage('page-signup')">Create an account</button></div>
+      <div class="auth-note">Prototype note: authentication isn't wired to a database yet — any email and password will sign you in.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- SIGN UP                                                  -->
+<!-- ======================================================= -->
+<section id="page-signup" class="page">
+  <div class="auth-shell">
+    <div class="auth-card">
+      <a class="auth-back" href="#" onclick="showPage('page-landing');return false;">← Back</a>
+      <h2>Create your account</h2>
+      <p class="auth-sub">Start with qubits — the rest of the path unlocks as you go.</p>
+      <form onsubmit="handleSignup(event)">
+        <div class="field">
+          <label for="signup-name">Name</label>
+          <input id="signup-name" type="text" placeholder="Your name" required>
+        </div>
+        <div class="field">
+          <label for="signup-email">Email</label>
+          <input id="signup-email" type="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="signup-pass">Password</label>
+          <input id="signup-pass" type="password" placeholder="••••••••" required>
+        </div>
+        <button class="btn-primary auth-submit" type="submit">Create account</button>
+      </form>
+      <div class="auth-switch">Already registered? <button onclick="showPage('page-login')">Sign in</button></div>
+      <div class="auth-note">Prototype note: this just stores your name for the session — no database is connected yet.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- DASHBOARD                                                -->
+<!-- ======================================================= -->
+<section id="page-dashboard" class="page">
+  <nav class="app-nav">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="11" stroke="#f4c430" stroke-width="1.4"/>
+        <ellipse cx="13" cy="13" rx="11" ry="4" stroke="#9d7fd6" stroke-width="1.2"/>
+        <circle cx="13" cy="13" r="2.2" fill="#f4c430"/>
+      </svg>
+      Qurio
+    </div>
+    <div class="app-nav-right">
+      <div class="user-chip"><span class="user-dot" id="userInitial">Y</span><span id="userGreetName">You</span></div>
+      <button class="btn-text" onclick="handleLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="dash-wrap wrap">
+    <div class="dash-head">
+      <h2 id="dashWelcome">Welcome</h2>
+      <p>Your path starts with a single idea: a bit that can be more than one thing at once.</p>
+    </div>
+
+    <div class="path-track">
+      <div class="module-card available">
+        <div class="module-num">01</div>
+        <div>
+          <div class="module-title">Qubits &amp; superposition</div>
+          <div class="module-desc">Watch a short lesson, then prep and measure a real qubit state yourself in the playground.</div>
+          <span class="module-tag" id="module1Status">Not started</span>
+        </div>
+        <button class="btn-small" onclick="showPage('page-video')">Start module</button>
+      </div>
+
+      <div class="module-card locked">
+        <div class="module-num">02</div>
+        <div>
+          <div class="module-title">Quantum gates &amp; circuits</div>
+          <div class="module-desc">Chain gates together and build your first multi-qubit circuit.</div>
+          <span class="module-tag">Coming soon</span>
+        </div>
+        <button class="btn-small-outline" disabled>Locked</button>
+      </div>
+
+      <div class="module-card locked">
+        <div class="module-num">03</div>
+        <div>
+          <div class="module-title">Entanglement</div>
+          <div class="module-desc">See why two qubits can behave as one system, no matter the distance.</div>
+          <span class="module-tag">Coming soon</span>
+        </div>
+        <button class="btn-small-outline" disabled>Locked</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- VIDEO / LESSON PAGE                                      -->
+<!-- ======================================================= -->
+<section id="page-video" class="page">
+  <nav class="app-nav">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="11" stroke="#f4c430" stroke-width="1.4"/>
+        <ellipse cx="13" cy="13" rx="11" ry="4" stroke="#9d7fd6" stroke-width="1.2"/>
+        <circle cx="13" cy="13" r="2.2" fill="#f4c430"/>
+      </svg>
+      Qurio
+    </div>
+    <div class="app-nav-right">
+      <div class="user-chip"><span class="user-dot" id="userInitial2">Y</span><span id="userGreetName2">You</span></div>
+      <button class="btn-text" onclick="handleLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="lesson-wrap">
+    <div class="lesson-crumb"><button onclick="showPage('page-dashboard')">Your path</button> / Module 01</div>
+    <h2>Qubits &amp; superposition</h2>
+    <p class="lesson-sub">A 6-minute walkthrough of what a qubit is and what superposition actually means, before you try it yourself.</p>
+
+    <div class="video-frame">
+      <video id="lessonVideo" controls poster="" onended="handleVideoEnded()">
+        <!-- Video source goes here once available, e.g.: -->
+        <!-- <source src="qubits-lesson.mp4" type="video/mp4"> -->
+      </video>
+      <div class="video-placeholder" id="videoPlaceholder">
+        <svg class="ph-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#8877ad" stroke-width="1.4"/><path d="M10 8.5v7l6-3.5-6-3.5z" fill="#8877ad"/></svg>
+        <p>Lesson video not uploaded yet — this player is wired up and ready. Once a source is added, finishing the video will automatically continue to the playground.</p>
+      </div>
+    </div>
+
+    <div class="lesson-below">
+      <span class="lesson-status" id="lessonStatusText">Waiting for you to finish the video</span>
+      <button class="btn-primary" id="continueBtn" onclick="goToPlaygroundFromLesson()">Continue to playground →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= -->
+<!-- PLAYGROUND                                               -->
+<!-- ======================================================= -->
+<section id="page-playground" class="page">
+  <nav class="app-nav">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="11" stroke="#f4c430" stroke-width="1.4"/>
+        <ellipse cx="13" cy="13" rx="11" ry="4" stroke="#9d7fd6" stroke-width="1.2"/>
+        <circle cx="13" cy="13" r="2.2" fill="#f4c430"/>
+      </svg>
+      Qurio
+    </div>
+    <div class="app-nav-right">
+      <div class="user-chip"><span class="user-dot" id="userInitial3">Y</span><span id="userGreetName3">You</span></div>
+      <button class="btn-text" onclick="handleLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="pg-wrap wrap">
+    <div class="lesson-crumb"><button onclick="showPage('page-dashboard')">Your path</button> / Module 01 / Playground</div>
+    <div class="pg-head">
+      <h2>Try it: prepare and measure a qubit</h2>
+      <p>Drag the sliders to place the qubit anywhere on the Bloch sphere, or apply a gate. Then measure it and see the state collapse to a definite 0 or 1 — weighted by the probabilities you set up.</p>
+    </div>
+
+    <div class="pg-grid">
+      <!-- Controls -->
+      <div class="pg-panel">
+        <h3>Prepare the state</h3>
+
+        <div class="slider-row">
+          <label>θ (theta) — tilt from |0⟩ <span class="val" id="thetaVal">0°</span></label>
+          <input type="range" id="thetaSlider" min="0" max="180" value="0" step="1">
+        </div>
+        <div class="slider-row">
+          <label>φ (phi) — phase angle <span class="val" id="phiVal">0°</span></label>
+          <input type="range" id="phiSlider" min="0" max="360" value="0" step="1">
+        </div>
+
+        <h3 style="margin-top:6px;">Or apply a gate</h3>
+        <div class="gate-row">
+          <button class="gate-btn" onclick="applyGate('reset')">|0⟩</button>
+          <button class="gate-btn" onclick="applyGate('x')">X</button>
+          <button class="gate-btn" onclick="applyGate('h')">H</button>
+          <button class="gate-btn" onclick="applyGate('z')">Z</button>
+        </div>
+
+        <div class="state-eq" id="stateEq">|ψ⟩ = 1.00|0⟩ + 0.00 e^i0°|1⟩</div>
+
+        <div class="prob-row">
+          <div class="prob-label"><span>P(measure 0)</span><span class="p-val" id="p0val">100%</span></div>
+          <div class="prob-bar-track"><div class="prob-bar-fill p0" id="p0bar" style="width:100%;"></div></div>
+        </div>
+        <div class="prob-row">
+          <div class="prob-label"><span>P(measure 1)</span><span class="p-val" id="p1val">0%</span></div>
+          <div class="prob-bar-track"><div class="prob-bar-fill p1" id="p1bar" style="width:0%;"></div></div>
+        </div>
+
+        <div class="measure-row">
+          <button class="btn-primary" onclick="measureQubit()">Measure</button>
+          <button class="btn-secondary" onclick="resetAfterMeasure()">Reset</button>
+        </div>
+        <div class="measure-result" id="measureResult"></div>
+      </div>
+
+      <!-- Bloch sphere -->
+      <div class="pg-panel bloch-wrap">
+        <h3 style="align-self:flex-start;">Bloch sphere</h3>
+        <svg class="bloch-svg" viewBox="0 0 300 300">
+          <ellipse cx="150" cy="150" rx="108" ry="108" stroke="#3a2266" stroke-width="1.2" fill="none"/>
+          <ellipse cx="150" cy="150" rx="108" ry="38" stroke="#3a2266" stroke-width="1" fill="none"/>
+          <line x1="150" y1="42" x2="150" y2="258" stroke="#5a3a94" stroke-width="1"/>
+          <line id="xAxis" stroke="#3a2266" stroke-width="1"/>
+          <line id="yAxis" stroke="#3a2266" stroke-width="1"/>
+          <text x="150" y="30" text-anchor="middle" fill="#b7a6d9" font-family="IBM Plex Mono" font-size="14">|0⟩</text>
+          <text x="150" y="278" text-anchor="middle" fill="#b7a6d9" font-family="IBM Plex Mono" font-size="14">|1⟩</text>
+          <line id="vecLine" x1="150" y1="150" x2="150" y2="42" stroke="#f4c430" stroke-width="2.6"/>
+          <circle id="vecDot" cx="150" cy="42" r="6" fill="#f4c430"/>
+        </svg>
+        <div class="pg-footer-note">The arrow shows the qubit's exact state before measurement. Once you measure, the state collapses to one of the poles — that randomness is real quantum behavior, not a placeholder.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // ---------------- Navigation ----------------
+  function showPage(id){
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  let currentUserName = null;
+
+  function syncUserChips(){
+    const initial = currentUserName ? currentUserName.trim().charAt(0).toUpperCase() : 'Y';
+    const name = currentUserName || 'You';
+    ['userInitial','userInitial2','userInitial3'].forEach(id => document.getElementById(id).textContent = initial);
+    ['userGreetName','userGreetName2','userGreetName3'].forEach(id => document.getElementById(id).textContent = name);
+    document.getElementById('dashWelcome').textContent = currentUserName ? ('Welcome, ' + currentUserName) : 'Welcome back';
+  }
+
+  function handleSignup(e){
+    e.preventDefault();
+    const name = document.getElementById('signup-name').value.trim();
+    currentUserName = name || 'You';
+    syncUserChips();
+    showPage('page-dashboard');
+  }
+
+  function handleLogin(e){
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    currentUserName = email ? email.split('@')[0] : 'You';
+    syncUserChips();
+    showPage('page-dashboard');
+  }
+
+  function handleLogout(){
+    currentUserName = null;
+    syncUserChips();
+    showPage('page-landing');
+  }
+
+  // ---------------- Lesson video ----------------
+  let videoWatched = false;
+
+  function handleVideoEnded(){
+    videoWatched = true;
+    document.getElementById('lessonStatusText').textContent = 'Video complete';
+    document.getElementById('lessonStatusText').classList.add('done');
+    document.getElementById('module1Status').textContent = 'In progress';
+    goToPlaygroundFromLesson();
+  }
+
+  function goToPlaygroundFromLesson(){
+    document.getElementById('module1Status').textContent = 'In progress';
+    showPage('page-playground');
+  }
+
+  // ---------------- Qubit simulator ----------------
+  // Bloch vector (x,y,z) derived from theta (polar, deg from +z / |0>) and phi (azimuthal, deg)
+  let theta = 0, phi = 0;
+
+  const thetaSlider = document.getElementById('thetaSlider');
+  const phiSlider = document.getElementById('phiSlider');
+
+  thetaSlider.addEventListener('input', () => { theta = parseFloat(thetaSlider.value); render(); });
+  phiSlider.addEventListener('input', () => { phi = parseFloat(phiSlider.value); render(); });
+
+  function toRad(d){ return d * Math.PI / 180; }
+  function toDeg(r){ return r * 180 / Math.PI; }
+
+  function blochXYZ(thetaDeg, phiDeg){
+    const t = toRad(thetaDeg), p = toRad(phiDeg);
+    return {
+      x: Math.sin(t) * Math.cos(p),
+      y: Math.sin(t) * Math.sin(p),
+      z: Math.cos(t)
+    };
+  }
+
+  function thetaPhiFromXYZ(x,y,z){
+    const t = Math.acos(Math.max(-1, Math.min(1, z)));
+    let p = Math.atan2(y, x);
+    if (p < 0) p += 2 * Math.PI;
+    return { theta: toDeg(t), phi: toDeg(p) };
+  }
+
+  // Project Bloch (x,y,z) to 2D screen coords for the SVG (stylized, not literal 3D)
+  function project(x, y, z, cx, cy, R){
+    const A = Math.PI / 6;
+    const sx = cx + R * (x * Math.cos(A) - y * Math.sin(A));
+    const sy = cy - R * z * 0.97 + R * (x * Math.sin(A) + y * Math.cos(A)) * 0.32;
+    return [sx, sy];
+  }
+
+  function render(){
+    thetaSlider.value = theta;
+    phiSlider.value = phi;
+    document.getElementById('thetaVal').textContent = Math.round(theta) + '°';
+    document.getElementById('phiVal').textContent = Math.round(phi) + '°';
+
+    const p0 = Math.cos(toRad(theta) / 2) ** 2;
+    const p1 = 1 - p0;
+
+    document.getElementById('p0val').textContent = Math.round(p0 * 100) + '%';
+    document.getElementById('p1val').textContent = Math.round(p1 * 100) + '%';
+    document.getElementById('p0bar').style.width = (p0 * 100) + '%';
+    document.getElementById('p1bar').style.width = (p1 * 100) + '%';
+
+    const c0 = Math.cos(toRad(theta) / 2);
+    const c1 = Math.sin(toRad(theta) / 2);
+    document.getElementById('stateEq').textContent =
+      '|ψ⟩ = ' + c0.toFixed(2) + '|0⟩ + ' + c1.toFixed(2) + ' e^i' + Math.round(phi) + '°|1⟩';
+
+    const { x, y, z } = blochXYZ(theta, phi);
+    const [vx, vy] = project(x, y, z, 150, 150, 108);
+    const line = document.getElementById('vecLine');
+    const dot = document.getElementById('vecDot');
+    line.setAttribute('x2', vx); line.setAttribute('y2', vy);
+    dot.setAttribute('cx', vx); dot.setAttribute('cy', vy);
+
+    // faint x/y axis guide lines through equator
+    const [x1a,y1a] = project(-1,0,0,150,150,108);
+    const [x2a,y2a] = project(1,0,0,150,150,108);
+    document.getElementById('xAxis').setAttribute('x1',x1a); document.getElementById('xAxis').setAttribute('y1',y1a);
+    document.getElementById('xAxis').setAttribute('x2',x2a); document.getElementById('xAxis').setAttribute('y2',y2a);
+    const [x1b,y1b] = project(0,-1,0,150,150,108);
+    const [x2b,y2b] = project(0,1,0,150,150,108);
+    document.getElementById('yAxis').setAttribute('x1',x1b); document.getElementById('yAxis').setAttribute('y1',y1b);
+    document.getElementById('yAxis').setAttribute('x2',x2b); document.getElementById('yAxis').setAttribute('y2',y2b);
+  }
+
+  function applyGate(gate){
+    document.getElementById('measureResult').textContent = '';
+    let { x, y, z } = blochXYZ(theta, phi);
+    if (gate === 'reset'){ x = 0; y = 0; z = 1; }
+    else if (gate === 'x'){ const ny = -y, nz = -z; y = ny; z = nz; }
+    else if (gate === 'z'){ const nx = -x, ny = -y; x = nx; y = ny; }
+    else if (gate === 'h'){ const nx = z, ny = -y, nz = x; x = nx; y = ny; z = nz; }
+    const tp = thetaPhiFromXYZ(x,y,z);
+    theta = tp.theta; phi = tp.phi;
+    render();
+  }
+
+  function measureQubit(){
+    const p0 = Math.cos(toRad(theta) / 2) ** 2;
+    const outcome = Math.random() < p0 ? 0 : 1;
+    theta = outcome === 0 ? 0 : 180;
+    render();
+    document.getElementById('measureResult').innerHTML =
+      'Result: <strong>|' + outcome + '⟩</strong> — the superposition has collapsed. Reset to prepare a new state.';
+  }
+
+  function resetAfterMeasure(){
+    theta = 0; phi = 0;
+    document.getElementById('measureResult').textContent = '';
+    render();
+  }
+
+  // hero mini sphere idle rotation (decorative)
+  (function heroSpin(){
+    let a = 0;
+    const line = document.getElementById('heroVecLine');
+    const dot = document.getElementById('heroVecDot');
+    function step(){
+      a += 0.006;
+      const x = Math.cos(a) * 0.85, z = Math.sin(a * 0.7) * 0.6, y = Math.sin(a) * 0.3;
+      const [vx, vy] = project(x, y, z, 160, 160, 108);
+      line.setAttribute('x2', vx); line.setAttribute('y2', vy);
+      dot.setAttribute('cx', vx); dot.setAttribute('cy', vy);
+      requestAnimationFrame(step);
+    }
+    step();
+  })();
+
+  render();
+</script>
+</body>
+</html>

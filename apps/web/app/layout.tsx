@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "@/styles/tokens.css";
+import { DEFAULT_THEME, THEME_BOOT } from "@/lib/theme";
 
 /**
  * Three faces, three jobs, no overlap.
@@ -40,12 +41,25 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#e3ded1",
+  themeColor: "#140a2b",
 };
 
+/**
+ * Night is the default and is rendered on the server. The boot script may
+ * flip data-theme to day before React hydrates, which is why the attribute is
+ * exempt from the hydration check.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      data-theme={DEFAULT_THEME}
+      className={`${serif.variable} ${sans.variable} ${mono.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

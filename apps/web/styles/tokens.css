@@ -44,6 +44,17 @@
   --basis-2:      #4a3fd4;
   --basis-3:      #e8a33d;
 
+  /* --- Action. The one hue that is not a quantity: "press this next". ---- */
+  --cta:          #00867a;
+  --cta-ink:      #f7f4ec;
+
+  /* --- Theme-dependent dials ---------------------------------------------- */
+  --wire-alpha:   0.34;   /* wires are ink at this strength */
+  --phase-l:      42%;    /* lightness of the phase wheel */
+  --shadow-pop:   0 8px 22px rgb(22 21 15 / 0.13);  /* popovers only */
+
+  color-scheme: light;
+
   /* --- Type ---------------------------------------------------------------- */
   /* Instrument Serif is reserved for conceptual statements. If a string is not
      a claim about physics, it is not set in the serif. */
@@ -87,6 +98,62 @@
   --m-evolve:   420ms;   /* one gate's worth of state change */
   --e-out: cubic-bezier(.2, 0, 0, 1);
   --e-settle: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Night — the default theme. Deep violet ground and gold for the next action,
+   from the team prototype (UI Reference/qurio-prototype). The structure is
+   unchanged; only the ink and the paper are re-mixed.
+
+   Every pair here was checked for WCAG AA on the surface it sits on. Three
+   prototype values did not pass and were lifted: dim text (#8877ad on the
+   panel, 4.3:1 → #a293cc, 6.2:1), hairlines used as input borders (1.4:1 →
+   #7b66b3, 3.6:1) and wires (now 45% ink, 4.0:1). Phase moves from indigo to
+   sky blue: indigo on violet is 2.7:1, and it would read as chrome rather
+   than as a quantity. Flag moves to coral so it cannot be mistaken for gold.
+   ------------------------------------------------------------------------ */
+:root[data-theme="night"] {
+  color-scheme: dark;
+
+  --paper:        #20123f;
+  --paper-raised: #2a1852;
+  --paper-inset:  #0f0822;
+  --page:         #140a2b;
+
+  --ink:          #f5efff;
+  --ink-2:        #e2d8f5;
+  --ink-3:        #cbbde8;
+  --ink-muted:    #b7a6d9;
+  --ink-faint:    #a293cc;
+
+  --rule:         #2c1a55;
+  --rule-2:       #3d2670;
+  --rule-3:       #7b66b3;
+  --frame:        #9d7fd6;
+
+  --measure:      #46e6a8;
+  --measure-dim:  #2a8a68;
+  --measure-wash: #132c2c;
+  --phase:        #7cc4ff;
+  --phase-dim:    #3b6690;
+  --phase-wash:   #172747;
+  --error:        #ff6b93;
+  --error-dim:    #8a2d4f;
+  --error-wash:   #3a1432;
+  --flag:         #ff8a4c;
+  --flag-wash:    #382216;
+
+  --basis-0:      #f5efff;
+  --basis-1:      #46e6a8;
+  --basis-2:      #7cc4ff;
+  --basis-3:      #ff8a4c;
+
+  --cta:          #f4c430;
+  --cta-ink:      #241305;
+
+  --wire-alpha:   0.45;
+  --phase-l:      64%;
+  --shadow-pop:   0 12px 32px rgb(5 2 14 / 0.55);
 }
 
 /* ---------------------------------------------------------------------------
@@ -184,6 +251,19 @@ svg { display: block; }
   background-size: var(--grid) var(--grid);
 }
 
+/* Night adds one soft violet glow at the top of the sheet — the prototype's
+   atmosphere, kept to a single layer that scrolls away with the page. The
+   grid is fainter than --rule here: at full strength on violet it competes
+   with the content instead of sitting under it. */
+:root[data-theme="night"] .sheet {
+  background-image:
+    radial-gradient(ellipse 1100px 560px at 82% -140px, rgb(157 127 214 / 0.22), transparent 70%),
+    linear-gradient(rgb(157 127 214 / 0.085) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(157 127 214 / 0.085) 1px, transparent 1px);
+  background-size: 100% 100%, var(--grid) var(--grid), var(--grid) var(--grid);
+  background-repeat: no-repeat, repeat, repeat;
+}
+
 /* ---------------------------------------------------------------------------
    Shared primitives
    ------------------------------------------------------------------------ */
@@ -277,4 +357,12 @@ svg { display: block; }
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* The tutor sheet is not modal. On a screen wide enough to hold both, the
+   page makes room for it instead of sliding underneath — on the bench the
+   state view sits exactly where the sheet opens. The top bar keeps its width;
+   the sheet starts below it. */
+@media (min-width: 1200px) {
+  html[data-tutor-open] .sheet > :not(header):not(aside):not(button) { margin-right: 444px; }
 }

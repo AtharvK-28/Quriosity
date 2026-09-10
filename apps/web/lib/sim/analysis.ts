@@ -264,10 +264,20 @@ function bits(k: number, n: number): string {
  * 0 are the same colour, which they must be because they are the same physics.
  * Kept here rather than in a component so the Bloch view and the amplitude
  * table cannot drift apart.
+ *
+ * Lightness follows the theme: 42% on paper, 64% on the night ground, where
+ * the darker wheel falls below 3:1. Canvas renderers pass it explicitly; DOM
+ * and SVG use `phaseHueCss`, which reads it from the stylesheet.
  */
-export function phaseHue(phase: number): string {
+export function phaseHue(phase: number, lightness = 42): string {
   const deg = ((phase * 180) / Math.PI + 360) % 360;
   // Comma-separated on purpose: valid CSS, and the only hsl() form three.js
   // can parse. The space-separated form renders as white in WebGL.
-  return `hsl(${deg.toFixed(1)}, 62%, 42%)`;
+  return `hsl(${deg.toFixed(1)}, 62%, ${lightness}%)`;
+}
+
+/** The same wheel for DOM and SVG styles, following the theme via `--phase-l`. */
+export function phaseHueCss(phase: number): string {
+  const deg = ((phase * 180) / Math.PI + 360) % 360;
+  return `hsl(${deg.toFixed(1)}, 62%, var(--phase-l, 42%))`;
 }

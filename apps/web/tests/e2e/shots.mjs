@@ -40,7 +40,10 @@ await shot("02-modes");
 await page.goto(`${BASE}/path`, { waitUntil: "networkidle" });
 await shot("03-path", { full: true });
 
-/* 4. Lesson — the brief beat. One claim, one target, no canvas. */
+/* 4. Lesson — the brief beat. One claim, one target, no canvas. The mastery
+   gate refuses a fresh session that jumps to Unit 3, so earn the way there. */
+await page.goto(`${BASE}/path?seed=u3.n3`, { waitUntil: "networkidle" });
+await page.waitForTimeout(250);
 await page.goto(`${BASE}/lesson/u3.n3`, { waitUntil: "networkidle" });
 await page.waitForSelector("text=Build a pair that always agrees");
 await shot("04-lesson-brief");
@@ -78,6 +81,32 @@ await shot("08-bench-bloch");
 /* 9. Gate reference */
 await page.goto(`${BASE}/reference`, { waitUntil: "networkidle" });
 await shot("09-reference");
+
+/* 11. The tutor, docked beside the Bell state on the bench. */
+await page.goto(`${BASE}/build`, { waitUntil: "networkidle" });
+await page.getByRole("button", { name: /Ask the tutor/ }).click();
+await page.getByLabel("Your question").fill("What does my circuit do?");
+await page.keyboard.press("Enter");
+await page.waitForSelector("text=/built-in guide|claude/i", { timeout: 30000 });
+await page.waitForFunction(
+  () => !document.querySelector('[aria-label="The tutor is thinking"]'),
+  null,
+  { timeout: 60000 },
+);
+await shot("11-tutor");
+await page.keyboard.press("Control+/");
+
+/* 12. The playground, after a Hadamard and a hundred fresh copies. */
+await page.goto(`${BASE}/playground`, { waitUntil: "networkidle" });
+await page.getByRole("button", { name: "Apply Hadamard" }).click();
+await page.getByRole("button", { name: "Measure 100 copies" }).click();
+await shot("12-playground", { full: true });
+
+/* 13. The same bench in the day theme, for comparison. */
+await page.goto(`${BASE}/build`, { waitUntil: "networkidle" });
+await page.getByRole("button", { name: /Switch to day/ }).click();
+await shot("13-bench-day");
+await page.getByRole("button", { name: /Switch to night/ }).click();
 
 /* 10. Mobile — the path and lessons work; the bench says so honestly. */
 const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });

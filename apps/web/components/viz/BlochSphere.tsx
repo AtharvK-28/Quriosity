@@ -22,7 +22,9 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import type { QubitState } from "@/lib/sim/analysis";
-import { phaseHue } from "@/lib/sim/analysis";
+import { phaseHueCss } from "@/lib/sim/analysis";
+import { useTheme } from "@/components/chrome/useTheme";
+import type { BlochPalette } from "./BlochSphere3D";
 
 /**
  * Three.js is ~600KB and only some surfaces show a sphere, so it is loaded on
@@ -60,25 +62,28 @@ function useReducedMotion(): boolean {
   return reduced;
 }
 
-/** Theme tokens, resolved from CSS so the two renderers cannot drift apart. */
-function usePalette() {
-  const [palette, setPalette] = useState({
-    ink: "#16150f", rule: "#ddd7c8", ruleStrong: "#b8b1a0",
-    paper: "#f7f4ec", phase: "#4a3fd4", muted: "#8c8676",
-  });
+/**
+ * Theme tokens, resolved from CSS so the two renderers cannot drift apart.
+ * Re-read whenever the theme flips, because a WebGL scene bakes its colours
+ * in. Null until the first read: the 3D view waits for it rather than paint a
+ * frame in the wrong theme.
+ */
+function usePalette(): BlochPalette | null {
+  const theme = useTheme();
+  const [palette, setPalette] = useState<BlochPalette | null>(null);
   useEffect(() => {
     const cs = getComputedStyle(document.documentElement);
-    const read = (name: string, fallback: string) =>
-      cs.getPropertyValue(name).trim() || fallback;
+    const read = (name: string) => cs.getPropertyValue(name).trim();
     setPalette({
-      ink: read("--ink", "#16150f"),
-      rule: read("--rule", "#ddd7c8"),
-      ruleStrong: read("--rule-3", "#b8b1a0"),
-      paper: read("--paper", "#f7f4ec"),
-      phase: read("--phase", "#4a3fd4"),
-      muted: read("--ink-muted", "#8c8676"),
+      ink: read("--ink"),
+      rule: read("--rule"),
+      ruleStrong: read("--rule-3"),
+      paper: read("--paper"),
+      phase: read("--phase"),
+      muted: read("--ink-muted"),
+      phaseL: parseFloat(read("--phase-l")) || 42,
     });
-  }, []);
+  }, [theme]);
   return palette;
 }
 
@@ -148,7 +153,7 @@ export function BlochSphereSVG({ state, label, size = SIZE }: BlochSphereProps) 
   // The vector takes the state's phase from the same wheel the amplitude table
   // uses, so phase reads identically in both views.
   const phase = Math.atan2(y, x);
-  const vectorColour = entangled ? "var(--ink-faint)" : phaseHue(phase);
+  const vectorColour = entangled ? "var(--ink-faint)" : phaseHueCss(phase);
 
   const scale = size / SIZE;
 
@@ -204,9 +209,9 @@ export function BlochSphereSVG({ state, label, size = SIZE }: BlochSphereProps) 
           <>
             <line
               x1={CX} y1={CY} x2={tipX} y2={tipY}
-              stroke={vectorColour} strokeWidth="2.5" strokeLinecap="round"
+              style={{ stroke: vectorColour }} strokeWidth="2.5" strokeLinecap="round"
             />
-            <circle cx={tipX} cy={tipY} r={4} fill={vectorColour} />
+            <circle cx={tipX} cy={tipY} r={4} style={{ fill: vectorColour }} />
             {/* An interior state gets its radius drawn, so "not on the surface"
                 is visible rather than inferred. */}
             {radius < 0.98 && (
@@ -303,7 +308,7 @@ export function BlochSphere({ state, label, size = SIZE }: BlochSphereProps) {
 
   // Until the capability check resolves, render the SVG. It is correct, it is
   // instant, and swapping to 3D a frame later is not a flash of wrong content.
-  if (webgl !== true) {
+  if (webgl !== true || !palette) {
     return <BlochSphereSVG state={state} label={label} size={size} />;
   }
 

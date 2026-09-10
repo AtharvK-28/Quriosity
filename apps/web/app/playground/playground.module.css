@@ -1,0 +1,185 @@
+.main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--s-7) clamp(16px, 3vw, 40px) var(--s-9);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+  gap: var(--s-5);
+  align-items: stretch;
+}
+
+@media (max-width: 960px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: var(--s-5);
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+}
+
+.section { display: flex; flex-direction: column; gap: var(--s-3); }
+
+.sliderRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px 12px;
+}
+.sliderRow > :last-child { grid-column: 1 / -1; }
+
+.sliderLabel { font-size: var(--t-body); color: var(--ink-2); }
+
+.sliderValue {
+  font-family: var(--font-mono);
+  font-size: var(--t-body);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.gates { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+
+.gateBtn {
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  height: 44px;
+  padding: 0 12px;
+  background: var(--paper-inset);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  transition: background var(--m-instant) linear, color var(--m-instant) linear,
+              transform var(--m-instant) var(--e-out);
+}
+.gateBtn:hover { background: var(--ink); color: var(--paper); }
+.gateBtn:active { transform: translateY(1px); }
+.gateBtn[data-kind="reset"] { border-color: var(--rule-3); font-weight: 500; }
+
+.equation {
+  padding: 14px 16px;
+  background: var(--paper-inset);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-panel);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.probRow {
+  display: grid;
+  grid-template-columns: 76px 1fr 56px;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  color: var(--ink-3);
+}
+
+.track {
+  position: relative;
+  height: 10px;
+  background: var(--paper-inset);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--measure);
+  transition: width var(--m-evolve) var(--e-settle);
+}
+
+/* Where the counts should land, marked on the bar they are landing on. */
+.expected {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+}
+
+.probValue { text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.sphere { display: grid; place-items: center; padding: var(--s-4) 0; flex: 1; }
+
+.foot {
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--rule-3);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
+.measure { margin-top: var(--s-5); }
+
+.measureHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.verdictBlock { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 320px; }
+
+.verdict {
+  font-family: var(--font-statement);
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.verdictSub { font-size: var(--t-body); color: var(--ink-2); max-width: 56ch; }
+
+.actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+
+.tally {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--rule);
+}
+
+.strip { display: flex; flex-wrap: wrap; gap: 3px; }
+
+.shot {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--measure);
+  border-radius: 2px;
+}
+.shot[data-v="1"] { background: var(--measure); }
+
+.tallyNote { font-size: var(--t-label); color: var(--ink-muted); max-width: 70ch; }
+
+.next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-5);
+  margin-top: var(--s-6);
+}

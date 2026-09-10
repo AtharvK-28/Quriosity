@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/chrome/TopBar";
 import { ChallengeRunner } from "@/components/challenge/ChallengeRunner";
+import { TutorDock } from "@/components/tutor/TutorDock";
 import { CHALLENGES, CHALLENGES_BY_ID } from "@/lib/curriculum/challenges";
 
 export function generateStaticParams() {
@@ -20,6 +21,7 @@ export default async function ChallengePage({
     <div className="sheet" style={{ minHeight: "100vh" }}>
       <TopBar />
       <ChallengeRunner challenge={challenge} />
+      <TutorDock where={{ surface: "challenge", challengeId: id }} />
     </div>
   );
 }

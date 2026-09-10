@@ -28,6 +28,9 @@ import { allQubitStates, qubitState } from "@/lib/sim/analysis";
 import type { Sdk } from "@/lib/render";
 import { useCircuit, stateAtScrub } from "@/stores/circuitStore";
 import { MODE, useSession } from "@/stores/sessionStore";
+import { useTutor } from "@/stores/tutorStore";
+import { TutorDock } from "@/components/tutor/TutorDock";
+import type { TutorWhere } from "@/lib/tutor/protocol";
 import s from "./build.module.css";
 
 type View = "plot" | "bloch" | "table" | "code";
@@ -54,6 +57,8 @@ const TRAY: GateType[] = [
   "cx", "cz", "swap", "ccx",
   "measure", "reset", "barrier",
 ];
+
+const BENCH: TutorWhere = { surface: "bench" };
 
 export default function BuildPage() {
   const { mode, hydrate, hydrated } = useSession();
@@ -136,7 +141,7 @@ export default function BuildPage() {
       if (mod && e.key === "Enter") { e.preventDefault(); execute(); }
       else if (mod && e.shiftKey && e.key.toLowerCase() === "z") { e.preventDefault(); redo(); }
       else if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
-      else if (mod && e.key === "/") { e.preventDefault(); setTutorOpen((v) => !v); }
+      // ⌘/ belongs to the tutor dock, which owns the conversation.
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -292,7 +297,7 @@ export default function BuildPage() {
               <div className={s.controlRow}>
                 {!caps.proactiveTutor && run && (
                   <Button variant="ghost" size="sm" onClick={() => setTutorOpen((v) => !v)}>
-                    Tutor · ⌘/
+                    Diagnosis
                   </Button>
                 )}
                 <Button variant="primary" onClick={() => execute()} disabled={running}>
@@ -326,6 +331,14 @@ export default function BuildPage() {
                   </button>
                 </div>
                 <p className={s.diagnosisText}>{run.finding.message}</p>
+                <button
+                  type="button"
+                  className="label"
+                  style={{ marginTop: 10, color: "var(--ink)" }}
+                  onClick={() => void useTutor.getState().ask("Why is that wrong, and how do I fix it?")}
+                >
+                  Ask the tutor why →
+                </button>
               </div>
             )}
 
@@ -404,6 +417,8 @@ export default function BuildPage() {
           </aside>
         </div>
       </main>
+
+      <TutorDock where={BENCH} />
     </div>
   );
 }

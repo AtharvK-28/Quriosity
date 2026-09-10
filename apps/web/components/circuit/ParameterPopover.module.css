@@ -8,9 +8,9 @@
   margin-top: 28px;
   padding: var(--s-4);
   background: var(--paper-raised);
-  border: var(--frame-w) solid var(--ink);
+  border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
-  box-shadow: 0 8px 22px rgb(22 21 15 / 0.13);
+  box-shadow: var(--shadow-pop);
 }
 
 /* Flipped above the gate when there is no room below it. */
@@ -28,8 +28,8 @@
   height: 10px;
   margin-left: -5px;
   background: var(--paper-raised);
-  border-left: var(--frame-w) solid var(--ink);
-  border-top: var(--frame-w) solid var(--ink);
+  border-left: var(--frame-w) solid var(--frame);
+  border-top: var(--frame-w) solid var(--frame);
   transform: rotate(45deg);
 }
 
@@ -38,8 +38,8 @@
   bottom: -7px;
   border-left: none;
   border-top: none;
-  border-right: var(--frame-w) solid var(--ink);
-  border-bottom: var(--frame-w) solid var(--ink);
+  border-right: var(--frame-w) solid var(--frame);
+  border-bottom: var(--frame-w) solid var(--frame);
 }
 
 .head {

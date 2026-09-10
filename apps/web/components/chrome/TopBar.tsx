@@ -13,6 +13,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { MODE, useSession } from "@/stores/sessionStore";
+import { setTheme, useTheme } from "./useTheme";
 import s from "./TopBar.module.css";
 
 const NAV: Record<string, Array<{ href: string; label: string }>> = {
@@ -40,6 +41,7 @@ const NAV: Record<string, Array<{ href: string; label: string }>> = {
 
 /** Reachable from every mode, but never worth a slot in the main run. */
 const SECONDARY = [
+  { href: "/playground", label: "Playground" },
   { href: "/teach", label: "Teach" },
   { href: "/reference", label: "Gates" },
 ];
@@ -48,6 +50,8 @@ export function TopBar() {
   const pathname = usePathname();
   const { mode, xp, streakDays, hydrate, hydrated, setMode } = useSession();
   const caps = MODE[mode];
+  const theme = useTheme();
+  const other = theme === "night" ? "day" : "night";
 
   useEffect(() => {
     hydrate();
@@ -111,6 +115,16 @@ export function TopBar() {
             {xp} xp
           </span>
         )}
+
+        <button
+          type="button"
+          className={s.modeTag}
+          onClick={() => setTheme(other)}
+          aria-label={`Theme: ${theme}. Switch to ${other}.`}
+          title={`Switch to ${other}`}
+        >
+          <span aria-hidden>{theme === "night" ? "☾" : "☀"}</span> {theme}
+        </button>
 
         <button type="button" className={s.modeTag} onClick={cycleMode} title="Change how the app behaves">
           {mode}

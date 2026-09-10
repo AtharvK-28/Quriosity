@@ -12,7 +12,7 @@
   flex-wrap: wrap;
   margin-bottom: var(--s-5);
   padding-bottom: var(--s-4);
-  border-bottom: 2px solid var(--ink);
+  border-bottom: 2px solid var(--frame);
 }
 
 .stats {
@@ -35,7 +35,7 @@
   flex-wrap: wrap;
   padding: var(--s-5);
   background: var(--paper);
-  border: var(--frame-w) solid var(--ink);
+  border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   margin-bottom: var(--s-6);
 }

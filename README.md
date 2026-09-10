@@ -9,11 +9,15 @@ what to do about it.
 ```bash
 npm install
 npm run dev          # http://localhost:3000
-npm test             # 161 tests: physics, tutor, curriculum, challenges, mastery, errors
+npm test             # 181 tests: physics, tutor, curriculum, challenges, mastery, errors
 ```
 
-No Docker, no database, no API key. The simulator, the grader and the tutor's
-rule engine all run in the browser.
+No Docker, no database. The simulator, the grader and the tutor's rule engine
+all run in the browser. An API key is optional — it switches the tutor chat
+from the built-in guide to Claude:
+
+```bash
+cp apps/web/.env.example apps/web/.env.local   # then set ANTHROPIC_API_KEY
 
 ---
 
@@ -33,6 +37,8 @@ a function over the IR.
 | **Challenges** — 14 puzzles across reach, golf and bug hunt | `/challenges` | Built |
 | **Challenge runner** — hints on ask, solutions after three misses | `/challenges/[id]` | Built |
 | Workbench | `/build` | Built |
+| **Tutor chat** — docked beside the circuit on the bench, lessons and challenges | ⌘/ or "Ask the tutor" | Built |
+| **Qubit playground** — θ and φ, six gates, measure and collapse, a hundred fresh copies | `/playground` | Built |
 | **Instructor console** — misconception heatmap, cohort completion | `/teach` | Built |
 | **Progress** — units, beliefs held and resolved, challenge record | `/profile` | Built |
 | Review bench (retention decay + SM-2) | `/review` | Built |
@@ -46,7 +52,8 @@ a function over the IR.
 | `lib/sim/` | State-vector simulator, reduced density matrices, Bloch vectors, purity, separability, shot sampling, a noise model |
 | `components/viz/` | Bloch sphere in WebGL (three.js) with an SVG peer view, probability histogram, state-vector table |
 | `lib/grade/` | Fidelity grading — global-phase invariant, state-based, never structural |
-| `lib/tutor/` | The deterministic rule engine, L01–L13, mapped to misconceptions M1–M14 |
+| `lib/tutor/` | The deterministic rule engine, L01–L13, mapped to misconceptions M1–M14 — and the chat around it: corpus, BM25 retrieval, server-built circuit context, sentence-level output guard, built-in guide |
+| `app/api/tutor/` | Streams the tutor as NDJSON — Claude when a key is set, the built-in guide otherwise |
 | `lib/render/` | Qiskit, Cirq, PennyLane, Q# and OpenQASM 3 renderers — pure `IR → str`, zero network |
 | `lib/curriculum/` | U0–U3 as data: 19 nodes, each with hook, task, target, instruction, pass note and a retrieval prompt |
 
@@ -103,12 +110,27 @@ per screen**:
   failure only works if the struggle comes first.
 - The **bench** has two lanes and a control bar. One state view at a time,
   switched — never four panels at once.
-- The **path** captions only the node you are on. Labelling all nineteen turns
-  the wire back into the list it exists to replace.
+- The **path** draws the curriculum as gates on the learner's own wire, and
+  every gate carries its title. An earlier pass captioned only the current node
+  in the name of restraint, which turned twelve passed nodes into twelve
+  identical ticks — a path you cannot read is a progress bar in costume. Naming
+  them all and tightening the spacing took the page from 3,350px to 1,400px.
 - The **landing** carries one claim, one instrument and one action above the
   fold.
 
+- The **review bench** plots a forgetting curve per concept with a dot at where
+  it stands now, grouped into due / this week / holding. A flat bar can say
+  "retention is 0.62"; only the curve says how fast it is falling, which is the
+  only reason the number is interesting.
+
 Everything else is behind a `Disclosure`, or it is not on the screen.
+
+One rule learned the hard way: **a multi-qubit gate can never be drawn as its
+base letter.** `cx` carries X and `cz` carries Z in the registry, so rendering
+the registry glyph puts a bare "X" beside Pauli-X and calls them different
+things. `components/circuit/GateMark.tsx` is the single renderer for gates
+outside the circuit grid, shared by the tray and the reference, so that bug
+cannot come back in one place while being fixed in the other.
 
 ---
 
@@ -137,9 +159,69 @@ instrument look like a landing page.
 
 ---
 
+## The tutor chat
+
+⌘/ (Ctrl+/ on Windows) or "Ask the tutor" on the bench, a lesson or a
+challenge. It opens beside the circuit, not over it, and only when asked — in
+every mode. If the rule engine already has a finding for the current run, it
+sits at the top of an empty conversation, instantly and with no model call.
+
+Two engines behind one wire format (`POST /api/tutor`, NDJSON):
+
+| | With `ANTHROPIC_API_KEY` | Without |
+|---|---|---|
+| Answers from | Claude (`claude-opus-5`, low effort, streamed) | The built-in guide: the rule engine's finding, or the best passage from the platform's own lessons, gate registry and misconception list |
+| Labelled | "Claude" | "Built-in guide" |
+
+What keeps it honest:
+
+- **The server never trusts the circuit it is sent.** It rebuilds the IR from
+  known fields, validates it, re-simulates it, grades it against the node's own
+  target (looked up server-side) and runs the rule engine. The model sees that
+  summary, so any probability it quotes came out of the simulator.
+- **Context travels as a mid-conversation system message**, after the
+  question. The system prompt — instructions plus the whole curriculum as
+  reference — stays byte-identical and is prompt-cached, and learner text
+  cannot pose as platform context.
+- **Every sentence is checked before it streams.** Gate references
+  (`[[gate:h]]`, rendered as chips that link to the reference row) must name a
+  registry gate; stray tags are stripped.
+- **No solutions on lessons or challenges.** The context says when disclosure
+  is not allowed; the bench is a sandbox and may get full circuits.
+- **Failure degrades, it does not break.** A declined request is re-run
+  server-side on Anthropic's recommended fallback model (`fallbacks:
+  "default"`, beta `server-side-fallback-2026-07-01`). If the service is
+  unreachable, rate-limiting or rejects the key before any text arrives, the
+  guide answers instead and says why.
+- Ten questions a minute per address, 1,500 characters a question, twelve
+  turns of history. The limiter is in memory — one instance only.
+
+The key lives in `apps/web/.env.local` (git-ignored), is read only in the route
+handler, and never reaches the browser.
+
+---
+
 ## Design system
 
-From the UI reference's v2 "instrument direction", which supersedes v1.
+Two themes, one structure (`styles/tokens.css`). Toggle in the top bar; the
+choice persists and is applied before first paint.
+
+**Night** is the default — the deep violet and gold of the team prototype
+(`UI Reference/qurio-prototype (1).html`), which is also closer to the Design
+Doc's original dark-and-gold direction.
+
+```
+page    #140a2b    paper #20123f    ink     #f5efff    frame #9d7fd6    action #f4c430
+measure #46e6a8    phase #7cc4ff    error   #ff6b93    flag  #ff8a4c
+```
+
+Every text and control pair on the night ground passes WCAG AA. Three
+prototype values did not and were lifted: dim text (4.3:1 → 6.2:1), input
+hairlines (1.4:1 → 3.6:1) and wires (now 45% ink, 4.0:1). Phase moved from
+indigo to sky blue — indigo on violet is 2.7:1 and would read as chrome — and
+flag moved to coral so it cannot be mistaken for the gold.
+
+**Day** is the UI reference's v2 "instrument direction" paper:
 
 ```
 paper   #f7f4ec    page  #e3ded1    ink     #16150f
@@ -147,15 +229,14 @@ measure #00867a    phase #4a3fd4    error   #e8306f    flag #e8a33d
 ```
 
 Colour is data. Every saturated hue means a physical quantity — measurement,
-phase, deviation, attention. Structure is ink on paper: no shadows anywhere,
-radius 0–3px, 2px frames, a 24px graph grid, registration crosses at the corners.
+phase, deviation, attention. Gold is the one exception, with one job: the next
+thing to press. Structure is ink on paper: shadows only on what floats over the
+page (popovers, the tutor), radius 0–3px, 2px frames, a 24px graph grid,
+registration crosses at the corners.
 
 Instrument Serif carries conceptual statements only. Space Grotesk is every
 piece of interface, 15px floor. JetBrains Mono is reserved for notation — gates,
 kets, readouts, axis ticks.
-
-Both themes are tokenised (`styles/tokens.css`); the dark "scope" surface is
-defined and ready for the duel screen.
 
 ---
 
@@ -177,8 +258,8 @@ preference — it is asserted in the E2E suite.
 ## Testing
 
 ```bash
-npm test                            # 161 unit tests, blocking
-node tests/e2e/demo.spec.mjs        # 24 browser checks (needs the dev server)
+npm test                            # 181 unit tests, blocking
+node tests/e2e/demo.spec.mjs        # 28 browser checks (needs a running server)
 node tests/e2e/shots.mjs            # screenshots of every surface
 ```
 
@@ -208,6 +289,26 @@ multi-SDK *execution* (as opposed to rendering, which is done), the execution
 cache, and rate limits.
 
 ### Closed in this pass
+
+**The team palette.** Night (violet and gold, from the teammate's prototype) is
+now the default theme and the paper is Day. The colours were adopted; the
+prototype's failing contrast values were not — see the design system above.
+
+**The tutor chat** (E7-S3, E7-S6). Claude phrasing over the rule engine,
+grounded in a server-side re-simulation of the learner's circuit and in the
+platform's own curriculum, with a built-in guide that answers when there is no
+key or no service. Covered by `tests/tutor-chat.test.ts` and two browser
+checks.
+
+**The qubit playground** (`/playground`), ported from the prototype with three
+changes: the real 3D sphere, the registry's own gate matrices, and repeatable
+measurement — a collapsed state stays collapsed when measured again, and a
+hundred fresh copies turn the probability into counts.
+
+Not ported: the prototype's sign-in and sign-up forms. With no backend they
+could only pretend to create an account, and E1 is waiting on a real one.
+
+### Closed in the previous pass
 
 **Challenges** (E8). Fourteen puzzles in three kinds — reach anything that gets
 there, golf for the fewest gates, bug hunt on a circuit handed to you broken.
@@ -239,7 +340,7 @@ fired on has since been passed — "worked out" versus "still open".
 | E5-S4/S6 | Density matrix view, per-pair entanglement indicator on the canvas | The wire-level indicator exists; the pairwise one does not. |
 | E3-S4/S5 | QASM import, Jupyter export | QASM *export* is written; import is not. |
 | — | **Units U4–U8** | The spine is authored as data; adding a unit is content, not code. |
-| E7-S3/S6/S7 | LLM phrasing, RAG grounding, optimisation suggestions | The rule engine — the layer that matters — is complete and covers all 13 rules. The model was always specified as phrasing over it, never as the diagnostic. |
+| E7-S7 | Optimisation suggestions | LLM phrasing and grounding are built (the tutor chat). The rule engine stays the diagnostic; the model phrases over it. |
 
 ### Closed since the first pass
 

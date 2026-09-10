@@ -40,7 +40,7 @@
 .targetCard {
   position: relative;
   background: var(--paper);
-  border: var(--frame-w) solid var(--ink);
+  border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   padding: var(--s-5);
 }
@@ -69,7 +69,7 @@
 .stage {
   position: relative;
   background: var(--paper);
-  border: var(--frame-w) solid var(--ink);
+  border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
 }
 
@@ -120,7 +120,7 @@
 .verdict {
   margin-top: var(--s-5);
   padding: var(--s-5);
-  border: var(--frame-w) solid var(--ink);
+  border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   background: var(--paper);
 }

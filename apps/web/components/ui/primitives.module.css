@@ -32,9 +32,9 @@
 /* The single place a filled colour appears on a control. One primary action
    per screen — if two things are filled, neither is the answer. */
 .primary {
-  background: var(--measure);
-  color: var(--paper);
-  border-color: var(--measure);
+  background: var(--cta);
+  color: var(--cta-ink);
+  border-color: var(--cta);
 }
 .primary:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
 

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/chrome/TopBar";
 import { LessonPlayer } from "@/components/lesson/LessonPlayer";
+import { TutorDock } from "@/components/tutor/TutorDock";
 import { NODES, NODES_BY_ID } from "@/lib/curriculum/nodes";
 
 export function generateStaticParams() {
@@ -20,6 +21,7 @@ export default async function LessonPage({
     <div className="sheet" style={{ minHeight: "100vh" }}>
       <TopBar />
       <LessonPlayer node={node} />
+      <TutorDock where={{ surface: "lesson", nodeId }} />
     </div>
   );
 }

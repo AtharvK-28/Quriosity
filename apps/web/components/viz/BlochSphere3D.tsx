@@ -26,18 +26,22 @@ import * as THREE from "three";
 import type { QubitState } from "@/lib/sim/analysis";
 import { phaseHue } from "@/lib/sim/analysis";
 
+/** Resolved theme colours, read from CSS so the two systems cannot drift. */
+export interface BlochPalette {
+  ink: string;
+  rule: string;
+  ruleStrong: string;
+  paper: string;
+  phase: string;
+  muted: string;
+  /** Lightness of the phase wheel on this theme, in percent. */
+  phaseL: number;
+}
+
 export interface BlochSphere3DProps {
   state: QubitState;
   size: number;
-  /** Resolved theme colours, read from CSS so the two systems cannot drift. */
-  palette: {
-    ink: string;
-    rule: string;
-    ruleStrong: string;
-    paper: string;
-    phase: string;
-    muted: string;
-  };
+  palette: BlochPalette;
   reducedMotion: boolean;
 }
 
@@ -253,7 +257,9 @@ export function BlochSphere3D({ state, size, palette, reducedMotion }: BlochSphe
         first = false;
       }
 
-      const colour = new THREE.Color(s.entangled ? palette.muted : phaseHue(Math.atan2(s.y, s.x)));
+      const colour = new THREE.Color(
+        s.entangled ? palette.muted : phaseHue(Math.atan2(s.y, s.x), palette.phaseL),
+      );
       shaftMat.color = colour;
 
       const showVector = s.radius > 0.02;

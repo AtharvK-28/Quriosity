@@ -60,7 +60,7 @@ export default function ReferencePage() {
             const unit = UNITS.find((u) => u.id === g.unlocksIn);
             const wires = g.targetArity + g.controlArity;
             return (
-              <div key={type} className={s.row}>
+              <div key={type} id={`gate-${type}`} className={s.row} style={{ scrollMarginTop: 84 }}>
                 <span className={s.glyphCell}>
                   <span className={s.glyph} aria-hidden>
                     <GateMark spec={g} />

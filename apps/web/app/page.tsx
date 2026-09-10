@@ -123,6 +123,9 @@ export default function LandingPage() {
             <Link href="/build" className="label" style={{ padding: "12px 4px" }}>
               Skip to the bench →
             </Link>
+            <Link href="/playground" className="label" style={{ padding: "12px 4px" }}>
+              Play with one qubit →
+            </Link>
           </div>
         </div>
 

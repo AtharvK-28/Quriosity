@@ -55,7 +55,7 @@
   right: 0;
   height: 2px;
   background: var(--ink);
-  opacity: 0.34;
+  opacity: var(--wire-alpha);
 }
 
 /* Every wire starts at |0⟩. Stacking it under the index is how Qiskit's own

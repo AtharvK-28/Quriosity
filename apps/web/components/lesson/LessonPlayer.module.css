@@ -67,7 +67,7 @@
 
 .targetCard {
   background: var(--paper);
-  border: var(--frame-w) solid var(--ink);
+  border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   padding: var(--s-5);
   position: relative;
@@ -114,7 +114,7 @@
 
 .stage {
   background: var(--paper);
-  border: var(--frame-w) solid var(--ink);
+  border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   position: relative;
 }
@@ -230,7 +230,7 @@
 
 .passPlot {
   background: var(--paper);
-  border: var(--frame-w) solid var(--ink);
+  border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   padding: var(--s-5);
   position: relative;

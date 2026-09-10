@@ -13,7 +13,7 @@
  */
 
 import { formatParam } from "@/lib/ir/gates";
-import { amplitudeRows, phaseHue, type AmplitudeRow } from "@/lib/sim/analysis";
+import { amplitudeRows, phaseHueCss, type AmplitudeRow } from "@/lib/sim/analysis";
 import type { SimResult } from "@/lib/sim/statevector";
 
 export function StateTable({
@@ -170,7 +170,7 @@ function PhaseArrow({ phase }: { phase: number }) {
         x1="7" y1="7"
         x2={7 + 5 * Math.cos(phase)}
         y2={7 - 5 * Math.sin(phase)}
-        stroke={phaseHue(phase)}
+        style={{ stroke: phaseHueCss(phase) }}
         strokeWidth="2"
         strokeLinecap="round"
       />
