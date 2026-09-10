@@ -1,0 +1,342 @@
+.wrap {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--s-4) 0;
+
+  /* The plotter sheet, printed a shade fainter than the page it sits on. This
+     is what stops the columns a circuit has not reached yet from reading as
+     dead space — they are paper, and paper is the point. */
+  background-image:
+    linear-gradient(var(--rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: var(--grid) var(--grid);
+  background-position: center;
+  opacity: 1;
+}
+
+/* A margin rule down the left, where the wire labels sit — the fold on a
+   plotter sheet, and a real boundary between index and plot. */
+.wrap::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--wire-label) - 10px);
+  width: 1px;
+  background: var(--rule-2);
+  pointer-events: none;
+}
+
+.canvas {
+  position: relative;
+  /* The canvas is a composite widget: it owns its own key handling, and the
+     focus ring belongs to the whole grid rather than to individual cells. */
+  outline: none;
+}
+
+.canvas:focus-visible {
+  outline: 2px solid var(--measure);
+  outline-offset: 6px;
+}
+
+/* -- Wires ------------------------------------------------------------------- */
+
+.wireRow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.wireLine {
+  position: absolute;
+  left: var(--wire-label);
+  right: 0;
+  height: 2px;
+  background: var(--ink);
+  opacity: 0.34;
+}
+
+/* Every wire starts at |0⟩. Stacking it under the index is how Qiskit's own
+   drawings label a register, and it answers "where does this begin" without
+   costing a column of width. */
+.wireOrigin {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.1;
+  color: var(--ink-faint);
+  margin-top: 1px;
+}
+
+.wireLabel {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(var(--wire-label) - 10px);
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  font-weight: 500;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* The entanglement indicator, overlaid from the column where the wires could
+   first have become correlated. The dash is the signal; the colour is the
+   physics layer earning its place. */
+.wireEntangled {
+  position: absolute;
+  right: 0;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--phase) 0 7px,
+    transparent 7px 13px
+  );
+  opacity: 0.8;
+}
+
+/* -- Slots ------------------------------------------------------------------- */
+
+.slot {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  /* PRD A11Y8: gate drop targets are at least 44px. */
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 0;
+  background: none;
+  cursor: default;
+  border-radius: var(--r-gate);
+}
+
+.slot[data-armed="true"] {
+  cursor: pointer;
+}
+
+/* The insertion outline. Dashed, quiet, and the only thing that appears on
+   hover — no red flash and no shake on an invalid target, because silence is
+   a sufficient signal. */
+.slot[data-armed="true"]:hover::after,
+.slot[data-cursor="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 2px dashed var(--ink-faint);
+  border-radius: var(--r-gate);
+}
+
+.slot[data-cursor="true"]::after {
+  border-color: var(--measure);
+  border-style: solid;
+}
+
+/* -- Gates ------------------------------------------------------------------- */
+
+.gate {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: var(--gate-size);
+  height: var(--gate-size);
+  margin: calc(var(--gate-size) / -2) 0 0 calc(var(--gate-size) / -2);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: grab;
+  user-select: none;
+  transition: transform var(--m-quick) var(--e-out);
+}
+
+.gate:hover { border-color: var(--ink); transform: translateY(-1px); }
+.gate:active { cursor: grabbing; transform: translateY(0); }
+
+.gate[data-selected="true"] {
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--measure);
+}
+
+/* What "show me on canvas" points at. It highlights the gate; it does not
+   move it, because the correction is the learner's to make. */
+.gate[data-highlighted="true"] {
+  border-color: var(--error);
+  color: var(--error);
+  background: var(--error-wash);
+}
+
+.gate[data-dragging="true"] {
+  opacity: 0.4;
+}
+
+.gateParam {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.gateSub {
+  font-size: 10px;
+  vertical-align: super;
+}
+
+/* Measurement carries a meter arc rather than a letter. */
+.measureGlyph {
+  width: 20px;
+  height: 14px;
+}
+
+/* -- Multi-qubit gates -------------------------------------------------------- */
+
+.connector {
+  position: absolute;
+  width: 2px;
+  background: var(--ink);
+  margin-left: -1px;
+  pointer-events: none;
+}
+
+.connector[data-highlighted="true"] { background: var(--error); }
+
+.control {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: var(--r-full);
+  background: var(--ink);
+  cursor: grab;
+}
+
+.control[data-highlighted="true"] { background: var(--error); }
+
+.xTarget {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-full);
+  background: var(--paper);
+  cursor: grab;
+}
+
+.xTarget::before,
+.xTarget::after {
+  content: "";
+  position: absolute;
+  background: var(--ink);
+}
+.xTarget::before { left: 50%; top: 3px; bottom: 3px; width: 2px; margin-left: -1px; }
+.xTarget::after { top: 50%; left: 3px; right: 3px; height: 2px; margin-top: -1px; }
+
+.xTarget[data-highlighted="true"] { border-color: var(--error); }
+.xTarget[data-highlighted="true"]::before,
+.xTarget[data-highlighted="true"]::after { background: var(--error); }
+
+.swapMark {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  cursor: grab;
+}
+.swapMark::before,
+.swapMark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  height: 2px;
+  top: 8px;
+}
+.swapMark::before { transform: rotate(45deg); }
+.swapMark::after { transform: rotate(-45deg); }
+
+/* -- Target-selection state --------------------------------------------------- */
+
+/* When a two-qubit gate is half-placed, valid wires light up and everything
+   else goes quiet. Esc cancels the whole placement. */
+.pendingWire {
+  position: absolute;
+  left: var(--wire-label);
+  right: 0;
+  height: 24px;
+  margin-top: -12px;
+  background: var(--measure-wash);
+  border-top: 1px dashed var(--measure);
+  border-bottom: 1px dashed var(--measure);
+  cursor: pointer;
+}
+
+.pendingHint {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--measure);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* -- Time cursor -------------------------------------------------------------- */
+
+/* The scrubber's position, drawn through the circuit so the state readout
+   below is unambiguously the state AT this column. */
+.timeCursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--measure);
+  pointer-events: none;
+}
+
+.timeCursorCap {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 9px;
+  height: 9px;
+  background: var(--measure);
+  border-radius: var(--r-full);
+}
+
+/* Columns after the cursor are not yet applied. */
+.futureVeil {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: var(--page);
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+/* -- Empty state --------------------------------------------------------------- */
+
+.emptyHint {
+  position: absolute;
+  font-family: var(--font-ui);
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}

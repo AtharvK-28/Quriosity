@@ -1,0 +1,155 @@
+/* Anchored below the gate it belongs to. This is a popover, so it gets one of
+   the system's two permitted shadows — the other belongs to a dragged gate. */
+.pop {
+  position: fixed;
+  z-index: 60;
+  width: 232px;
+  margin-left: -116px;
+  margin-top: 28px;
+  padding: var(--s-4);
+  background: var(--paper-raised);
+  border: var(--frame-w) solid var(--ink);
+  border-radius: var(--r-panel);
+  box-shadow: 0 8px 22px rgb(22 21 15 / 0.13);
+}
+
+/* Flipped above the gate when there is no room below it. */
+.pop[data-flipped="true"] {
+  transform: translateY(calc(-100% - 56px));
+}
+
+/* A pointer to the gate, so it is unambiguous which one is being edited. */
+.pop::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--paper-raised);
+  border-left: var(--frame-w) solid var(--ink);
+  border-top: var(--frame-w) solid var(--ink);
+  transform: rotate(45deg);
+}
+
+.pop[data-flipped="true"]::before {
+  top: auto;
+  bottom: -7px;
+  border-left: none;
+  border-top: none;
+  border-right: var(--frame-w) solid var(--ink);
+  border-bottom: var(--frame-w) solid var(--ink);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+/* -- The dial ------------------------------------------------------------------ */
+
+.dial {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--rule-3);
+  cursor: pointer;
+}
+
+.dial::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: var(--r-full);
+  background: var(--ink);
+  cursor: grab;
+}
+
+.dial::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: none;
+  border-radius: var(--r-full);
+  background: var(--ink);
+  cursor: grab;
+}
+
+.ticks {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0 var(--s-4);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+}
+
+/* -- The field ------------------------------------------------------------------ */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.field {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--paper);
+  border: 1px solid var(--rule-3);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  color: var(--ink);
+}
+
+.field:focus-visible {
+  border-color: var(--measure);
+  outline: 2px solid var(--measure);
+  outline-offset: 1px;
+}
+
+/* Invalid input is marked, never cleared. */
+.field[data-invalid="true"] {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.unit {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+}
+
+/* -- Readout --------------------------------------------------------------------- */
+
+.note {
+  margin-top: var(--s-3);
+  font-size: var(--t-body);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.note b {
+  color: var(--ink);
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+}
+
+.note[data-tone="error"] { color: var(--error); }
+.note[data-tone="error"] b { color: var(--error); }
+
+.hint {
+  margin-top: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}

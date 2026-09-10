@@ -1,0 +1,190 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: var(--plot-h, 150px);
+  padding-left: 32px;
+  border-bottom: 2px solid var(--ink);
+}
+
+/* Fixed 0–1 scale, always. Auto-scaling makes a 4% outcome look large, and
+   that is a lie the learner has no way to catch. */
+.axis {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 30px;
+}
+
+.tick {
+  position: absolute;
+  right: 4px;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.gridline {
+  position: absolute;
+  left: 32px;
+  right: 0;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* The half line is the one people actually read against — "is this a fair
+   coin" is the most common question asked of this plot. */
+.gridline[data-major="true"] {
+  background: var(--rule-2);
+}
+
+.col {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bar {
+  position: relative;
+  width: 100%;
+  max-width: 52px;
+  background: var(--ink);
+  /* A 2px cap, inside the system's 0–3px range. A perfectly square column of
+     ink reads as a block; two pixels of relief reads as a drawn bar. */
+  border-radius: 2px 2px 0 0;
+  transition: height var(--m-settle) var(--e-settle),
+              background var(--m-instant) linear;
+}
+
+/* A hairline at the foot of each bar, so a zero-probability outcome still has
+   a visible column rather than vanishing from the axis entirely. */
+.col::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 52px;
+  height: 2px;
+  background: var(--rule-2);
+}
+
+.col:hover .bar { background: var(--measure); }
+.col:hover .value { color: var(--measure); }
+
+.bar[data-series="target"] {
+  background: none;
+  border: 2px dashed var(--ink-faint);
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bar[data-series="ideal"] {
+  background: none;
+  border: 2px solid var(--ink-faint);
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* The outcome the tutor is pointing at. */
+.bar[data-flagged="true"] { background: var(--error); }
+.bar[data-hit="true"] { background: var(--measure); }
+
+.value {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* A bar tall enough to have no headroom carries its value inside instead. */
+.value[data-inside="true"] {
+  bottom: auto;
+  top: 5px;
+  color: var(--paper);
+}
+
+.col:hover .value[data-inside="true"] { color: var(--paper); }
+
+.labels {
+  display: flex;
+  gap: 4px;
+  padding-left: 32px;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.label[data-flagged="true"] { color: var(--error); }
+
+/* -- Caption ------------------------------------------------------------------ */
+
+/* The endianness convention is printed, not tucked into a footnote.
+   Misconception M10 lives here, and hiding it is how it survives. */
+.caption {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-4);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.legend {
+  display: flex;
+  gap: var(--s-4);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 14px;
+  height: 10px;
+  background: var(--ink);
+}
+
+.swatch[data-series="target"] { background: none; border: 2px dashed var(--ink-faint); }
+.swatch[data-series="ideal"] { background: none; border: 2px solid var(--ink-faint); }

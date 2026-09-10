@@ -1,0 +1,128 @@
+.main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(48px, 8vw, 104px) clamp(20px, 4vw, 40px) var(--s-9);
+}
+
+.head {
+  max-width: 34ch;
+  margin-bottom: clamp(32px, 5vw, 56px);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--s-5);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  background: var(--paper);
+  border: var(--frame-w) solid var(--rule-3);
+  border-radius: var(--r-panel);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--m-quick) var(--e-out), transform var(--m-quick) var(--e-out);
+}
+
+.card:hover {
+  border-color: var(--ink);
+  transform: translateY(-2px);
+}
+
+.card:focus-visible {
+  border-color: var(--measure);
+}
+
+/* The preview well. Each card shows the surface it opens rather than an icon.
+   Fixed height, not min-height: the three previews have different natural
+   depths, and a card row whose titles do not share a baseline reads as sloppy
+   however good the individual cards are. */
+.preview {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 104px;
+  padding: var(--s-4);
+  margin-bottom: var(--s-2);
+  background: var(--paper-inset);
+  border-radius: var(--r-gate);
+}
+
+.previewCircuit {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.pwire {
+  flex: 1;
+  height: 2px;
+  background: var(--ink);
+  opacity: 0.28;
+}
+
+.pgate {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-gate);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  flex: none;
+}
+
+.previewCode {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+.previewList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  color: var(--ink-2);
+}
+
+.cardTitle {
+  font-family: var(--font-statement);
+  font-size: 27px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.cardBlurb {
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.cardWho {
+  margin-top: auto;
+  padding-top: var(--s-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.footnote {
+  margin-top: var(--s-6);
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+  max-width: 58ch;
+}

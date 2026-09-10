@@ -1,0 +1,156 @@
+.main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(32px, 5vw, 64px) clamp(20px, 4vw, 40px) var(--s-9);
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 2px solid var(--ink);
+}
+
+.stats { display: flex; gap: var(--s-6); }
+
+.intro {
+  margin-bottom: clamp(28px, 4vw, 44px);
+  max-width: 64ch;
+}
+
+.filters {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+
+/* -- Kind sections ------------------------------------------------------------- */
+
+.section { margin-bottom: clamp(36px, 5vw, 56px); }
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-4);
+  margin-bottom: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  font-family: var(--font-statement);
+  font-size: 27px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.sectionBlurb {
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 268px), 1fr));
+  gap: var(--s-4);
+}
+
+/* -- Card ----------------------------------------------------------------------- */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5) var(--s-5);
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--m-quick) var(--e-out), transform var(--m-quick) var(--e-out);
+}
+
+.card:hover:not([data-locked="true"]) {
+  border-color: var(--ink);
+  transform: translateY(-2px);
+}
+
+.card[data-locked="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.card[data-solved="true"] { border-color: var(--measure); }
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.cardTitle {
+  font-family: var(--font-statement);
+  font-size: 22px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.cardBrief {
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink-3);
+  flex: 1;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.cardFoot b { color: var(--measure); font-weight: 500; }
+
+/* A miniature of the target shape, so a card is picked by recognition. */
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 34px;
+}
+
+.sparkBar {
+  flex: 1;
+  min-width: 3px;
+  max-width: 16px;
+  background: var(--ink);
+  border-radius: 1px 1px 0 0;
+  opacity: 0.75;
+}
+
+.sparkBar[data-zero="true"] { background: var(--rule-2); opacity: 1; height: 2px !important; }
+
+.dots { display: inline-flex; gap: 3px; }
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--rule-3);
+}
+.dot[data-on="true"] { background: var(--ink); }

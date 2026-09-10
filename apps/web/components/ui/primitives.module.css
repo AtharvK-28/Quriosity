@@ -1,0 +1,284 @@
+/* -- Button -------------------------------------------------------------------
+   Four variants and no more. Every one ships default, hover, focus-visible,
+   active and disabled — focus-visible is never removed.
+   ------------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: 11px 18px;
+  border: 2px solid transparent;
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--m-instant) linear, color var(--m-instant) linear,
+              border-color var(--m-instant) linear, transform var(--m-instant) var(--e-out);
+}
+
+.btn:active:not(:disabled) { transform: translateY(1px); }
+
+.btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* The single place a filled colour appears on a control. One primary action
+   per screen — if two things are filled, neither is the answer. */
+.primary {
+  background: var(--measure);
+  color: var(--paper);
+  border-color: var(--measure);
+}
+.primary:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+.secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.secondary:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+
+.ghost {
+  background: transparent;
+  color: var(--ink-3);
+  border-color: transparent;
+  padding: 8px 10px;
+}
+.ghost:hover:not(:disabled) { color: var(--ink); background: var(--paper-inset); }
+
+.danger {
+  background: transparent;
+  color: var(--error);
+  border-color: var(--error);
+}
+.danger:hover:not(:disabled) { background: var(--error); color: var(--paper); }
+
+.sm { padding: 7px 12px; font-size: var(--t-micro); }
+.lg { padding: 15px 26px; font-size: var(--t-body); letter-spacing: 0.1em; }
+
+/* -- Panel --------------------------------------------------------------------
+   Elevation is built from frame weight and air, not from shadow. There are no
+   shadows anywhere in this system.
+   ------------------------------------------------------------------------- */
+
+.panel {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  padding: var(--s-5);
+}
+
+.framed { border: var(--frame-w) solid var(--frame); }
+.inset { background: var(--paper-inset); border-color: var(--rule); }
+.flush { padding: 0; }
+
+.panelHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-4);
+}
+
+/* -- Chips and readouts -------------------------------------------------------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.chip[data-tone="measure"] { color: var(--measure); border-color: var(--measure); }
+.chip[data-tone="error"] { color: var(--error); border-color: var(--error); }
+.chip[data-tone="flag"] { color: var(--flag); border-color: var(--flag); }
+.chip[data-tone="phase"] { color: var(--phase); border-color: var(--phase); }
+.chip[data-tone="solid"] { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: currentColor;
+  flex: none;
+}
+
+/* A number and its label, stacked. Used for fidelity, depth, shots. */
+.readout {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.readoutValue {
+  font-family: var(--font-mono);
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.readoutLabel {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* -- Disclosure ---------------------------------------------------------------
+   The workhorse of the density discipline. Anything that is not the one thing
+   this screen is for lives behind one of these.
+   ------------------------------------------------------------------------- */
+
+.disclosure {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--s-3);
+}
+
+.disclosureBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.disclosureBtn:hover { color: var(--ink); }
+
+.caret {
+  transition: transform var(--m-quick) var(--e-out);
+  font-size: 9px;
+}
+.caret[data-open="true"] { transform: rotate(90deg); }
+
+.disclosureBody {
+  padding-top: var(--s-4);
+}
+
+/* -- Segmented control --------------------------------------------------------- */
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-gate);
+  overflow: hidden;
+}
+
+.segment {
+  padding: 7px 13px;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  background: var(--paper);
+  cursor: pointer;
+  border-right: 1px solid var(--rule-2);
+  transition: background var(--m-instant) linear, color var(--m-instant) linear;
+}
+.segment:last-child { border-right: none; }
+.segment:hover { color: var(--ink); }
+.segment[data-active="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* -- Margin note --------------------------------------------------------------
+   The annotation column from the reference. One plain sentence about what just
+   happened. It appears after an action, never before one.
+   ------------------------------------------------------------------------- */
+
+.margin {
+  border-left: 2px solid var(--rule-3);
+  padding-left: var(--s-4);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink-3);
+  max-width: 46ch;
+}
+
+.marginLabel {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 5px;
+}
+
+/* -- Slider -------------------------------------------------------------------- */
+
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--rule-3);
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: var(--r-full);
+  background: var(--ink);
+  cursor: grab;
+}
+
+.slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: none;
+  border-radius: var(--r-full);
+  background: var(--ink);
+  cursor: grab;
+}
+
+/* -- Number input -------------------------------------------------------------- */
+
+.input {
+  padding: 8px 10px;
+  background: var(--paper);
+  border: 1px solid var(--rule-3);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  color: var(--ink);
+  width: 100%;
+}
+
+.input:focus-visible {
+  border-color: var(--measure);
+  outline: 2px solid var(--measure);
+  outline-offset: 1px;
+}
+
+.input[data-invalid="true"] { border-color: var(--error); }

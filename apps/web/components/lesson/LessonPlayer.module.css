@@ -1,0 +1,271 @@
+.shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--s-6) clamp(16px, 3vw, 32px) var(--s-9);
+}
+
+/* -- Node header ---------------------------------------------------------------
+   Deliberately thin. The learner knows where they are from the path; repeating
+   it in a heavy header steals room from the instrument.
+   ------------------------------------------------------------------------- */
+
+.crumb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--rule-2);
+}
+
+.crumbLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.back { color: var(--ink-muted); }
+.back:hover { color: var(--ink); text-decoration: none; }
+
+/* -- Beat: brief ---------------------------------------------------------------
+   The hook. One claim, the task, and the shape you are aiming at. Nothing else
+   is on the screen, because nothing else has been earned yet.
+   ------------------------------------------------------------------------- */
+
+.brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+  padding: clamp(24px, 4vw, 48px) 0;
+}
+
+@media (max-width: 860px) {
+  .brief { grid-template-columns: 1fr; }
+}
+
+.hook {
+  margin-bottom: var(--s-5);
+}
+
+.taskLine {
+  font-size: var(--t-body-lg);
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 52ch;
+  margin-bottom: var(--s-3);
+}
+
+.taskNote {
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+  max-width: 52ch;
+  margin-bottom: var(--s-6);
+}
+
+.targetCard {
+  background: var(--paper);
+  border: var(--frame-w) solid var(--ink);
+  border-radius: var(--r-panel);
+  padding: var(--s-5);
+  position: relative;
+}
+
+.targetHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+/* -- Beat: build ---------------------------------------------------------------
+   Canvas is the primary object. The target shrinks to a reference strip; the
+   state views do not exist until there is a result to show.
+   ------------------------------------------------------------------------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--s-6);
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .workspace { grid-template-columns: 1fr; }
+}
+
+.taskStrip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-5);
+  margin-bottom: var(--s-4);
+}
+
+.taskStripText {
+  font-size: var(--t-body-lg);
+  line-height: 1.45;
+  color: var(--ink);
+  max-width: 46ch;
+}
+
+.stage {
+  background: var(--paper);
+  border: var(--frame-w) solid var(--ink);
+  border-radius: var(--r-panel);
+  position: relative;
+}
+
+.stageBody { padding: 0 var(--s-4); }
+
+.stageFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-4);
+  border-top: 1px solid var(--rule-2);
+}
+
+.trayRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.runRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* -- Beat: result ---------------------------------------------------------------
+   The plot is the verdict. It sits at the top of the result, at the same scale
+   as the target, so the comparison is visual before it is numerical.
+   ------------------------------------------------------------------------- */
+
+.resultGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-6);
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .resultGrid { grid-template-columns: 1fr; }
+}
+
+.verdictBar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  padding: var(--s-4) 0;
+}
+
+/* -- The diagnosis --------------------------------------------------------------
+   Appears in place beneath the circuit, not in a sidebar that has to be
+   noticed. It is a panel and never a modal — the learner keeps editing while
+   it is open.
+   ------------------------------------------------------------------------- */
+
+.diagnosis {
+  background: var(--error-wash);
+  border: var(--frame-w) solid var(--error);
+  border-radius: var(--r-panel);
+  padding: var(--s-5);
+  margin-top: var(--s-5);
+}
+
+.diagnosis[data-tone="pass"] {
+  background: var(--measure-wash);
+  border-color: var(--measure);
+}
+
+.diagnosisHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.diagnosisText {
+  font-size: var(--t-body-lg);
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 60ch;
+  margin-bottom: var(--s-4);
+}
+
+.diagnosisActions {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+/* -- Pass -----------------------------------------------------------------------
+   No confetti. A fact the learner did not have thirty seconds ago.
+   ------------------------------------------------------------------------- */
+
+.pass {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 48px) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.passPlot {
+  background: var(--paper);
+  border: var(--frame-w) solid var(--ink);
+  border-radius: var(--r-panel);
+  padding: var(--s-5);
+  position: relative;
+}
+
+.passActions {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: var(--s-2);
+}
+
+.parLine {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* -- State views ----------------------------------------------------------------
+   One view at a time, switched. Never four panels at once — that is the habit
+   the reference bench fell into and the reason it read as crowded.
+   ------------------------------------------------------------------------- */
+
+.viewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.viewBody {
+  min-height: 120px;
+}

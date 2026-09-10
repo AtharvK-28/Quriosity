@@ -1,0 +1,294 @@
+.main {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 52px) clamp(20px, 4vw, 40px) var(--s-9);
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 2px solid var(--ink);
+}
+
+.stats { display: flex; gap: var(--s-6); }
+
+/* Seeded data says so in the header rather than waiting to be asked. */
+.seeded {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  margin-bottom: var(--s-5);
+  border: 1px solid var(--flag);
+  border-radius: var(--r-gate);
+  background: var(--flag-wash);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* -- The lead ------------------------------------------------------------------
+   An instructor has ninety seconds before class. The first thing on the screen
+   has to be the thing that changes the lecture.
+   ------------------------------------------------------------------------- */
+
+.lead {
+  position: relative;
+  padding: var(--s-5) var(--s-6);
+  margin-bottom: clamp(28px, 4vw, 44px);
+  background: var(--paper);
+  border: var(--frame-w) solid var(--ink);
+  border-radius: var(--r-panel);
+}
+
+.leadStatement {
+  font-family: var(--font-statement);
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1.15;
+  color: var(--ink);
+  max-width: 30ch;
+  margin: 6px 0 var(--s-3);
+}
+
+.leadBody {
+  font-size: var(--t-body-lg);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+/* -- Heatmap -------------------------------------------------------------------- */
+
+.section { margin-bottom: clamp(32px, 4vw, 52px); }
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-4);
+}
+
+.sectionTitle {
+  font-family: var(--font-statement);
+  font-size: 25px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.heat {
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  padding: var(--s-4) var(--s-5);
+}
+
+.heatRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 62px minmax(120px, 200px);
+  gap: var(--s-4);
+  align-items: center;
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.heatRow:last-child { border-bottom: none; }
+
+.belief {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.beliefText {
+  font-size: var(--t-body);
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.beliefMeta {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pct {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The bar is the heat. Length carries the reading; colour only marks the
+   dominant row, so this survives being printed in grey. */
+.heatBar {
+  height: 14px;
+  background: var(--paper-inset);
+  position: relative;
+  border-radius: 1px;
+}
+
+.heatFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ink);
+  border-radius: 1px;
+}
+
+.heatFill[data-top="true"] { background: var(--error); }
+
+/* -- Completion matrix ------------------------------------------------------------ */
+
+.matrixWrap {
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  padding: var(--s-5);
+  overflow-x: auto;
+}
+
+.matrix {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  min-width: 760px;
+}
+
+.col {
+  flex: 1;
+  min-width: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+}
+
+/* A stacked bar per node: passed, attempting, locked. */
+.stack {
+  width: 100%;
+  height: 132px;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: 1px;
+  overflow: hidden;
+  background: var(--paper-inset);
+}
+
+.segPassed { background: var(--ink); }
+.segAttempting { background: var(--flag); }
+.segLocked { background: var(--rule-2); }
+
+.colLabel {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ink-faint);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  height: 118px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.unitTick {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.legend {
+  display: flex;
+  gap: var(--s-5);
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  flex-wrap: wrap;
+}
+
+.legendItem { display: inline-flex; align-items: center; gap: 7px; }
+
+.swatch { width: 13px; height: 10px; border-radius: 1px; }
+
+/* -- Roster ---------------------------------------------------------------------- */
+
+.roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 232px), 1fr));
+  gap: var(--s-3);
+}
+
+.student {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: var(--s-4);
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-gate);
+}
+
+.studentTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.studentName {
+  font-size: var(--t-body);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.studentMeta {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.track {
+  height: 6px;
+  background: var(--paper-inset);
+  border-radius: 1px;
+  position: relative;
+}
+
+.trackFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--measure);
+  border-radius: 1px;
+}
+
+.trackFill[data-stalled="true"] { background: var(--flag); }

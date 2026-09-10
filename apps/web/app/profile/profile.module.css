@@ -1,0 +1,158 @@
+.main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(28px, 4vw, 52px) clamp(20px, 4vw, 40px) var(--s-9);
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  margin-bottom: clamp(28px, 4vw, 44px);
+  padding-bottom: var(--s-4);
+  border-bottom: 2px solid var(--ink);
+}
+
+.stats { display: flex; gap: var(--s-6); flex-wrap: wrap; }
+
+/* -- Unit rings ------------------------------------------------------------------
+   One ring per unit. Position on the arc is completion; the inner figure is
+   first-attempt accuracy, which is the number the mastery gate reads.
+   ------------------------------------------------------------------------- */
+
+.units {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--s-4);
+  margin-bottom: clamp(32px, 4vw, 48px);
+}
+
+.unit {
+  display: flex;
+  gap: var(--s-4);
+  align-items: flex-start;
+  padding: var(--s-4) var(--s-5);
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+}
+
+.unit[data-complete="true"] { border-color: var(--measure); }
+
+.unitText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* Unit titles wrap rather than truncate — "What a qubit is not" losing its
+   last two words changes what it says. */
+.unitTitle {
+  font-size: var(--t-body);
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.unitMeta {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* -- Sections --------------------------------------------------------------------- */
+
+.section { margin-bottom: clamp(32px, 4vw, 48px); }
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-4);
+}
+
+.sectionTitle {
+  font-family: var(--font-statement);
+  font-size: 25px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  padding: var(--s-5);
+}
+
+.empty {
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink-muted);
+  max-width: 56ch;
+}
+
+/* -- Misconceptions met ------------------------------------------------------------ */
+
+.mList { display: flex; flex-direction: column; gap: var(--s-3); }
+
+.mRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--s-4);
+  align-items: center;
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--rule);
+}
+.mRow:last-child { border-bottom: none; padding-bottom: 0; }
+
+.mBelief {
+  font-size: var(--t-body);
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.mMeta {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* -- Challenge record --------------------------------------------------------------- */
+
+.cList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: var(--s-3);
+}
+
+.cRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: 11px var(--s-4);
+  background: var(--paper-inset);
+  border-radius: var(--r-gate);
+}
+
+.cName {
+  font-size: var(--t-body);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cScore {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--measure);
+  white-space: nowrap;
+}

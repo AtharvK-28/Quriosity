@@ -1,0 +1,208 @@
+.shell {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--s-6) clamp(16px, 3vw, 32px) var(--s-9);
+}
+
+.crumb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--rule-2);
+}
+
+.back { color: var(--ink-muted); }
+.back:hover { color: var(--ink); text-decoration: none; }
+
+/* -- Brief ---------------------------------------------------------------------- */
+
+.brief { margin-bottom: var(--s-5); }
+
+.briefText {
+  margin-top: var(--s-3);
+  font-size: var(--t-body-lg);
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 52ch;
+}
+
+.briefNote {
+  margin-top: var(--s-3);
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+  max-width: 52ch;
+}
+
+.targetCard {
+  position: relative;
+  background: var(--paper);
+  border: var(--frame-w) solid var(--ink);
+  border-radius: var(--r-panel);
+  padding: var(--s-5);
+}
+
+.targetHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+/* -- Workspace ------------------------------------------------------------------ */
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--s-5);
+  align-items: start;
+}
+
+@media (max-width: 1040px) {
+  .workspace { grid-template-columns: 1fr; }
+}
+
+.stage {
+  position: relative;
+  background: var(--paper);
+  border: var(--frame-w) solid var(--ink);
+  border-radius: var(--r-panel);
+}
+
+.stageBody { padding: 0 var(--s-4); }
+
+.stageFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-4);
+  border-top: 1px solid var(--rule-2);
+}
+
+.runRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.gateCount {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.viewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-4);
+}
+
+/* -- Verdict -------------------------------------------------------------------- */
+
+.verdict {
+  margin-top: var(--s-5);
+  padding: var(--s-5);
+  border: var(--frame-w) solid var(--ink);
+  border-radius: var(--r-panel);
+  background: var(--paper);
+}
+
+.verdict[data-tone="miss"],
+.verdict[data-tone="error"] {
+  background: var(--error-wash);
+  border-color: var(--error);
+}
+
+.verdict[data-tone="pass"] {
+  background: var(--measure-wash);
+  border-color: var(--measure);
+}
+
+.verdictHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.verdictText {
+  font-size: var(--t-body-lg);
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 62ch;
+}
+
+.verdictActions {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: var(--s-4);
+}
+
+.hint {
+  margin-top: var(--s-4);
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--ink-faint);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 58ch;
+}
+
+.passPlot {
+  margin-top: var(--s-5);
+  padding: var(--s-4);
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-gate);
+}
+
+/* -- Pre-run side panel ----------------------------------------------------------
+   The state views have nothing to show until a run happens. Rather than leave
+   the column empty, it says what counts as solved here — which differs by kind
+   and is worth knowing before you start rather than after you fail.
+   ------------------------------------------------------------------------- */
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.ruleRow {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.ruleMark {
+  flex: none;
+  width: 16px;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--measure);
+  padding-top: 2px;
+}

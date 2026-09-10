@@ -1,0 +1,280 @@
+/* ============================================================================
+   Quriosity design tokens
+   Source: UI Reference "Quantum Workbench Mockups v2 — INSTRUMENT DIRECTION".
+
+   The one rule that generates this system: colour is data. Every saturated hue
+   below is a physical quantity. Structure is ink on paper and nothing else.
+   ========================================================================== */
+
+:root {
+  /* --- Layer 1: chrome. Achromatic, warm. Carries no meaning. -------------- */
+  --paper:        #f7f4ec;  /* panels, cards, instrument faces */
+  --paper-raised: #fdfbf5;  /* menus, popovers, active rows */
+  --paper-inset:  #eae5d8;  /* wells, code backgrounds, tray slots */
+  --page:         #e3ded1;  /* the graph sheet everything sits on */
+
+  --ink:          #16150f;  /* headings, body, wires, frames */
+  --ink-2:        #3f3c33;  /* secondary body */
+  --ink-3:        #5a564b;  /* labels */
+  --ink-muted:    #8c8676;  /* metadata, axis ticks, resolved-state marks */
+  --ink-faint:    #a8a08c;  /* placeholders, disabled */
+
+  --rule:         #ddd7c8;  /* graph grid, hairline dividers */
+  --rule-2:       #cfc8b6;  /* panel borders */
+  --rule-3:       #b8b1a0;  /* emphasised borders */
+  --frame:        #16150f;  /* the 2px ink frame */
+
+  /* --- Layer 2: physics. Every value below is a quantity. ------------------ */
+  --measure:      #00867a;  /* measurement, resolution, "this reading holds" */
+  --measure-dim:  #7fc3bd;
+  --measure-wash: #dfe8dd;
+  --phase:        #4a3fd4;  /* phase, interference, coherent amplitude */
+  --phase-dim:    #9a93e8;
+  --phase-wash:   #e6e4f7;
+  --error:        #e8306f;  /* deviation from target, noise, decoherence */
+  --error-dim:    #f39ab8;
+  --error-wash:   #fbeef3;
+  --flag:         #e8a33d;  /* attention, budget warning, overdue */
+  --flag-wash:    #fdf3e2;
+
+  /* Basis-state series for register tables and histograms. Four qubits' worth
+     of outcome colour, ordered so adjacent bars never share a hue. */
+  --basis-0:      #16150f;
+  --basis-1:      #00867a;
+  --basis-2:      #4a3fd4;
+  --basis-3:      #e8a33d;
+
+  /* --- Type ---------------------------------------------------------------- */
+  /* Instrument Serif is reserved for conceptual statements. If a string is not
+     a claim about physics, it is not set in the serif. */
+  --font-statement: var(--font-instrument-serif), Georgia, serif;
+  --font-ui:        var(--font-space-grotesk), system-ui, -apple-system, sans-serif;
+  --font-mono:      var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
+
+  --t-statement:   clamp(30px, 4.2vw, 52px);  /* the one claim on the screen */
+  --t-statement-s: clamp(24px, 3vw, 34px);
+  --t-title:       21px;
+  --t-body-lg:     17px;
+  --t-body:        15px;   /* the floor. Nothing is set smaller in prose. */
+  --t-label:       13px;   /* mono, letterspaced, uppercase */
+  --t-micro:       11px;   /* axis ticks and wire labels only */
+
+  --ls-label: 0.14em;
+  --ls-micro: 0.08em;
+
+  /* --- Space. 24px graph grid; everything is a multiple or a half. --------- */
+  --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
+  --s-5: 24px;  --s-6: 32px;  --s-7: 48px;  --s-8: 64px;  --s-9: 96px;
+  --grid: 24px;
+  --margin-col: 212px;  /* the annotation column */
+
+  /* --- Geometry. Radius 0–3px. No shadows exist in this system. ----------- */
+  --r-gate:  2px;
+  --r-panel: 3px;
+  --r-full:  999px;   /* pills and dots only */
+  --frame-w: 2px;
+
+  /* --- Circuit metrics ----------------------------------------------------- */
+  --wire-gap:    56px;  /* vertical pitch between qubit wires */
+  --col-pitch:   64px;  /* horizontal pitch between time columns */
+  --gate-size:   40px;  /* the glyph; drop target is padded to 44px */
+  --wire-label:  44px;
+
+  /* --- Motion. Answers actions; never ambient. ----------------------------- */
+  --m-instant:   80ms;
+  --m-quick:    140ms;
+  --m-settle:   240ms;
+  --m-evolve:   420ms;   /* one gate's worth of state change */
+  --e-out: cubic-bezier(.2, 0, 0, 1);
+  --e-settle: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Dark theme — the oscilloscope. Used for the duel surface and the landing
+   hero, exactly as the reference does. Phosphor on black, same structure.
+   ------------------------------------------------------------------------ */
+[data-surface="scope"] {
+  --paper:        #141a13;
+  --paper-raised: #1b221a;
+  --paper-inset:  #0d0f0d;
+  --page:         #0d0f0d;
+
+  --ink:          #f2efe4;
+  --ink-2:        #dad7ca;
+  --ink-3:        #c3c0b3;
+  --ink-muted:    #9aa396;
+  --ink-faint:    #6b7566;
+
+  --rule:         #24291f;
+  --rule-2:       #2b2f2a;
+  --rule-3:       #3f463c;
+  --frame:        #f2efe4;
+
+  --measure:      #46e6a8;
+  --measure-dim:  #2a7a5c;
+  --measure-wash: #132420;
+  --phase:        #8b7ff0;
+  --phase-dim:    #4b447c;
+  --phase-wash:   #1a1830;
+  --error:        #e8306f;
+  --error-dim:    #7a2340;
+  --error-wash:   #26141b;
+  --flag:         #e8a33d;
+  --flag-wash:    #2a2113;
+
+  --basis-0:      #f2efe4;
+  --basis-1:      #46e6a8;
+  --basis-2:      #8b7ff0;
+  --basis-3:      #e8a33d;
+}
+
+/* ---------------------------------------------------------------------------
+   Reset and base
+   ------------------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, p, figure, blockquote { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+a { color: var(--measure); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+svg { display: block; }
+
+/* The focus ring is never removed. It is a 2px offset ink outline so it reads
+   on paper and on the scope surface without needing a second colour. */
+:focus-visible {
+  outline: 2px solid var(--measure);
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+::selection { background: var(--measure); color: var(--paper); }
+
+/* ---------------------------------------------------------------------------
+   The graph sheet. This is the product's ground, not a decoration — it is the
+   plotter paper the whole instrument is printed on.
+   ------------------------------------------------------------------------ */
+.sheet {
+  background-color: var(--page);
+  background-image:
+    linear-gradient(var(--rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: var(--grid) var(--grid);
+}
+
+/* ---------------------------------------------------------------------------
+   Shared primitives
+   ------------------------------------------------------------------------ */
+
+/* A panel is paper with an ink frame. There is no elevation in this system, so
+   hierarchy comes from frame weight and from the amount of air around a thing. */
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+}
+.panel--framed { border: var(--frame-w) solid var(--frame); }
+.panel--inset  { background: var(--paper-inset); border-color: var(--rule); }
+
+/* Mono microlabel. Used for every structural label in the product. */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  font-weight: 500;
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.label--ink { color: var(--ink); }
+.label--measure { color: var(--measure); }
+
+/* The one conceptual claim allowed on a screen. */
+.statement {
+  font-family: var(--font-statement);
+  font-weight: 400;
+  font-size: var(--t-statement);
+  line-height: 1.06;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.statement--s { font-size: var(--t-statement-s); line-height: 1.12; }
+
+/* Prose caps at 68 characters. Nothing in this product goes wider. */
+.prose {
+  font-size: var(--t-body-lg);
+  line-height: 1.6;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+.prose--tight { font-size: var(--t-body); max-width: 58ch; }
+
+.mono { font-family: var(--font-mono); font-variant-ligatures: none; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Registration crosses — the corner marks on a plotter sheet. Purely
+   structural, and the only ornament the system permits. */
+.reg {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  color: var(--rule-3);
+  pointer-events: none;
+}
+.reg::before, .reg::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.reg::before { left: 4px; top: 0; width: 1px; height: 9px; }
+.reg::after  { top: 4px; left: 0; height: 1px; width: 9px; }
+
+/* ---------------------------------------------------------------------------
+   Reduced motion. Every token above 140ms collapses to zero. The scrubber then
+   steps discretely, which is still completely usable.
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --m-settle: 0ms;
+    --m-evolve: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Screen-reader-only text, for the state summaries every visualisation carries. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

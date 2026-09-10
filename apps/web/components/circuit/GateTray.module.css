@@ -1,0 +1,130 @@
+.tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: flex-start;
+}
+
+.tray[data-orientation="vertical"] {
+  flex-direction: column;
+  width: 100%;
+}
+
+.item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--gate-size);
+  height: var(--gate-size);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: grab;
+  transition: transform var(--m-instant) var(--e-out);
+}
+
+.item:hover:not([data-locked="true"]) {
+  transform: translateY(-2px);
+}
+
+/* The held gate. It is the only element in the product that reads as picked
+   up, so the signal has to be unambiguous — inverted, not merely outlined. */
+.item[data-held="true"] {
+  background: var(--ink);
+  color: var(--paper);
+  transform: translateY(-2px);
+}
+
+.item[data-locked="true"] {
+  opacity: 0.32;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.sub {
+  font-size: 10px;
+  vertical-align: super;
+}
+
+.lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+}
+
+/* -- Grouping ----------------------------------------------------------------- */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.groupLabel {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+/* -- Hint --------------------------------------------------------------------- */
+
+.hint {
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+  line-height: 1.45;
+  max-width: 34ch;
+}
+
+.hint b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* The two-wire miniature drawn for controlled and swap gates. */
+.miniGlyph {
+  width: 24px;
+  height: 26px;
+  color: currentColor;
+}
+
+/* -- Families -------------------------------------------------------------------
+   The bench offers the whole registry, and a single row of twenty-one squares
+   reads as a keyboard. Splitting it by what the gates DO gives the eye somewhere
+   to land, and the split is real physics rather than an arbitrary tidy-up.
+   ------------------------------------------------------------------------- */
+
+.families {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-5);
+  align-items: flex-start;
+}
+
+.family {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.familyLabel {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}

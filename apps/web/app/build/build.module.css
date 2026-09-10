@@ -1,0 +1,247 @@
+.main {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: var(--s-5) clamp(16px, 3vw, 32px) var(--s-8);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-4);
+}
+
+.name {
+  font-family: var(--font-statement);
+  font-size: 27px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+/* -- Two lanes, not four --------------------------------------------------------
+   The reference bench held eight simultaneous information regions: circuit,
+   branches, strands, tray, live state, a four-stat row, a margin note and a
+   footnote. This holds two — the circuit, and one state view you choose. The
+   rest is a disclosure or it is not on the screen.
+   ------------------------------------------------------------------------- */
+
+.lanes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: var(--s-5);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .lanes { grid-template-columns: 1fr; }
+}
+
+.stage {
+  position: relative;
+  background: var(--paper);
+  border: var(--frame-w) solid var(--ink);
+  border-radius: var(--r-panel);
+}
+
+.stageBody {
+  padding: 0 var(--s-4);
+}
+
+.stageFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-4);
+  border-top: 1px solid var(--rule-2);
+}
+
+/* -- Wire count ------------------------------------------------------------------ */
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-gate);
+  overflow: hidden;
+}
+
+.stepBtn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--ink-3);
+  background: var(--paper);
+  cursor: pointer;
+}
+.stepBtn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.stepBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.stepValue {
+  min-width: 62px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-left: 1px solid var(--rule-2);
+  border-right: 1px solid var(--rule-2);
+  padding: 0 8px;
+  line-height: 30px;
+}
+
+/* -- Control bar ------------------------------------------------------------------ */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 128px;
+}
+
+.controlRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.spacer { flex: 1; }
+
+/* -- State lane -------------------------------------------------------------------- */
+
+.side {
+  position: sticky;
+  top: 76px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.panel {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  padding: var(--s-5);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-4);
+}
+
+.empty {
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink-muted);
+  max-width: 40ch;
+}
+
+/* -- The scrubber -------------------------------------------------------------------
+   Aligned column-for-column with the circuit above it. The signature
+   interaction: drag across the circuit and the state below winds with it.
+   ------------------------------------------------------------------------- */
+
+.scrubber {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-top: 1px solid var(--rule-2);
+}
+
+.scrubTrack { flex: 1; }
+
+.scrubLabel {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  min-width: 92px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -- Diagnosis ----------------------------------------------------------------------
+   In Workbench mode this only ever appears on explicit invocation. Proactive
+   output here is a P1 defect, not a preference.
+   ------------------------------------------------------------------------- */
+
+.diagnosis {
+  background: var(--flag-wash);
+  border: 1px solid var(--flag);
+  border-radius: var(--r-panel);
+  padding: var(--s-4);
+  margin-top: var(--s-4);
+}
+
+.diagnosisText {
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink);
+  max-width: 62ch;
+}
+
+.errorBar {
+  background: var(--error-wash);
+  border: 1px solid var(--error);
+  border-radius: var(--r-panel);
+  padding: var(--s-4);
+  margin-top: var(--s-4);
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+
+/* The restore note. One line, dismissible, gone on the next visit. */
+.restored {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 10px var(--s-4);
+  margin-bottom: var(--s-4);
+  background: var(--measure-wash);
+  border: 1px solid var(--measure);
+  border-radius: var(--r-gate);
+}
+
+.restoredDismiss {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.restoredDismiss:hover { color: var(--ink); }
