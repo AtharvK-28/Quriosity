@@ -13,7 +13,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { buildContext, type CircuitContext } from "@/lib/tutor/context";
 import { SentenceBuffer } from "@/lib/tutor/guard";
-import { guideAnswer, relatedSources } from "@/lib/tutor/offline";
+import { ClaimChecker, fillPlaceholders, type Contradiction } from "@/lib/tutor/claims";
+import { guideAnswer, relatedSources, retractionAnswer, type GuideAnswer } from "@/lib/tutor/offline";
 import { SYSTEM_PROMPT, TUTOR_MODEL } from "@/lib/tutor/prompt";
 import {
   MAX_CHARS,
@@ -26,6 +27,12 @@ import {
 } from "@/lib/tutor/protocol";
 
 const MAX_BODY_BYTES = 64 * 1024;
+
+/** A backstop above the prompt's own limit (TRD §11.3 G4). */
+const MAX_WORDS = 170;
+
+const WITHDRAWN =
+  "The tutor's answer said something about your circuit that the simulator does not back up, so it was withdrawn. This is the simulator's and the rule engine's reading instead.";
 
 /* -- Rate limit ---------------------------------------------------------------
    Per address, in memory. Enough for one instance; a deployment with several
@@ -113,8 +120,13 @@ function parseRequest(body: string): TutorRequest | string {
 
 type Send = (event: TutorEvent) => void;
 
-function answerFromGuide(send: Send, question: string, ctx: CircuitContext, note?: string): void {
-  const answer = guideAnswer(question, ctx);
+function answerFromGuide(
+  send: Send,
+  question: string,
+  ctx: CircuitContext,
+  note?: string,
+  answer: GuideAnswer = guideAnswer(question, ctx),
+): void {
   send({ t: "meta", mode: "guide", sources: answer.sources });
   send({ t: "text", v: answer.text });
   if (note) send({ t: "note", v: note });
@@ -152,11 +164,38 @@ async function answerFromClaude(
     send({ t: "text", v: text });
   };
 
+  // Every released chunk is filled from the simulator, then checked against
+  // it (PRD E7-S8). A contradiction or a runaway length ends the generation.
+  const checker = new ClaimChecker(ctx);
+  const halt: {
+    reason: { kind: "contradiction"; bad: Contradiction } | { kind: "length" } | null;
+  } = { reason: null };
+  let words = 0;
+  const release = (chunk: string): boolean => {
+    if (!chunk) return true;
+    const text = fillPlaceholders(chunk, ctx);
+    const bad = checker.check(text);
+    if (bad) {
+      halt.reason = { kind: "contradiction", bad };
+      return false;
+    }
+    emit(text);
+    words += text.trim() ? text.trim().split(/\s+/).length : 0;
+    if (words > MAX_WORDS) {
+      halt.reason = { kind: "length" };
+      return false;
+    }
+    return true;
+  };
+
   try {
     const stream = client.beta.messages.stream(
       {
         model: TUTOR_MODEL,
-        max_tokens: 2048,
+        // A ceiling, not a target — the prompt keeps answers short. It is set
+        // high because thinking is on by default on this model and counts
+        // against it; a low cap could spend itself before any text arrives.
+        max_tokens: 16000,
         // A declined request is re-run server-side on Anthropic's recommended
         // fallback model instead of coming back as a refusal.
         betas: ["server-side-fallback-2026-07-01"],
@@ -171,13 +210,33 @@ async function answerFromClaude(
       },
       { signal },
     );
+    // Marks the stream's failures as handled, so cutting it short (below, or
+    // by the learner closing the tab) never surfaces as an unhandled
+    // rejection. Failures still reach the loop and the catch.
+    stream.done().catch(() => {});
 
     for await (const event of stream) {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        emit(buffer.push(event.delta.text));
+        if (!release(buffer.push(event.delta.text))) {
+          stream.abort();
+          break;
+        }
       }
     }
-    emit(buffer.flush());
+    if (!halt.reason) release(buffer.flush());
+
+    if (halt.reason?.kind === "contradiction") {
+      const { bad } = halt.reason;
+      console.warn(`[tutor] withdrew an answer that contradicts the simulator: "${bad.claim}" (${bad.actual})`);
+      if (started) send({ t: "retract" });
+      answerFromGuide(send, question, ctx, WITHDRAWN, retractionAnswer(question, ctx));
+      return;
+    }
+    if (halt.reason?.kind === "length") {
+      send({ t: "note", v: "The tutor keeps answers short. Ask for more if you want the rest." });
+      send({ t: "done" });
+      return;
+    }
     const final = await stream.finalMessage();
 
     if (!started) {

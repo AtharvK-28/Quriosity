@@ -95,6 +95,7 @@ export const useTutor = create<TutorState>((set, get) => ({
       else if (e.t === "text") patch((m) => ({ ...m, text: m.text + e.v }));
       else if (e.t === "note") patch((m) => ({ ...m, note: e.v }));
       else if (e.t === "error") patch((m) => ({ ...m, text: m.text || e.v, failed: !m.text }));
+      else if (e.t === "retract") patch((m) => ({ ...m, text: "", sources: [], mode: undefined, note: undefined }));
       else if (e.t === "done") patch((m) => ({ ...m, streaming: false }));
     };
 

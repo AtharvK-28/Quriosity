@@ -9,7 +9,7 @@ what to do about it.
 ```bash
 npm install
 npm run dev          # http://localhost:3000
-npm test             # 181 tests: physics, tutor, curriculum, challenges, mastery, errors
+npm test             # 191 tests: physics, tutor, curriculum, challenges, mastery, errors
 ```
 
 No Docker, no database. The simulator, the grader and the tutor's rule engine
@@ -18,6 +18,7 @@ from the built-in guide to Claude:
 
 ```bash
 cp apps/web/.env.example apps/web/.env.local   # then set ANTHROPIC_API_KEY
+```
 
 ---
 
@@ -258,7 +259,7 @@ preference — it is asserted in the E2E suite.
 ## Testing
 
 ```bash
-npm test                            # 181 unit tests, blocking
+npm test                            # 191 unit tests, blocking
 node tests/e2e/demo.spec.mjs        # 28 browser checks (needs a running server)
 node tests/e2e/shots.mjs            # screenshots of every surface
 ```
@@ -297,8 +298,11 @@ prototype's failing contrast values were not — see the design system above.
 **The tutor chat** (E7-S3, E7-S6). Claude phrasing over the rule engine,
 grounded in a server-side re-simulation of the learner's circuit and in the
 platform's own curriculum, with a built-in guide that answers when there is no
-key or no service. Covered by `tests/tutor-chat.test.ts` and two browser
-checks.
+key or no service. Covered by `tests/tutor-chat.test.ts`, by
+`tests/tutor-claude.test.ts` — the Claude path against a scripted SDK: the
+request shape, refusals, and failures before and after the first sentence —
+and by two browser checks. The live API itself is exercised only when a key is
+set.
 
 **The qubit playground** (`/playground`), ported from the prototype with three
 changes: the real 3D sphere, the registry's own gate matrices, and repeatable

@@ -40,6 +40,8 @@ export type TutorEvent =
   | { t: "text"; v: string }
   | { t: "note"; v: string }
   | { t: "error"; v: string }
+  /** Withdraw everything sent so far: the claim check caught a contradiction. */
+  | { t: "retract" }
   | { t: "done" };
 
 /** Turns of history kept per request. Older turns are dropped, oldest first. */

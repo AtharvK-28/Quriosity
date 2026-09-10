@@ -13,6 +13,7 @@ import { NODES } from "@/lib/curriculum/nodes";
 import { GATE_TYPES } from "@/lib/ir/gates";
 import { emptyCircuit, type Circuit } from "@/lib/ir/types";
 import { buildContext, coerceCircuit } from "@/lib/tutor/context";
+import { ClaimChecker, fillPlaceholders } from "@/lib/tutor/claims";
 import { cleanChunk, SentenceBuffer } from "@/lib/tutor/guard";
 import { CORPUS } from "@/lib/tutor/corpus";
 import { guideAnswer, relatedSources } from "@/lib/tutor/offline";
@@ -161,6 +162,64 @@ describe("related links", () => {
   it("keeps acronyms intact in myth titles", () => {
     expect(CORPUS.find((p) => p.id === "misconception:M8")!.title).toBe("Myth: CNOT copies a qubit");
     expect(CORPUS.find((p) => p.id === "misconception:M1")!.title).toMatch(/^Myth: a qubit/);
+  });
+});
+
+describe("claim check", () => {
+  const bellCtx = () => buildContext({ surface: "bench" }, bell());
+  const hOnly = () => buildContext({ surface: "bench" }, bell(false));
+  const check = (ctx: ReturnType<typeof buildContext>, ...chunks: string[]) => {
+    const checker = new ClaimChecker(ctx);
+    for (const c of chunks) {
+      const bad = checker.check(fillPlaceholders(c, ctx));
+      if (bad) return bad;
+    }
+    return null;
+  };
+
+  it("passes true statements about the circuit", () => {
+    expect(check(bellCtx(), "Your circuit gives |00⟩ 50% of the time and |11⟩ 50%.")).toBeNull();
+    expect(check(bellCtx(), "Right now you get |00⟩ and |11⟩ half the time each.")).toBeNull();
+    expect(check(bellCtx(), "Your circuit never gives |01⟩ or |10⟩.")).toBeNull();
+    expect(check(bellCtx(), "P(11) = 0.5 in your circuit.")).toBeNull();
+    expect(check(bellCtx(), "You get |00⟩ roughly 49% of the time.")).toBeNull();
+  });
+
+  it("catches false ones", () => {
+    expect(check(bellCtx(), "Right now you get |01⟩ half the time.")?.actual).toBe("P(01) is 0%");
+    expect(check(bellCtx(), "Your circuit always gives |00⟩.")).not.toBeNull();
+    expect(check(bellCtx(), "Your circuit gives |00⟩ 25% of the time.")).not.toBeNull();
+    expect(check(bellCtx(), "Your circuit has a 90% chance of |11⟩.")).not.toBeNull();
+  });
+
+  it("leaves hypotheticals, targets and general facts alone", () => {
+    expect(check(hOnly(), "If you add a CNOT, you’d get |00⟩ and |11⟩ half the time each.")).toBeNull();
+    expect(check(hOnly(), "The target gives |11⟩ 50% of the time.")).toBeNull();
+    expect(check(hOnly(), "A Bell state gives |00⟩ half the time.")).toBeNull();
+    expect(check(hOnly(), "Measuring |+⟩ gives |0⟩ half the time.")).toBeNull();
+  });
+
+  it("carries “your circuit gives:” into the list that follows", () => {
+    expect(check(bellCtx(), "Your circuit gives:", "\n- |00⟩ 50%", "\n- |01⟩ 50%.")).not.toBeNull();
+    expect(check(bellCtx(), "Your circuit gives:", "\n- |00⟩ 50%", "\n- |11⟩ 50%.")).toBeNull();
+  });
+
+  it("fills placeholders from the simulator", () => {
+    expect(fillPlaceholders("|00⟩ [[p:00]], |01⟩ [[p:01]], [[p:0]]", bellCtx())).toBe("|00⟩ 50%, |01⟩ 0%, —");
+  });
+
+  it("checks where the tutor says a gate is", () => {
+    expect(check(bellCtx(), "Your H on q0 is doing its job.")).toBeNull();
+    expect(check(bellCtx(), "The CNOT on q1 flips it when q0 is 1.")).toBeNull();
+    expect(check(bellCtx(), "The H on q1 puts it in superposition.")?.actual).toBe("there is no H on q1");
+    expect(check(bellCtx(), "The H on q0 in column 3 is late.")).not.toBeNull();
+    expect(check(bellCtx(), "Add an X on q1 to flip it.")).toBeNull();
+  });
+
+  it("refuses numbers it cannot back", () => {
+    const ctx = buildContext({ surface: "bench" }, emptyCircuit(11));
+    expect(ctx.probabilities).toBeNull();
+    expect(check(ctx, `Your circuit gives |${"0".repeat(11)}⟩ 100% of the time.`)).not.toBeNull();
   });
 });
 

@@ -365,8 +365,14 @@ export default function BuildPage() {
 
               {!run ? (
                 <p className={s.empty}>
-                  Build a circuit and press Run. An empty circuit is a valid one —
-                  it gives |{"0".repeat(circuit.qubits)}⟩ every time.
+                  {circuit.gates.length > 0 ? (
+                    "Press Run to see what this circuit does."
+                  ) : (
+                    <>
+                      Build a circuit and press Run. An empty circuit is a valid one —
+                      it gives |{"0".repeat(circuit.qubits)}⟩ every time.
+                    </>
+                  )}
                 </p>
               ) : (
                 <>

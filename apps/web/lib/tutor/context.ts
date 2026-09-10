@@ -13,7 +13,7 @@ import { CHALLENGES_BY_ID } from "@/lib/curriculum/challenges";
 import { NODES_BY_ID } from "@/lib/curriculum/nodes";
 import { grade, type GradeResult, type Target } from "@/lib/grade/fidelity";
 import { GATES, formatParam, isGateType } from "@/lib/ir/gates";
-import { SCHEMA_VERSION, type Circuit, type Gate } from "@/lib/ir/types";
+import { SCHEMA_VERSION, gateQubits, type Circuit, type Gate, type GateType } from "@/lib/ir/types";
 import { inExecutionOrder, validate } from "@/lib/ir/validate";
 import { allQubitStates } from "@/lib/sim/analysis";
 import { bitstring, simulate } from "@/lib/sim/statevector";
@@ -29,6 +29,12 @@ export interface CircuitContext {
   /** The block handed to the model, as a mid-conversation system message. */
   text: string;
   hasCircuit: boolean;
+  /** Register width, for reading bitstrings in claims. 0 with no circuit. */
+  width: number;
+  /** Every outcome worth mentioning, by bitstring. Null when nothing was simulated. */
+  probabilities: Record<string, number> | null;
+  /** Where each gate sits, for checking what the tutor says about them. */
+  gates: Array<{ type: GateType; qubits: number[]; column: number }>;
   finding: Finding | null;
   grade: GradeResult | null;
   /** Most likely outcomes first. Empty when there was nothing to simulate. */
@@ -140,6 +146,9 @@ export function buildContext(where: TutorWhere, raw: unknown): CircuitContext {
   const ctx: CircuitContext = {
     text: "",
     hasCircuit: false,
+    width: 0,
+    probabilities: null,
+    gates: [],
     finding: null,
     grade: null,
     outcomes: [],
@@ -180,10 +189,12 @@ export function buildContext(where: TutorWhere, raw: unknown): CircuitContext {
   }
 
   ctx.hasCircuit = true;
+  ctx.width = circuit.qubits;
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
   lines.push(`Circuit: ${plural(circuit.qubits, "qubit")}, ${plural(circuit.gates.length, "gate")}.`);
 
   const ordered = inExecutionOrder(circuit.gates);
+  ctx.gates = ordered.map((g) => ({ type: g.type, qubits: gateQubits(g), column: g.column }));
   if (ordered.length === 0) {
     lines.push("Gates: none yet — every wire is still |0⟩.");
   } else {
@@ -207,6 +218,11 @@ export function buildContext(where: TutorWhere, raw: unknown): CircuitContext {
 
   const { shown, total } = topOutcomes(result.probabilities, circuit.qubits);
   ctx.outcomes = shown;
+  const all: Record<string, number> = {};
+  result.probabilities.forEach((p, i) => {
+    if (p > 1e-9) all[bitstring(i, circuit.qubits)] = p;
+  });
+  ctx.probabilities = all;
   lines.push(
     "Exact outcome probabilities (ideal simulator, no noise; bitstrings are little-endian, q0 is the rightmost character): " +
       shown.map((o) => `P(${o.bits}) = ${o.p.toFixed(3)}`).join(", ") +

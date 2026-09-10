@@ -33,7 +33,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quriosity — build a quantum circuit, and find out why it's wrong",
+  title: "Quriosity — Build a quantum circuit, and find out why it's wrong",
   description:
     "A quantum circuit workbench that teaches. Drag a gate, watch the code write itself, run it, and get told which gate is wrong and on which wire.",
 };

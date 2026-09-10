@@ -81,6 +81,16 @@ export function relatedSources(
   return out.slice(0, 2);
 }
 
+/**
+ * What replaces an answer the claim check withdrew. The contradiction was
+ * about the learner's circuit, so the replacement is the simulator's and the
+ * rule engine's reading of it, whatever the question was.
+ */
+export function retractionAnswer(question: string, ctx: CircuitContext): GuideAnswer {
+  const truth = ctx.hasCircuit ? aboutTheirCircuit(ctx) : null;
+  return truth ? { text: truth, sources: relatedSources(question, ctx) } : guideAnswer(question, ctx);
+}
+
 export function guideAnswer(question: string, ctx: CircuitContext | null): GuideAnswer {
   const hits = retrieve(question, 3);
   const sources = relatedSources(question, ctx, hits);
