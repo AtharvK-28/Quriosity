@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  body{margin:0;background:#0d0f0d;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  a{color:#46c8b8;text-decoration:none}
+  a:hover{color:#7fe0d2}
+  button{font-family:'JetBrains Mono',monospace}
+  @keyframes drift{0%{transform:translateY(0)}50%{transform:translateY(-9px)}100%{transform:translateY(0)}}
+</style>
+</helmet>
+
+<div style="background:#0d0f0d;color:#f2efe4;overflow-x:hidden">
+
+  <div style="position:sticky;top:0;z-index:40;background:#0d0f0d;border-bottom:2px solid #2b2f2a;display:flex;align-items:center;gap:20px;padding:0 clamp(18px,3vw,42px);height:66px;flex-wrap:wrap">
+    <span style="flex:none;display:flex;align-items:center;gap:11px">
+      <span style="width:15px;height:15px;border:2px solid #46c8b8;display:block"></span>
+      <span style="font:400 21px/1 'Instrument Serif',serif;color:#f2efe4">Quantum Workbench</span>
+    </span>
+    <span style="flex:1;min-width:20px"></span>
+    <a href="Calibration.dc.html" style="flex:none;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#9aa396">CALIBRATION</a>
+    <a href="Quantum Learn Screen.dc.html" style="flex:none;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#9aa396">LEARN</a>
+    <a href="Review Bench.dc.html" style="flex:none;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#9aa396">BENCH</a>
+    <a href="Calibration.dc.html" style="flex:none;padding:12px 20px;background:#46c8b8;color:#0d0f0d;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.12em">OPEN THE BENCH ▸</a>
+  </div>
+
+  <div style="position:relative;padding:clamp(48px,7vw,96px) clamp(18px,3vw,42px) clamp(40px,5vw,70px);background-image:linear-gradient(#161915 1px,transparent 1px),linear-gradient(90deg,#161915 1px,transparent 1px);background-size:26px 26px">
+    <div style="max-width:1240px;margin:0 auto;display:flex;gap:clamp(28px,4vw,60px);align-items:flex-start;flex-wrap:wrap">
+
+      <div style="flex:1;min-width:min(100%,420px)">
+        <div style="display:inline-flex;align-items:center;gap:11px;border:2px solid #2b2f2a;padding:9px 14px;margin-bottom:26px">
+          <span style="width:9px;height:9px;background:#46c8b8;display:block"></span>
+          <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#9aa396">NO TIMERS · NO STREAKS · NO HEARTS</span>
+        </div>
+
+        <h1 style="font:400 clamp(44px,7vw,86px)/0.98 'Instrument Serif',serif;margin:0 0 24px;max-width:19ch;text-wrap:pretty">You don't learn physics by being told it.</h1>
+
+        <p style="font:400 clamp(17px,1.5vw,20px)/1.55 'Space Grotesk',sans-serif;color:#c3c0b3;margin:0 0 32px;max-width:54ch;text-wrap:pretty">Quantum Workbench hands you the instrument. Turn the dial yourself, watch the reading move, and read the plot that decides whether you were right. Every lesson ends in data — never in a green tick.</p>
+
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:38px">
+          <a href="Calibration.dc.html" style="padding:18px 30px;background:#46c8b8;color:#0d0f0d;font:700 14px/1 'JetBrains Mono',monospace;letter-spacing:.14em">START WITH CALIBRATION ▸</a>
+          <a href="Quantum Learn Screen.dc.html" style="padding:18px 28px;border:2px solid #46c8b8;color:#46c8b8;font:700 14px/1 'JetBrains Mono',monospace;letter-spacing:.14em">SEE A LESSON</a>
+        </div>
+
+        <div style="display:flex;gap:0;flex-wrap:wrap;border-top:2px solid #2b2f2a">
+          <sc-for list="{{ facts }}" as="f" hint-placeholder-count="3">
+            <div style="flex:1;min-width:150px;padding:20px 22px 20px 0;display:flex;flex-direction:column;gap:8px">
+              <span style="font:700 clamp(26px,3vw,34px)/1 'JetBrains Mono',monospace;color:#46c8b8">{{ f.n }}</span>
+              <span style="font:400 14px/1.45 'Space Grotesk',sans-serif;color:#9aa396;text-wrap:pretty">{{ f.t }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex:none;width:min(100%,532px)">
+        <div style="border:2px solid #46c8b8;background:#111411">
+          <div style="display:flex;align-items:center;gap:12px;padding:15px 20px;border-bottom:2px solid #46c8b8;flex-wrap:wrap">
+            <span style="flex:none;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#46c8b8">LIVE · NOT A SCREENSHOT</span>
+            <span style="flex:1;min-width:20px"></span>
+            <span style="flex:none;font:500 12px/1 'JetBrains Mono',monospace;color:#9aa396">{{ shotsLabel }}</span>
+          </div>
+
+          <div style="padding:22px 20px 20px">
+            <div style="display:flex;align-items:center;gap:0;margin-bottom:20px;flex-wrap:nowrap;overflow:hidden">
+              <span style="flex:none;font:500 12px/1 'JetBrains Mono',monospace;color:#9aa396;width:26px">q₀</span>
+              <span style="flex:1;min-width:6px;height:2px;background:#3a3f39;display:block"></span>
+              <span style="flex:none;width:42px;height:42px;border:2px solid #f2efe4;display:grid;place-items:center;font:700 15px/1 'JetBrains Mono',monospace;color:#f2efe4">H</span>
+              <span style="flex:1;min-width:6px;height:2px;background:#3a3f39;display:block"></span>
+              <span style="flex:none;width:74px;height:42px;border:2px solid #8b7ff0;display:grid;place-items:center;font:700 13px/1 'JetBrains Mono',monospace;color:#8b7ff0">{{ gateLabel }}</span>
+              <span style="flex:1;min-width:6px;height:2px;background:#3a3f39;display:block"></span>
+              <span style="flex:none;width:42px;height:42px;border:2px solid #f2efe4;display:grid;place-items:center;font:700 15px/1 'JetBrains Mono',monospace;color:#f2efe4">H</span>
+              <span style="flex:1;min-width:6px;height:2px;background:#3a3f39;display:block"></span>
+              <span style="flex:none;width:42px;height:42px;border:2px solid #46c8b8;display:grid;place-items:center;font:700 14px/1 'JetBrains Mono',monospace;color:#46c8b8">M</span>
+            </div>
+
+            <div style="display:flex;align-items:flex-end;gap:22px;height:172px;border-bottom:2px solid #2b2f2a;padding:0 12px;margin-bottom:11px">
+              <sc-for list="{{ bars }}" as="b" hint-placeholder-count="2">
+                <div style="flex:1;min-width:0;height:172px;position:relative">
+                  <span style="position:absolute;left:0;right:0;bottom:{{ b.lb }};text-align:center;font:500 13px/1 'JetBrains Mono',monospace;color:#c3c0b3">{{ b.count }}</span>
+                  <span style="position:absolute;left:0;right:0;bottom:0;height:{{ b.h }};background:{{ b.col }};display:block;transition:height .18s"></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:22px;padding:0 12px;margin-bottom:22px">
+              <sc-for list="{{ bars }}" as="b" hint-placeholder-count="2">
+                <span style="flex:1;text-align:center;font:700 14px/1 'JetBrains Mono',monospace;color:#f2efe4">{{ b.ket }}</span>
+              </sc-for>
+            </div>
+
+            <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#46c8b8;margin-bottom:11px">DRAG THE PHASE — THIS IS THE WHOLE IDEA</div>
+            <div onPointerDown="{{ dragPhase }}" style="height:38px;border:2px solid #46c8b8;background:#0d0f0d;position:relative;cursor:ew-resize;touch-action:none;margin-bottom:14px">
+              <span style="position:absolute;top:0;bottom:0;left:{{ phasePos }};width:14px;background:#46c8b8;display:block;transform:translateX(-7px)"></span>
+              <span style="position:absolute;left:50%;top:-5px;bottom:-5px;width:2px;background:#8b7ff0;display:block"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font:500 12px/1 'JetBrains Mono',monospace;color:#9aa396;margin-bottom:18px">
+              <span>φ = 0</span><span style="color:#8b7ff0">π</span><span>2π</span>
+            </div>
+
+            <div style="border-left:2px solid #46c8b8;padding:2px 0 2px 16px">
+              <span style="font:400 clamp(17px,1.6vw,20px)/1.45 'Instrument Serif',serif;color:#f2efe4;text-wrap:pretty">{{ liveVerdict }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-top:2px solid #2b2f2a;border-bottom:2px solid #2b2f2a;background:#f2efe4;color:#16150f;padding:clamp(46px,6vw,84px) clamp(18px,3vw,42px)">
+    <div style="max-width:1240px;margin:0 auto">
+      <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#6b665a;margin-bottom:18px">WHAT WE TOOK OUT</div>
+      <h2 style="font:400 clamp(32px,4.4vw,54px)/1.05 'Instrument Serif',serif;margin:0 0 42px;max-width:26ch;text-wrap:pretty">Every mechanic other apps use to keep you here, we removed.</h2>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,268px),1fr));gap:0;border-top:2px solid #16150f;border-left:2px solid #16150f">
+        <sc-for list="{{ swaps }}" as="s" hint-placeholder-count="4">
+          <div style="border-right:2px solid #16150f;border-bottom:2px solid #16150f;padding:26px 24px 28px;display:flex;flex-direction:column;gap:14px;background:{{ s.bg }}">
+            <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#a03d5f;text-decoration:line-through">{{ s.out }}</span>
+            <span style="font:400 clamp(22px,2.3vw,28px)/1.15 'Instrument Serif',serif;color:#16150f;text-wrap:pretty">{{ s.in }}</span>
+            <span style="font:400 15px/1.5 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">{{ s.why }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:clamp(46px,6vw,84px) clamp(18px,3vw,42px);background-image:linear-gradient(#161915 1px,transparent 1px),linear-gradient(90deg,#161915 1px,transparent 1px);background-size:26px 26px">
+    <div style="max-width:1240px;margin:0 auto">
+      <div style="display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;margin-bottom:38px">
+        <div style="flex:1;min-width:min(100%,340px)">
+          <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#9aa396;margin-bottom:18px">THE DEPENDENCY CHAIN</div>
+          <h2 style="font:400 clamp(32px,4.4vw,54px)/1.05 'Instrument Serif',serif;margin:0;max-width:24ch;text-wrap:pretty">Entanglement is six easy things stacked.</h2>
+        </div>
+        <p style="flex:1;min-width:min(100%,300px);font:400 16px/1.6 'Space Grotesk',sans-serif;color:#9aa396;margin:0;max-width:46ch;text-wrap:pretty">Hover a link to see what it is made of. Nothing above it opens until the things below it read back correctly — not to gate you, but because the punchline is unreadable without them.</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0;border-top:2px solid #2b2f2a">
+        <sc-for list="{{ chain }}" as="c" hint-placeholder-count="7">
+          <div onMouseEnter="{{ c.enter }}" style="border-bottom:2px solid #2b2f2a;background:{{ c.bg }};padding:clamp(18px,2vw,26px) clamp(14px,2vw,24px);display:flex;gap:clamp(14px,2vw,28px);align-items:baseline;flex-wrap:wrap;cursor:default">
+            <span style="flex:none;width:34px;font:500 13px/1 'JetBrains Mono',monospace;color:{{ c.numCol }}">{{ c.num }}</span>
+            <span style="flex:none;min-width:min(100%,240px);font:400 clamp(24px,2.6vw,34px)/1.1 'Instrument Serif',serif;color:{{ c.titleCol }}">{{ c.name }}</span>
+            <span style="flex:1;min-width:min(100%,240px);font:400 15px/1.5 'Space Grotesk',sans-serif;color:{{ c.subCol }};text-wrap:pretty">{{ c.sub }}</span>
+            <span style="flex:none;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:{{ c.tagCol }}">{{ c.tag }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-top:2px solid #2b2f2a;padding:clamp(46px,6vw,84px) clamp(18px,3vw,42px);background:#111411">
+    <div style="max-width:1240px;margin:0 auto;display:flex;gap:clamp(28px,4vw,56px);align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1;min-width:min(100%,360px)">
+        <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#9aa396;margin-bottom:18px">HOW WE GRADE</div>
+        <h2 style="font:400 clamp(30px,4vw,48px)/1.06 'Instrument Serif',serif;margin:0 0 22px;max-width:22ch;text-wrap:pretty">The wrong answer gets a diagnosis, not a verdict.</h2>
+        <p style="font:400 16px/1.6 'Space Grotesk',sans-serif;color:#9aa396;margin:0 0 26px;max-width:48ch;text-wrap:pretty">Pick an answer below — including a wrong one. The feedback is written for that specific misconception, because "incorrect" has never taught anybody anything.</p>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <sc-for list="{{ demoChoices }}" as="ch" hint-placeholder-count="3">
+            <button type="button" onClick="{{ ch.pick }}" style="text-align:left;display:flex;gap:15px;align-items:flex-start;padding:16px 18px;border:2px solid {{ ch.border }};background:{{ ch.bg }};cursor:pointer">
+              <span style="flex:none;font:700 13px/1.4 'JetBrains Mono',monospace;color:{{ ch.tagCol }}">{{ ch.tag }}</span>
+              <span style="flex:1;font:500 15px/1.45 'Space Grotesk',sans-serif;color:#f2efe4;text-wrap:pretty">{{ ch.text }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex:none;width:min(100%,440px);border:2px solid #2b2f2a;padding:clamp(22px,2.6vw,30px);display:flex;flex-direction:column;gap:16px;min-height:270px">
+        <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:{{ demoTagCol }}">{{ demoTag }}</span>
+        <span style="font:400 clamp(20px,2.2vw,26px)/1.4 'Instrument Serif',serif;color:#f2efe4;text-wrap:pretty">{{ demoText }}</span>
+        <span style="flex:1"></span>
+        <span style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#9aa396;text-wrap:pretty">{{ demoFoot }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-top:2px solid #2b2f2a;padding:clamp(50px,7vw,96px) clamp(18px,3vw,42px);background-image:linear-gradient(#161915 1px,transparent 1px),linear-gradient(90deg,#161915 1px,transparent 1px);background-size:26px 26px">
+    <div style="max-width:960px;margin:0 auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:26px">
+      <span style="width:16px;height:16px;border:2px solid #46c8b8;display:block;animation:drift 4.5s ease-in-out infinite"></span>
+      <h2 style="font:400 clamp(34px,5.4vw,64px)/1.03 'Instrument Serif',serif;margin:0;max-width:24ch;text-wrap:pretty">Four steps of calibration, then the instrument is yours.</h2>
+      <p style="font:400 17px/1.6 'Space Grotesk',sans-serif;color:#9aa396;margin:0;max-width:52ch;text-wrap:pretty">You will learn to read a plot before anybody asks you to trust one. It takes about six minutes and there is nothing to sign up for.</p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">
+        <a href="Calibration.dc.html" style="padding:19px 34px;background:#46c8b8;color:#0d0f0d;font:700 14px/1 'JetBrains Mono',monospace;letter-spacing:.14em">BEGIN CALIBRATION ▸</a>
+        <a href="Review Bench.dc.html" style="padding:19px 30px;border:2px solid #46c8b8;color:#46c8b8;font:700 14px/1 'JetBrains Mono',monospace;letter-spacing:.14em">SEE THE REVIEW BENCH</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-top:2px solid #2b2f2a;padding:32px clamp(18px,3vw,42px);display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+    <span style="flex:1;min-width:min(100%,260px);font:400 14px/1.5 'Space Grotesk',sans-serif;color:#9aa396;text-wrap:pretty">Quantum Workbench — an instrument, not a course. Readings are simulated exactly; the pedagogy is opinionated on purpose.</span>
+    <span style="flex:none;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#9aa396">NO TIMERS · NO STREAKS · NO HEARTS</span>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#46c8b8&quot;,&quot;options&quot;:[&quot;#46c8b8&quot;,&quot;#8b7ff0&quot;,&quot;#e8a33d&quot;,&quot;#f2efe4&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Brand&quot;},&quot;shots&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1024,&quot;min&quot;:128,&quot;max&quot;:8192,&quot;step&quot;:128,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Brand&quot;}}">
+class Component extends DCLogic {
+  state = { phase: 96, hover: 6, demo: null };
+
+  componentDidMount() {
+    this._move = e => { if (this._drag) this.applyDrag(e.clientX); };
+    this._up = () => { this._drag = false; };
+    window.addEventListener('pointermove', this._move);
+    window.addEventListener('pointerup', this._up);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('pointermove', this._move);
+    window.removeEventListener('pointerup', this._up);
+  }
+  applyDrag(x) {
+    const r = this._rect; if (!r) return;
+    let f = (x - r.left) / r.width;
+    this.setState({ phase: Math.round(Math.max(0, Math.min(1, f)) * 360) });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const shots = this.props.shots ?? 1024;
+    const accent = this.props.accent ?? '#46c8b8';
+
+    const rad = s.phase * Math.PI / 180;
+    const p0 = Math.pow(Math.cos(rad / 2), 2);
+    const c0 = Math.round(p0 * shots), c1 = shots - c0;
+    const maxC = Math.max(c0, c1, 1);
+    const bars = [
+      { ket: '|0⟩', count: c0, v: c0 / maxC, col: '#f2efe4' },
+      { ket: '|1⟩', count: c1, v: c1 / maxC, col: accent }
+    ].map(b => {
+      const px = Math.round(b.v * 146);
+      return { ket: b.ket, count: b.count, h: px + 'px', lb: (px + 8) + 'px', col: b.count === 0 ? 'transparent' : b.col };
+    });
+
+    const near = (a, b) => Math.abs(a - b) < 12;
+    let verdict;
+    if (near(s.phase, 0) || near(s.phase, 360)) verdict = 'No phase turn. Both paths add on |0⟩ and the qubit comes back certain — as if the two H gates never happened.';
+    else if (near(s.phase, 180)) verdict = 'A half turn nobody could measure just flipped a certainty into its exact opposite. That cancellation is what a quantum computer sells.';
+    else if (near(s.phase, 90) || near(s.phase, 270)) verdict = 'Quarter turn: the paths partly cancel and the reading is an honest coin again. Halfway between two certainties.';
+    else verdict = 'The plot moves continuously with a quantity no measurement in the middle of the circuit could ever reveal.';
+
+    const chainDefs = [
+      { num: '01', name: 'Classical randomness', sub: 'Call a coin, flip it, watch the ratio hold while every single call stays hopeless.', tag: 'COIN' },
+      { num: '02', name: 'Amplitude', sub: 'Drag a lean between |0⟩ and |1⟩. Square it for the odds — the amplitude is not the odds.', tag: 'DIAL' },
+      { num: '03', name: 'Measurement collapse', sub: 'Measure once, then measure the same qubit again and learn nothing. Reading it changed it.', tag: 'REPEAT' },
+      { num: '04', name: 'Phase', sub: 'Invisible in the middle, decisive at the end. The instrument in the hero is this panel.', tag: 'INTERFERENCE' },
+      { num: '05', name: 'Two-qubit register', sub: 'Four outcomes, each one a plain multiplication of two independent leans.', tag: 'PRODUCT' },
+      { num: '06', name: 'Conditional operation', sub: 'CNOT, run across all four definite rows. Boring bookkeeping — until the control leans.', tag: 'TRUTH TABLE' },
+      { num: '→', name: 'Entanglement', sub: 'Run panel 05\'s multiplication on the result of panel 06 and watch it fail. That failure is the concept.', tag: 'TARGET' }
+    ];
+    const chain = chainDefs.map((c, i) => {
+      const on = s.hover === i;
+      const target = i === 6;
+      return Object.assign({}, c, {
+        bg: on ? (target ? '#16150f' : '#151815') : 'transparent',
+        numCol: on ? accent : '#9aa396',
+        titleCol: on || target ? '#f2efe4' : '#c3c0b3',
+        subCol: on ? '#dad7ca' : '#9aa396',
+        tagCol: target || on ? accent : '#9aa396',
+        enter: () => this.setState({ hover: i })
+      });
+    });
+
+    const demoDefs = [
+      { t: 'Measuring one qubit sends a signal to the other one.', ok: false,
+        fb: 'Nothing travelled. There was never a q₀ story and a q₁ story for a signal to travel between — the pair had one joint description the whole time.',
+        foot: 'This is the most common wrong model, and the plot cannot distinguish it from the right one. Only the factorisation test can.' },
+      { t: 'The pair was secretly set to matching values at the start.', ok: false,
+        fb: 'That model predicts the same plot — and a different one for a measurement taken at an angle. Panel 04 is where the two models come apart.',
+        foot: 'A wrong answer that makes a testable prediction is worth more than a lucky right one. The app tells you which test kills it.' },
+      { t: 'No pair of independent leans can produce that table at all.', ok: true,
+        fb: 'That is the reading. Entanglement is not the correlation — it is the failure of the multiplication that would otherwise explain it.',
+        foot: 'You never get a green tick here. You get the arithmetic, and you check it yourself.' }
+    ];
+    const demoChoices = demoDefs.map((c, i) => {
+      const on = s.demo === i;
+      return { tag: String.fromCharCode(65 + i), text: c.t,
+        border: on ? (c.ok ? accent : '#e8306f') : '#2b2f2a',
+        tagCol: on ? (c.ok ? accent : '#e8306f') : '#9aa396',
+        bg: on ? (c.ok ? '#132420' : '#26141b') : '#0d0f0d',
+        pick: () => this.setState({ demo: i }) };
+    });
+    const dd = s.demo === null ? null : demoDefs[s.demo];
+
+    return {
+      shotsLabel: shots + ' SHOTS',
+      bars, phasePos: (s.phase / 360 * 100) + '%',
+      gateLabel: 'P(' + Math.round(s.phase) + '°)',
+      dragPhase: e => { this._drag = true; this._rect = e.currentTarget.getBoundingClientRect(); this.applyDrag(e.clientX); },
+      liveVerdict: verdict,
+
+      facts: [
+        { n: '6', t: 'prerequisites taught as working instruments, not slides' },
+        { n: '0', t: 'timers, streaks or hearts anywhere in the app' },
+        { n: '1024', t: 'shots behind every verdict you are handed' }
+      ],
+
+      swaps: [
+        { out: 'HEARTS', in: 'A gate budget', why: 'Spent by gates you place — never by the time you take to think. Optimising a circuit is the reward.', bg: '#f2efe4' },
+        { out: 'A LESSON PATH', in: 'A dependency chain', why: 'Six things entanglement is literally made of, each resolved on its own instrument before the target opens.', bg: '#ece8da' },
+        { out: 'CORRECT! / INCORRECT', in: 'A measured plot', why: 'A histogram over 1024 runs, plus one plain sentence telling you what the shape means.', bg: '#f2efe4' },
+        { out: 'STREAKS', in: 'Retention envelopes', why: 'Each concept decays from the day you last re-derived it. Skipping costs the decay and nothing else.', bg: '#ece8da' }
+      ],
+
+      chain, demoChoices,
+      demoTag: dd ? (dd.ok ? 'THAT IS THE READING' : 'A SPECIFIC MISCONCEPTION') : 'WAITING ON YOU',
+      demoTagCol: dd ? (dd.ok ? accent : '#e8306f') : '#9aa396',
+      demoText: dd ? dd.fb : 'Pick one of the three. Two of them are wrong in interesting, nameable ways — and this panel will name yours.',
+      demoFoot: dd ? dd.foot : 'This is the real feedback copy from the entanglement panel, unedited.'
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  body{margin:0;background:#e3ded1;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  a{color:#00867a;text-decoration:none}
+  a:hover{color:#005f57}
+  button{font-family:'JetBrains Mono',monospace}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#e3ded1;color:#16150f">
+
+  <div style="position:sticky;top:0;z-index:20;background:#f7f4ec;border-bottom:2px solid #16150f;display:flex;align-items:stretch;height:78px">
+    <div style="flex:none;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 28px;border-right:2px solid #16150f">
+      <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#00867a">LEARN · TARGET CONCEPT</div>
+      <div style="font:400 26px/1 'Instrument Serif',serif">Entanglement &nbsp;|Φ⁺⟩</div>
+    </div>
+
+    <div style="flex:1;display:flex;align-items:center;gap:18px;padding:0 28px;min-width:0;overflow:hidden;flex-wrap:wrap">
+      <div style="flex:none;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">PREREQUISITES</div>
+      <div style="flex:none;display:flex;gap:7px;align-items:center">
+        <span style="width:15px;height:15px;border:2px solid #16150f;background:{{ s1fill }}"></span>
+        <span style="width:15px;height:15px;border:2px solid #16150f;background:{{ s2fill }}"></span>
+        <span style="width:15px;height:15px;border:2px solid #16150f;background:{{ s3fill }}"></span>
+        <span style="width:15px;height:15px;border:2px solid #16150f;background:{{ s4fill }}"></span>
+        <span style="width:15px;height:15px;border:2px solid #16150f;background:{{ s5fill }}"></span>
+        <span style="width:15px;height:15px;border:2px solid #16150f;background:{{ s6fill }}"></span>
+      </div>
+      <div style="flex:none;font:700 14px/1 'JetBrains Mono',monospace;color:#16150f">{{ resolvedCount }}/6 RESOLVED</div>
+    </div>
+
+    <div style="flex:none;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:0 28px;border-left:2px solid #16150f">
+      <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">COHERENCE BUDGET · GATES</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <sc-for list="{{ budgetPips }}" as="pip" hint-placeholder-count="4">
+          <span style="width:11px;height:22px;border:2px solid #16150f;background:{{ pip.fill }}"></span>
+        </sc-for>
+        <span style="font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a;margin-left:8px">{{ budgetLabel }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:0">
+
+    <div style="flex:none;width:286px;position:sticky;top:78px;align-self:flex-start;border-right:2px solid #16150f;background:#efebdf;padding:30px 24px 40px;min-height:calc(100vh - 78px)">
+      <div style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#6b665a;margin-bottom:8px">DEPENDENCY CHAIN</div>
+      <div style="font:400 15px/1.5 'Space Grotesk',sans-serif;color:#5a564b;margin-bottom:24px;text-wrap:pretty">Six things entanglement is made of. Resolve each on its own instrument.</div>
+
+      <div style="display:flex;flex-direction:column;gap:0">
+        <a href="#p1" style="display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid #ddd7c8;color:#16150f">
+          <span style="flex:none;font:500 12px/1.4 'JetBrains Mono',monospace;color:{{ s1col }};width:26px">01</span>
+          <span style="flex:1;font:500 15px/1.35 'Space Grotesk',sans-serif">Classical randomness</span>
+          <span style="flex:none;font:400 13px/1.3 'JetBrains Mono',monospace;color:{{ s1col }}">{{ s1mark }}</span>
+        </a>
+        <a href="#p2" style="display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid #ddd7c8;color:#16150f">
+          <span style="flex:none;font:500 12px/1.4 'JetBrains Mono',monospace;color:{{ s2col }};width:26px">02</span>
+          <span style="flex:1;font:500 15px/1.35 'Space Grotesk',sans-serif">Amplitude &amp; superposition</span>
+          <span style="flex:none;font:400 13px/1.3 'JetBrains Mono',monospace;color:{{ s2col }}">{{ s2mark }}</span>
+        </a>
+        <a href="#p3" style="display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid #ddd7c8;color:#16150f">
+          <span style="flex:none;font:500 12px/1.4 'JetBrains Mono',monospace;color:{{ s3col }};width:26px">03</span>
+          <span style="flex:1;font:500 15px/1.35 'Space Grotesk',sans-serif">Measurement collapse</span>
+          <span style="flex:none;font:400 13px/1.3 'JetBrains Mono',monospace;color:{{ s3col }}">{{ s3mark }}</span>
+        </a>
+        <a href="#p4" style="display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid #ddd7c8;color:#16150f">
+          <span style="flex:none;font:500 12px/1.4 'JetBrains Mono',monospace;color:{{ s4col }};width:26px">04</span>
+          <span style="flex:1;font:500 15px/1.35 'Space Grotesk',sans-serif">Phase &amp; interference</span>
+          <span style="flex:none;font:400 13px/1.3 'JetBrains Mono',monospace;color:{{ s4col }}">{{ s4mark }}</span>
+        </a>
+        <a href="#p5" style="display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid #ddd7c8;color:#16150f">
+          <span style="flex:none;font:500 12px/1.4 'JetBrains Mono',monospace;color:{{ s5col }};width:26px">05</span>
+          <span style="flex:1;font:500 15px/1.35 'Space Grotesk',sans-serif">Two-qubit register</span>
+          <span style="flex:none;font:400 13px/1.3 'JetBrains Mono',monospace;color:{{ s5col }}">{{ s5mark }}</span>
+        </a>
+        <a href="#p6" style="display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid #ddd7c8;border-bottom:1px solid #ddd7c8;color:#16150f">
+          <span style="flex:none;font:500 12px/1.4 'JetBrains Mono',monospace;color:{{ s6col }};width:26px">06</span>
+          <span style="flex:1;font:500 15px/1.35 'Space Grotesk',sans-serif">Conditional operation</span>
+          <span style="flex:none;font:400 13px/1.3 'JetBrains Mono',monospace;color:{{ s6col }}">{{ s6mark }}</span>
+        </a>
+      </div>
+
+      <div style="display:flex;justify-content:center;padding:10px 0">
+        <span style="width:2px;height:26px;background:#16150f"></span>
+      </div>
+
+      <a href="#target" style="display:block;border:2px solid #16150f;background:{{ targetBg }};padding:16px 16px 18px;color:{{ targetFg }}">
+        <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;margin-bottom:9px">{{ targetChip }}</div>
+        <div style="font:400 25px/1.05 'Instrument Serif',serif">Entanglement</div>
+      </a>
+
+      <div style="margin-top:26px;font:400 14px/1.5 'Space Grotesk',sans-serif;color:#6b665a;text-wrap:pretty">Nothing here runs on a clock. The budget above is spent by gates you place, never by time you take.</div>
+    </div>
+
+    <div style="flex:1;min-width:0;padding:38px 44px 120px;display:flex;flex-direction:column;gap:38px;max-width:1080px">
+
+      <div>
+        <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#6b665a;margin-bottom:16px">BEFORE THE CONCEPT</div>
+        <h1 style="font:400 46px/1.06 'Instrument Serif',serif;margin:0 0 16px;max-width:26ch;text-wrap:pretty">Entanglement is not hard. It is six easy things stacked.</h1>
+        <p style="font:400 17px/1.6 'Space Grotesk',sans-serif;color:#5a564b;margin:0;max-width:64ch;text-wrap:pretty">Each panel below is a working instrument, not an illustration. Operate it until the panel resolves itself — the reading is the proof, and a plain sentence tells you what you just saw.</p>
+      </div>
+
+      <div id="p1" style="border:2px solid #16150f;background:#f7f4ec;scroll-margin-top:96px">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">PREREQ 01</span>
+          <span style="flex:1;font:400 30px/1.1 'Instrument Serif',serif">Randomness you already trust</span>
+          <span style="flex:none;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;padding:8px 12px;border:2px solid {{ s1col }};color:{{ s1col }}">{{ s1chip }}</span>
+        </div>
+
+        <div style="display:flex;align-items:stretch">
+          <div style="flex:1;min-width:0;padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+            <p style="font:400 16px/1.55 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 22px;max-width:58ch;text-wrap:pretty">Call it before you flip it. You will be right about half the time and you will never be right on purpose — but the <em style="font-family:'Instrument Serif',serif;font-size:18px">ratio</em> will hold.</p>
+
+            <div style="display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:none;width:238px;display:flex;flex-direction:column;gap:12px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">YOUR CALL</div>
+                <div style="display:flex;gap:0;border:2px solid #00867a">
+                  <button type="button" onClick="{{ callH }}" style="flex:1;padding:13px 0;border:0;background:{{ callHBg }};color:{{ callHFg }};font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer">HEADS</button>
+                  <button type="button" onClick="{{ callT }}" style="flex:1;padding:13px 0;border:0;border-left:2px solid #00867a;background:{{ callTBg }};color:{{ callTFg }};font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer">TAILS</button>
+                </div>
+                <button type="button" onClick="{{ doFlip }}" style="padding:15px 0;border:2px solid #00867a;background:#00867a;color:#f7f4ec;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;cursor:pointer" style-hover="background:#005f57;border-color:#005f57">FLIP ▸</button>
+                <div style="border:2px solid #16150f;background:#f7f4ec;padding:14px 16px;display:flex;flex-direction:column;gap:7px">
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">LANDED</div>
+                  <div style="font:400 34px/1 'Instrument Serif',serif">{{ lastFlipLabel }}</div>
+                  <div style="font:500 13px/1.3 'JetBrains Mono',monospace;color:{{ hitCol }}">{{ hitLabel }}</div>
+                </div>
+              </div>
+
+              <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:16px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">TALLY · {{ flipTotal }} FLIPS</div>
+                <div style="display:flex;flex-direction:column;gap:13px">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="flex:none;width:58px;font:500 13px/1 'JetBrains Mono',monospace;color:#16150f">heads</span>
+                    <span style="flex:1;height:26px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ hW }};background:#16150f;display:block"></span></span>
+                    <span style="flex:none;width:74px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ hLabel }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="flex:none;width:58px;font:500 13px/1 'JetBrains Mono',monospace;color:#16150f">tails</span>
+                    <span style="flex:1;height:26px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ tW }};background:#00867a;display:block"></span></span>
+                    <span style="flex:none;width:74px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ tLabel }}</span>
+                  </div>
+                </div>
+                <div style="font:500 13px/1.5 'JetBrains Mono',monospace;color:#6b665a">your accuracy · {{ accLabel }}</div>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ showMargins }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:none;width:214px;border-left:1px solid #ddd7c8;padding:26px 20px;display:flex;flex-direction:column;gap:14px">
+              <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">MARGIN</div>
+              <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">The coin is already decided mid-air — you just can't see it. Hold on to that sentence. In panel 02 it stops being true.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">RESOLVES AT 20 FLIPS · {{ p1Progress }}</span>
+          <sc-if value="{{ r1 }}" hint-placeholder-val="{{ false }}">
+            <span style="font:400 19px/1.35 'Instrument Serif',serif;color:#16150f;flex:1;min-width:280px">Unpredictable, yet lawful. That is classical chance — and every outcome was already fixed before you looked.</span>
+          </sc-if>
+        </div>
+      </div>
+
+      <div id="p2" style="border:2px solid #16150f;background:#f7f4ec;scroll-margin-top:96px">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">PREREQ 02</span>
+          <span style="flex:1;font:400 30px/1.1 'Instrument Serif',serif">A qubit stores a lean, not an answer</span>
+          <span style="flex:none;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;padding:8px 12px;border:2px solid {{ s2col }};color:{{ s2col }}">{{ s2chip }}</span>
+        </div>
+
+        <div style="display:flex;align-items:stretch">
+          <div style="flex:1;min-width:0;padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+            <p style="font:400 16px/1.55 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 24px;max-width:58ch;text-wrap:pretty">Drag the arrow. Right leans toward |0⟩, left toward |1⟩. The two numbers underneath are <em style="font-family:'Instrument Serif',serif;font-size:18px">amplitudes</em>; square them and you get the odds.</p>
+
+            <div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:none;width:250px;display:flex;flex-direction:column;gap:14px">
+                <div style="width:250px;height:130px;border:2px solid #16150f;background:#f7f4ec;position:relative;overflow:hidden">
+                  <span style="position:absolute;left:0;right:0;top:104px;height:2px;background:#ddd7c8;display:block"></span>
+                  <span style="position:absolute;left:125px;top:8px;bottom:26px;width:1px;background:#ddd7c8;display:block"></span>
+                  <span style="position:absolute;left:125px;bottom:26px;width:2px;height:74px;background:#16150f;display:block;transform-origin:bottom center;transform:rotate({{ arrowDeg }})"></span>
+                  <span style="position:absolute;left:119px;bottom:22px;width:14px;height:14px;background:#16150f;display:block"></span>
+                  <span style="position:absolute;left:12px;bottom:6px;font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a">|1⟩</span>
+                  <span style="position:absolute;right:12px;bottom:6px;font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a">|0⟩</span>
+                </div>
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#00867a">DRAG THE TRACK</div>
+                <div onPointerDown="{{ dragTheta }}" style="height:34px;border:2px solid #00867a;background:#f0ece0;position:relative;cursor:ew-resize;touch-action:none">
+                  <span style="position:absolute;top:0;bottom:0;left:{{ thetaPos }};width:12px;background:#00867a;display:block;transform:translateX(-6px)"></span>
+                </div>
+                <div style="display:flex;gap:10px">
+                  <button type="button" onClick="{{ thetaEven }}" style="flex:1;padding:11px 0;border:2px solid #00867a;background:#f7f4ec;color:#00867a;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.1em;cursor:pointer" style-hover="background:#00867a;color:#f7f4ec">LEVEL IT</button>
+                  <button type="button" onClick="{{ thetaZero }}" style="flex:1;padding:11px 0;border:2px solid #00867a;background:#f7f4ec;color:#00867a;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.1em;cursor:pointer" style-hover="background:#00867a;color:#f7f4ec">FULL |0⟩</button>
+                </div>
+              </div>
+
+              <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:18px">
+                <div style="border:2px solid #16150f;padding:16px 18px;background:#f7f4ec">
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a;margin-bottom:10px">STATE</div>
+                  <div style="font:700 21px/1.3 'JetBrains Mono',monospace;color:#16150f">{{ ketLabel }}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:13px">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">p|0⟩</span>
+                    <span style="flex:1;height:26px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ p0W }};background:#16150f;display:block"></span></span>
+                    <span style="flex:none;width:56px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ p0Label }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">p|1⟩</span>
+                    <span style="flex:1;height:26px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ p1W }};background:#00867a;display:block"></span></span>
+                    <span style="flex:none;width:56px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ p1Label }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ showMargins }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:none;width:214px;border-left:1px solid #ddd7c8;padding:26px 20px;display:flex;flex-direction:column;gap:14px">
+              <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">MARGIN</div>
+              <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">The arrow is the whole state — not a picture of one. A coin mid-air has a hidden face; a level qubit has no face at all.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">RESOLVES WHEN LEVEL · {{ p2Progress }}</span>
+          <sc-if value="{{ r2 }}" hint-placeholder-val="{{ false }}">
+            <span style="font:400 19px/1.35 'Instrument Serif',serif;color:#16150f;flex:1;min-width:280px">Level means 0.71 and 0.71 — an even lean with no value hidden inside it. This is what a Hadamard gate does to |0⟩.</span>
+          </sc-if>
+        </div>
+      </div>
+
+      <div id="p3" style="border:2px solid #16150f;background:#f7f4ec;scroll-margin-top:96px">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">PREREQ 03</span>
+          <span style="flex:1;font:400 30px/1.1 'Instrument Serif',serif">Measuring is not reading — it is changing</span>
+          <span style="flex:none;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;padding:8px 12px;border:2px solid {{ s3col }};color:{{ s3col }}">{{ s3chip }}</span>
+        </div>
+
+        <div style="display:flex;align-items:stretch">
+          <div style="flex:1;min-width:0;padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+            <p style="font:400 16px/1.55 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 24px;max-width:58ch;text-wrap:pretty">This qubit starts level. Measure it — then measure the same qubit again without resetting.</p>
+
+            <div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:none;width:262px;display:flex;flex-direction:column;gap:12px">
+                <div style="border:2px solid #16150f;background:#f7f4ec;padding:18px;display:flex;flex-direction:column;gap:10px">
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">{{ m3StateLabel }}</div>
+                  <div style="font:700 26px/1.2 'JetBrains Mono',monospace">{{ m3Ket }}</div>
+                  <div style="font:400 14px/1.5 'Space Grotesk',sans-serif;color:#5a564b">{{ m3Note }}</div>
+                </div>
+                <button type="button" onClick="{{ doMeasure3 }}" style="padding:15px 0;border:2px solid #00867a;background:#00867a;color:#f7f4ec;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;cursor:pointer" style-hover="background:#005f57;border-color:#005f57">{{ m3BtnLabel }}</button>
+                <button type="button" onClick="{{ reset3 }}" style="padding:12px 0;border:2px solid #16150f;background:#f7f4ec;color:#16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer" style-hover="background:#16150f;color:#f7f4ec">RESET TO LEVEL</button>
+              </div>
+
+              <div style="flex:1;min-width:290px;display:flex;flex-direction:column;gap:16px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">FIRST-MEASUREMENT TALLY · {{ m3Runs }} RUNS</div>
+                <div style="display:flex;flex-direction:column;gap:13px">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">|0⟩</span>
+                    <span style="flex:1;height:26px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ m3W0 }};background:#16150f;display:block"></span></span>
+                    <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ m3C0 }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">|1⟩</span>
+                    <span style="flex:1;height:26px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ m3W1 }};background:#00867a;display:block"></span></span>
+                    <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ m3C1 }}</span>
+                  </div>
+                </div>
+                <div style="border:2px solid #16150f;padding:14px 16px;background:#f7f4ec">
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a;margin-bottom:8px">REPEAT LOG · SAME QUBIT</div>
+                  <div style="font:500 15px/1.5 'JetBrains Mono',monospace;color:#16150f">{{ m3Log }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ showMargins }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:none;width:214px;border-left:1px solid #ddd7c8;padding:26px 20px;display:flex;flex-direction:column;gap:14px">
+              <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">MARGIN</div>
+              <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Across runs the tally drifts to 50/50. Within one run the answer never changes. Both facts matter later.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">RESOLVES ON A REPEAT MEASUREMENT · {{ p3Progress }}</span>
+          <sc-if value="{{ r3 }}" hint-placeholder-val="{{ false }}">
+            <span style="font:400 19px/1.35 'Instrument Serif',serif;color:#16150f;flex:1;min-width:280px">The second measurement told you nothing new. The lean is gone — you didn't discover a value, you created one.</span>
+          </sc-if>
+        </div>
+      </div>
+
+      <div id="p4" style="border:2px solid #16150f;background:#f7f4ec;scroll-margin-top:96px">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">PREREQ 04</span>
+          <span style="flex:1;font:400 30px/1.1 'Instrument Serif',serif">Phase: invisible, and decisive</span>
+          <span style="flex:none;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;padding:8px 12px;border:2px solid {{ s4col }};color:{{ s4col }}">{{ s4chip }}</span>
+        </div>
+
+        <div style="display:flex;align-items:stretch">
+          <div style="flex:1;min-width:0;padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+            <p style="font:400 16px/1.55 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 24px;max-width:60ch;text-wrap:pretty">Two Hadamards with a phase turn between them. Change the phase and watch the <em style="font-family:'Instrument Serif',serif;font-size:18px">final</em> reading swing — while the middle reading refuses to move.</p>
+
+            <div style="border:2px solid #16150f;background:#f7f4ec;padding:22px 24px;margin-bottom:22px;position:relative">
+              <div style="display:flex;align-items:center;gap:0">
+                <span style="flex:none;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a;width:34px">q₀</span>
+                <span style="flex:1;height:2px;background:#16150f;display:block"></span>
+                <span style="flex:none;width:48px;height:48px;border:2px solid #16150f;background:#f7f4ec;display:grid;place-items:center;font:700 17px/1 'JetBrains Mono',monospace">H</span>
+                <span style="flex:1;height:2px;background:#16150f;display:block"></span>
+                <span style="flex:none;width:70px;height:48px;border:2px solid #4a3fd4;background:#f7f4ec;display:grid;place-items:center;font:700 14px/1 'JetBrains Mono',monospace;color:#4a3fd4">{{ phiGate }}</span>
+                <span style="flex:1;height:2px;background:#16150f;display:block"></span>
+                <span style="flex:none;width:48px;height:48px;border:2px solid #16150f;background:#f7f4ec;display:grid;place-items:center;font:700 17px/1 'JetBrains Mono',monospace">H</span>
+                <span style="flex:1;height:2px;background:#16150f;display:block"></span>
+                <span style="flex:none;width:48px;height:48px;border:2px solid #00867a;background:#f7f4ec;display:grid;place-items:center;font:700 15px/1 'JetBrains Mono',monospace;color:#00867a">M</span>
+              </div>
+              <div style="display:flex;gap:12px;margin-top:16px;padding-left:34px">
+                <span style="font:500 12px/1.4 'JetBrains Mono',monospace;color:#6b665a">midpoint reading is always 50 / 50 — measuring here erases the phase</span>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:none;width:266px;display:flex;flex-direction:column;gap:12px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#00867a">SET THE PHASE</div>
+                <div style="display:flex;gap:0;border:2px solid #00867a">
+                  <sc-for list="{{ phiStops }}" as="stop" hint-placeholder-count="5">
+                    <button type="button" onClick="{{ stop.set }}" style="flex:1;padding:14px 0;border:0;border-left:{{ stop.edge }};background:{{ stop.bg }};color:{{ stop.fg }};font:700 13px/1 'JetBrains Mono',monospace;cursor:pointer">{{ stop.label }}</button>
+                  </sc-for>
+                </div>
+                <div style="border:2px solid #16150f;padding:15px 16px;display:flex;flex-direction:column;gap:8px">
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">STATE AFTER FIRST H</div>
+                  <div style="font:700 17px/1.35 'JetBrains Mono',monospace;color:#4a3fd4">{{ phiMidKet }}</div>
+                </div>
+              </div>
+
+              <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:18px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">FINAL READING · AFTER SECOND H</div>
+                <div style="display:flex;flex-direction:column;gap:13px">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">|0⟩</span>
+                    <span style="flex:1;height:30px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ phiW0 }};background:#16150f;display:block"></span></span>
+                    <span style="flex:none;width:56px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ phiL0 }}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">|1⟩</span>
+                    <span style="flex:1;height:30px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ phiW1 }};background:#00867a;display:block"></span></span>
+                    <span style="flex:none;width:56px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ phiL1 }}</span>
+                  </div>
+                </div>
+                <div style="font:400 15px/1.5 'Space Grotesk',sans-serif;color:#3f3c33;max-width:46ch">{{ phiNote }}</div>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ showMargins }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:none;width:214px;border-left:1px solid #ddd7c8;padding:26px 20px;display:flex;flex-direction:column;gap:14px">
+              <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">MARGIN</div>
+              <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Probabilities can only add. Amplitudes can cancel. Everything a quantum computer wins, it wins here.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">RESOLVES AT φ = π · {{ p4Progress }}</span>
+          <sc-if value="{{ r4 }}" hint-placeholder-val="{{ false }}">
+            <span style="font:400 19px/1.35 'Instrument Serif',serif;color:#16150f;flex:1;min-width:280px">A half-turn nobody could measure flipped a certainty into its opposite. The two paths cancelled instead of adding.</span>
+          </sc-if>
+        </div>
+      </div>
+
+      <div id="p5" style="border:2px solid #16150f;background:#f7f4ec;scroll-margin-top:96px">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">PREREQ 05</span>
+          <span style="flex:1;font:400 30px/1.1 'Instrument Serif',serif">Two qubits, still two separate stories</span>
+          <span style="flex:none;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;padding:8px 12px;border:2px solid {{ s5col }};color:{{ s5col }}">{{ s5chip }}</span>
+        </div>
+
+        <div style="display:flex;align-items:stretch">
+          <div style="flex:1;min-width:0;padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+            <p style="font:400 16px/1.55 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 24px;max-width:60ch;text-wrap:pretty">Two independent leans. Four possible outcomes, each one just a multiplication. Level both tracks.</p>
+
+            <div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:none;width:266px;display:flex;flex-direction:column;gap:18px">
+                <div>
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#00867a;margin-bottom:9px">q₀ LEAN · {{ aLabel }}</div>
+                  <div onPointerDown="{{ dragA }}" style="height:30px;border:2px solid #00867a;background:#f0ece0;position:relative;cursor:ew-resize;touch-action:none">
+                    <span style="position:absolute;top:0;bottom:0;left:{{ aPos }};width:12px;background:#00867a;display:block;transform:translateX(-6px)"></span>
+                  </div>
+                </div>
+                <div>
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#00867a;margin-bottom:9px">q₁ LEAN · {{ bLabel }}</div>
+                  <div onPointerDown="{{ dragB }}" style="height:30px;border:2px solid #00867a;background:#f0ece0;position:relative;cursor:ew-resize;touch-action:none">
+                    <span style="position:absolute;top:0;bottom:0;left:{{ bPos }};width:12px;background:#00867a;display:block;transform:translateX(-6px)"></span>
+                  </div>
+                </div>
+                <button type="button" onClick="{{ levelBoth }}" style="padding:13px 0;border:2px solid #00867a;background:#f7f4ec;color:#00867a;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer" style-hover="background:#00867a;color:#f7f4ec">LEVEL BOTH</button>
+                <div style="border:2px solid #16150f;padding:15px 16px">
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a;margin-bottom:8px">FACTORISED FORM</div>
+                  <div style="font:700 15px/1.5 'JetBrains Mono',monospace">{{ prodKet }}</div>
+                </div>
+              </div>
+
+              <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:16px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">REGISTER · FOUR OUTCOMES</div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <sc-for list="{{ regRows }}" as="row" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <span style="flex:none;width:52px;font:500 13px/1 'JetBrains Mono',monospace">{{ row.ket }}</span>
+                      <span style="flex:1;height:26px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ row.w }};background:{{ row.col }};display:block"></span></span>
+                      <span style="flex:none;width:120px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ row.calc }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="font:400 15px/1.5 'Space Grotesk',sans-serif;color:#3f3c33;max-width:48ch;text-wrap:pretty">Every bar is the product of one number from q₀ and one from q₁. Knowing q₀ tells you nothing about q₁.</div>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ showMargins }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:none;width:214px;border-left:1px solid #ddd7c8;padding:26px 20px;display:flex;flex-direction:column;gap:14px">
+              <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">MARGIN</div>
+              <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Hold on to the multiplication. It is the test you will run on the target concept — and the test it fails.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">RESOLVES AT FOUR EVEN BARS · {{ p5Progress }}</span>
+          <sc-if value="{{ r5 }}" hint-placeholder-val="{{ false }}">
+            <span style="font:400 19px/1.35 'Instrument Serif',serif;color:#16150f;flex:1;min-width:280px">Four outcomes at 25% each — and still two independent qubits. A flat table is not a linked one.</span>
+          </sc-if>
+        </div>
+      </div>
+
+      <div id="p6" style="border:2px solid #16150f;background:#f7f4ec;scroll-margin-top:96px">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">PREREQ 06</span>
+          <span style="flex:1;font:400 30px/1.1 'Instrument Serif',serif">One qubit acting on another</span>
+          <span style="flex:none;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;padding:8px 12px;border:2px solid {{ s6col }};color:{{ s6col }}">{{ s6chip }}</span>
+        </div>
+
+        <div style="display:flex;align-items:stretch">
+          <div style="flex:1;min-width:0;padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+            <p style="font:400 16px/1.55 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 24px;max-width:60ch;text-wrap:pretty">CNOT flips the target only when the control is 1. Run all four definite inputs — the whole gate is four rows long.</p>
+
+            <div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:none;width:290px;display:flex;flex-direction:column;gap:14px">
+                <div style="border:2px solid #16150f;background:#f7f4ec;padding:22px 20px;position:relative;height:132px">
+                  <div style="position:absolute;left:20px;right:20px;top:44px;height:2px;background:#16150f"></div>
+                  <div style="position:absolute;left:20px;right:20px;top:100px;height:2px;background:#16150f"></div>
+                  <div style="position:absolute;left:20px;top:26px;font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a">q₀ = {{ cLabel }}</div>
+                  <div style="position:absolute;left:20px;top:112px;font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a">q₁ = {{ tLabelIn }}</div>
+                  <div style="position:absolute;left:148px;top:37px;width:17px;height:17px;background:#16150f;border-radius:50%"></div>
+                  <div style="position:absolute;left:155px;top:45px;width:2px;height:56px;background:#16150f"></div>
+                  <div style="position:absolute;left:140px;top:86px;width:32px;height:32px;border:2px solid #16150f;background:#f7f4ec;display:grid;place-items:center;font:700 15px/1 'JetBrains Mono',monospace">⊕</div>
+                  <div style="position:absolute;right:20px;top:26px;font:500 12px/1 'JetBrains Mono',monospace;color:#00867a">{{ cOutLabel }}</div>
+                  <div style="position:absolute;right:20px;top:112px;font:500 12px/1 'JetBrains Mono',monospace;color:#00867a">{{ tOutLabel }}</div>
+                </div>
+                <div style="display:flex;gap:10px">
+                  <button type="button" onClick="{{ toggleC }}" style="flex:1;padding:12px 0;border:2px solid #00867a;background:#f7f4ec;color:#00867a;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.1em;cursor:pointer" style-hover="background:#00867a;color:#f7f4ec">FLIP q₀</button>
+                  <button type="button" onClick="{{ toggleT }}" style="flex:1;padding:12px 0;border:2px solid #00867a;background:#f7f4ec;color:#00867a;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.1em;cursor:pointer" style-hover="background:#00867a;color:#f7f4ec">FLIP q₁</button>
+                </div>
+                <button type="button" onClick="{{ applyCnot }}" style="padding:15px 0;border:2px solid #00867a;background:#00867a;color:#f7f4ec;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;cursor:pointer" style-hover="background:#005f57;border-color:#005f57">APPLY CNOT ▸</button>
+              </div>
+
+              <div style="flex:1;min-width:290px;display:flex;flex-direction:column;gap:14px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">TRUTH TABLE · ROWS YOU HAVE RUN</div>
+                <div style="border:2px solid #16150f">
+                  <div style="display:flex;background:#f0ece0;border-bottom:2px solid #16150f">
+                    <span style="flex:1;padding:11px 14px;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#6b665a">IN</span>
+                    <span style="flex:1;padding:11px 14px;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#6b665a">OUT</span>
+                    <span style="flex:none;width:96px;padding:11px 14px;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#6b665a">RUN</span>
+                  </div>
+                  <sc-for list="{{ cnotRows }}" as="row" hint-placeholder-count="4">
+                    <div style="display:flex;border-top:1px solid #ddd7c8;background:{{ row.bg }}">
+                      <span style="flex:1;padding:13px 14px;font:700 14px/1 'JetBrains Mono',monospace">{{ row.in }}</span>
+                      <span style="flex:1;padding:13px 14px;font:700 14px/1 'JetBrains Mono',monospace;color:#00867a">{{ row.out }}</span>
+                      <span style="flex:none;width:96px;padding:13px 14px;font:500 13px/1 'JetBrains Mono',monospace;color:{{ row.col }}">{{ row.mark }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ showMargins }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:none;width:214px;border-left:1px solid #ddd7c8;padding:26px 20px;display:flex;flex-direction:column;gap:14px">
+              <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">MARGIN</div>
+              <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">On definite inputs this is boring bookkeeping. Feed it a lean instead and it stops being boring.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">RESOLVES WHEN ALL FOUR ROWS RUN · {{ p6Progress }}</span>
+          <sc-if value="{{ r6 }}" hint-placeholder-val="{{ false }}">
+            <span style="font:400 19px/1.35 'Instrument Serif',serif;color:#16150f;flex:1;min-width:280px">Four rows, no surprises: CNOT copies a decision the control has already made. Note that it never needed to look.</span>
+          </sc-if>
+        </div>
+      </div>
+
+      <div id="target" style="border:2px solid #16150f;background:#f7f4ec;scroll-margin-top:96px">
+        <div style="display:flex;align-items:center;gap:18px;padding:22px 26px;border-bottom:2px solid #16150f;background:#16150f;color:#f7f4ec">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#46c8b8">TARGET CONCEPT</span>
+          <span style="flex:1;font:400 32px/1.05 'Instrument Serif',serif">Entanglement</span>
+          <span style="flex:none;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;padding:8px 12px;border:2px solid #46c8b8;color:#46c8b8">{{ targetChip }}</span>
+        </div>
+
+        <sc-if value="{{ targetLocked }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:44px 26px;display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+            <div style="flex:1;min-width:340px">
+              <div style="font:400 30px/1.15 'Instrument Serif',serif;margin-bottom:14px;max-width:26ch">This panel opens when its six parts are resolved.</div>
+              <div style="font:400 16px/1.6 'Space Grotesk',sans-serif;color:#5a564b;max-width:52ch;text-wrap:pretty">Not a lock for its own sake: the test you will run here is the multiplication from panel 05, applied to the gate from panel 06. Without both, the result reads as a bug rather than a discovery.</div>
+            </div>
+            <div style="flex:none;width:300px;border:2px solid #16150f;background:#f7f4ec;padding:20px">
+              <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a;margin-bottom:12px">STILL OPEN</div>
+              <div style="font:500 15px/1.7 'JetBrains Mono',monospace;color:#16150f;white-space:pre-line">{{ remainingList }}</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ targetOpen }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:stretch">
+            <div style="flex:1;min-width:0;padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+              <p style="font:400 17px/1.55 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 24px;max-width:62ch;text-wrap:pretty">Put a lean on q₀ (panel 02), then let it act on q₁ (panel 06). Then run the multiplication test from panel 05 on the result.</p>
+
+              <div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+                <div style="flex:none;width:296px;display:flex;flex-direction:column;gap:14px">
+                  <div style="border:2px solid #16150f;background:#f7f4ec;padding:22px 20px;height:132px;position:relative">
+                    <div style="position:absolute;left:20px;right:20px;top:44px;height:2px;background:#16150f"></div>
+                    <div style="position:absolute;left:20px;right:20px;top:100px;height:2px;background:#16150f"></div>
+                    <div style="position:absolute;left:20px;top:24px;font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a">q₀</div>
+                    <div style="position:absolute;left:20px;top:112px;font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a">q₁</div>
+                    <sc-if value="{{ hasH }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;left:70px;top:29px;width:34px;height:34px;border:2px solid #16150f;background:#f7f4ec;display:grid;place-items:center;font:700 15px/1 'JetBrains Mono',monospace">H</div>
+                    </sc-if>
+                    <sc-if value="{{ hasCnot }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;left:154px;top:37px;width:17px;height:17px;background:#16150f;border-radius:50%"></div>
+                      <div style="position:absolute;left:161px;top:45px;width:2px;height:56px;background:#16150f"></div>
+                      <div style="position:absolute;left:146px;top:86px;width:32px;height:32px;border:2px solid #16150f;background:#f7f4ec;display:grid;place-items:center;font:700 15px/1 'JetBrains Mono',monospace">⊕</div>
+                    </sc-if>
+                    <div style="position:absolute;right:20px;top:24px;font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a">{{ buildLabel }}</div>
+                  </div>
+
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <button type="button" onClick="{{ placeH }}" style="padding:13px 0;border:2px solid #00867a;background:{{ hBtnBg }};color:{{ hBtnFg }};font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer">PLACE H ON q₀ · 1 PIP</button>
+                    <button type="button" onClick="{{ placeCnot }}" style="padding:13px 0;border:2px solid {{ cnotBtnBorder }};background:{{ cnotBtnBg }};color:{{ cnotBtnFg }};font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer">PLACE CNOT q₀→q₁ · 1 PIP</button>
+                    <button type="button" onClick="{{ clearBuild }}" style="padding:11px 0;border:2px solid #16150f;background:#f7f4ec;color:#16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer" style-hover="background:#16150f;color:#f7f4ec">CLEAR · REFUND PIPS</button>
+                  </div>
+                </div>
+
+                <div style="flex:1;min-width:320px;display:flex;flex-direction:column;gap:16px">
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">REGISTER</div>
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    <sc-for list="{{ tgtRows }}" as="row" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:12px">
+                        <span style="flex:none;width:52px;font:500 13px/1 'JetBrains Mono',monospace">{{ row.ket }}</span>
+                        <span style="flex:1;height:28px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ row.w }};background:{{ row.col }};display:block"></span></span>
+                        <span style="flex:none;width:56px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ row.pct }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+
+                  <div style="border:2px solid #16150f;padding:18px;display:flex;flex-direction:column;gap:13px">
+                    <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">TEST FROM PANEL 05 · CAN THIS BE FACTORISED?</div>
+                    <button type="button" onClick="{{ runFactor }}" style="padding:13px 0;border:2px solid #4a3fd4;background:#f7f4ec;color:#4a3fd4;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer" style-hover="background:#4a3fd4;color:#f7f4ec">RUN THE MULTIPLICATION</button>
+                    <div style="font:500 14px/1.7 'JetBrains Mono',monospace;color:{{ factorCol }};white-space:pre-line">{{ factorText }}</div>
+                  </div>
+
+                  <div style="border:2px solid #16150f;padding:18px;display:flex;flex-direction:column;gap:13px">
+                    <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">MEASURE ONE SIDE ONLY</div>
+                    <button type="button" onClick="{{ measureQ0 }}" style="padding:13px 0;border:2px solid #00867a;background:#00867a;color:#f7f4ec;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer" style-hover="background:#005f57;border-color:#005f57">MEASURE q₀ ▸</button>
+                    <div style="font:500 14px/1.7 'JetBrains Mono',monospace;color:#16150f">{{ tgtMeasureText }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <sc-if value="{{ showMargins }}" hint-placeholder-val="{{ true }}">
+              <div style="flex:none;width:214px;border-left:1px solid #ddd7c8;padding:26px 20px;display:flex;flex-direction:column;gap:14px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">MARGIN</div>
+                <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Nothing travelled between the qubits when you measured. There was never a q₀ story and a q₁ story to travel between.</div>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="border-top:2px solid #16150f;padding:20px 26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+            <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">{{ targetProgress }}</span>
+            <sc-if value="{{ targetDone }}" hint-placeholder-val="{{ false }}">
+              <span style="font:400 23px/1.3 'Instrument Serif',serif;color:#16150f;flex:1;min-width:300px;text-wrap:pretty">No pair of independent leans can produce that table. That failure — not the correlation — is what entanglement means.</span>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;strictGating&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Pedagogy&quot;},&quot;showMargins&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Pedagogy&quot;},&quot;gateBudget&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:4,&quot;min&quot;:2,&quot;max&quot;:8,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Pedagogy&quot;}}">
+class Component extends DCLogic {
+  state = {
+    call: 'H', h: 0, t: 0, last: null, lastHit: null, preds: 0, hits: 0,
+    theta: 34,
+    m3: null, m3Reps: 0, m3c0: 0, m3c1: 0, m3Log: [],
+    phi: 0, seenPhi: { 0: true },
+    tA: 40, tB: 132,
+    cc: 0, ct: 0, cnotOut: null, cnotSeen: {},
+    build: [], factor: false, tgtM: null
+  };
+
+  componentDidMount() {
+    this._move = e => { if (this._key) this.apply(e.clientX); };
+    this._up = () => { this._key = null; };
+    window.addEventListener('pointermove', this._move);
+    window.addEventListener('pointerup', this._up);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('pointermove', this._move);
+    window.removeEventListener('pointerup', this._up);
+  }
+  apply(x) {
+    const r = this._rect; if (!r) return;
+    let f = (x - r.left) / r.width;
+    f = Math.max(0, Math.min(1, f));
+    this.setState({ [this._key]: Math.round(f * 180) });
+  }
+  start(key) {
+    return e => { this._key = key; this._rect = e.currentTarget.getBoundingClientRect(); this.apply(e.clientX); };
+  }
+
+  p0of(deg) { const a = Math.cos((deg * Math.PI / 180) / 2); return a * a; }
+  pct(v) { return Math.round(v * 100) + '%'; }
+  pctp(v) { return (v * 100).toFixed(1) + '%'; }
+
+  mark(ok) { return ok ? '●' : '○'; }
+  col(ok) { return ok ? '#00867a' : '#8c8676'; }
+  fill(ok) { return ok ? '#00867a' : '#f7f4ec'; }
+  chip(ok) { return ok ? 'RESOLVED' : 'OPEN'; }
+
+  renderVals() {
+    const s = this.state;
+    const showMargins = this.props.showMargins ?? true;
+    const strict = this.props.strictGating ?? true;
+    const budget = this.props.gateBudget ?? 4;
+
+    const total = s.h + s.t;
+    const barMax = Math.max(s.h, s.t, 1);
+
+    const p0 = this.p0of(s.theta), p1 = 1 - p0;
+    const alpha = Math.cos((s.theta * Math.PI / 180) / 2), beta = Math.sin((s.theta * Math.PI / 180) / 2);
+
+    const phiP0 = [1, 0.5, 0, 0.5, 1][s.phi];
+    const phiLabels = ['0', 'π/2', 'π', '3π/2', '2π'];
+    const phiNotes = [
+      'No phase turn: the two paths add and the qubit returns to a certain |0⟩.',
+      'A quarter turn: the paths partly cancel and the reading is an even coin again.',
+      'A half turn: the paths cancel completely on |0⟩. A certainty became its opposite.',
+      'Three quarters: partial cancellation once more — back to an even coin.',
+      'A full turn is no turn at all. Identical to φ = 0.'
+    ];
+
+    const pa0 = this.p0of(s.tA), pb0 = this.p0of(s.tB);
+    const regs = [
+      { ket: '|00⟩', v: pa0 * pb0, col: '#16150f' },
+      { ket: '|01⟩', v: pa0 * (1 - pb0), col: '#00867a' },
+      { ket: '|10⟩', v: (1 - pa0) * pb0, col: '#4a3fd4' },
+      { ket: '|11⟩', v: (1 - pa0) * (1 - pb0), col: '#e8a33d' }
+    ];
+    const regRows = regs.map(r => ({ ket: r.ket, w: this.pct(r.v), col: r.col, calc: this.pctp(r.v) }));
+
+    const cnotRows = [[0, 0], [0, 1], [1, 0], [1, 1]].map(([c, t]) => {
+      const out = c === 1 ? 1 - t : t;
+      const isNow = s.cc === c && s.ct === t;
+      const seen = !!s.cnotSeen['' + c + t];
+      return {
+        in: '|' + c + t + '⟩', out: '|' + c + out + '⟩',
+        mark: seen ? 'RUN' : '—', col: seen ? '#00867a' : '#8c8676',
+        bg: isNow ? '#f0ece0' : '#f7f4ec'
+      };
+    });
+    const seenCount = Object.keys(s.cnotSeen).length;
+
+    const r1 = total >= 20;
+    const r2 = Math.abs(p0 - 0.5) <= 0.02;
+    const r3 = s.m3Reps >= 1;
+    const r4 = !!s.seenPhi[2];
+    const r5 = regs.every(r => r.v >= 0.23 && r.v <= 0.27);
+    const r6 = seenCount >= 4;
+    const flags = [r1, r2, r3, r4, r5, r6];
+    const resolvedCount = flags.filter(Boolean).length;
+    const names = ['classical randomness', 'amplitude', 'collapse', 'phase', 'register', 'CNOT'];
+    const remaining = names.filter((n, i) => !flags[i]);
+
+    const hasH = s.build.includes('H');
+    const hasCnot = s.build.includes('CNOT');
+    const spent = s.build.length;
+    const budgetPips = Array.from({ length: budget }, (_, i) => ({ fill: i < budget - spent ? '#16150f' : '#f7f4ec' }));
+
+    let tgt = [{ ket: '|00⟩', v: 1 }, { ket: '|01⟩', v: 0 }, { ket: '|10⟩', v: 0 }, { ket: '|11⟩', v: 0 }];
+    if (hasH && hasCnot) tgt = [{ ket: '|00⟩', v: .5 }, { ket: '|01⟩', v: 0 }, { ket: '|10⟩', v: 0 }, { ket: '|11⟩', v: .5 }];
+    else if (hasH) tgt = [{ ket: '|00⟩', v: .5 }, { ket: '|01⟩', v: 0 }, { ket: '|10⟩', v: .5 }, { ket: '|11⟩', v: 0 }];
+    const cols = ['#16150f', '#00867a', '#4a3fd4', '#e8a33d'];
+
+    let factorText = 'Not run yet.';
+    let factorCol = '#6b665a';
+    if (s.factor) {
+      if (hasH && hasCnot) {
+        factorText = 'p(q₀=0) = 0.50 · p(q₁=0) = 0.50 → predicts |00⟩ at 0.25.\nMeasured |00⟩ at 0.50. MISMATCH — no factorisation exists.';
+        factorCol = '#e8306f';
+      } else {
+        factorText = 'Predicts the table exactly. This state still factorises — keep building.';
+        factorCol = '#00867a';
+      }
+    }
+
+    let tgtMeasureText = 'Nothing measured yet.';
+    if (s.tgtM !== null) {
+      tgtMeasureText = hasH && hasCnot
+        ? 'q₀ → |' + s.tgtM + '⟩ · q₁ is now |' + s.tgtM + '⟩ too, unmeasured and no longer free.'
+        : 'q₀ → |' + s.tgtM + '⟩ · q₁ is unaffected. The two are still independent.';
+    }
+
+    const targetDone = hasH && hasCnot && s.factor && s.tgtM !== null;
+    const locked = strict && resolvedCount < 6;
+
+    return {
+      showMargins,
+      resolvedCount,
+      budgetPips,
+      budgetLabel: (budget - spent) + ' / ' + budget + ' LEFT',
+
+      s1mark: this.mark(r1), s2mark: this.mark(r2), s3mark: this.mark(r3), s4mark: this.mark(r4), s5mark: this.mark(r5), s6mark: this.mark(r6),
+      s1col: this.col(r1), s2col: this.col(r2), s3col: this.col(r3), s4col: this.col(r4), s5col: this.col(r5), s6col: this.col(r6),
+      s1fill: this.fill(r1), s2fill: this.fill(r2), s3fill: this.fill(r3), s4fill: this.fill(r4), s5fill: this.fill(r5), s6fill: this.fill(r6),
+      s1chip: this.chip(r1), s2chip: this.chip(r2), s3chip: this.chip(r3), s4chip: this.chip(r4), s5chip: this.chip(r5), s6chip: this.chip(r6),
+      r1, r2, r3, r4, r5, r6,
+
+      callH: () => this.setState({ call: 'H' }),
+      callT: () => this.setState({ call: 'T' }),
+      callHBg: s.call === 'H' ? '#00867a' : '#f7f4ec',
+      callHFg: s.call === 'H' ? '#f7f4ec' : '#00867a',
+      callTBg: s.call === 'T' ? '#00867a' : '#f7f4ec',
+      callTFg: s.call === 'T' ? '#f7f4ec' : '#00867a',
+      doFlip: () => this.setState(st => {
+        const r = Math.random() < 0.5 ? 'H' : 'T';
+        const hit = r === st.call;
+        return { last: r, lastHit: hit, h: st.h + (r === 'H' ? 1 : 0), t: st.t + (r === 'T' ? 1 : 0), preds: st.preds + 1, hits: st.hits + (hit ? 1 : 0) };
+      }),
+      lastFlipLabel: s.last === null ? '—' : (s.last === 'H' ? 'Heads' : 'Tails'),
+      hitLabel: s.lastHit === null ? 'call it, then flip' : (s.lastHit ? 'you called it' : 'you called wrong'),
+      hitCol: s.lastHit === null ? '#6b665a' : (s.lastHit ? '#00867a' : '#e8306f'),
+      flipTotal: total,
+      hW: (s.h / barMax * 100) + '%',
+      tW: (s.t / barMax * 100) + '%',
+      hLabel: s.h + (total ? ' · ' + Math.round(s.h / total * 100) + '%' : ''),
+      tLabel: s.t + (total ? ' · ' + Math.round(s.t / total * 100) + '%' : ''),
+      accLabel: s.preds ? s.hits + ' of ' + s.preds + ' · ' + Math.round(s.hits / s.preds * 100) + '%' : 'no calls yet',
+      p1Progress: Math.min(total, 20) + '/20',
+
+      arrowDeg: (90 - s.theta) + 'deg',
+      dragTheta: this.start('theta'),
+      thetaPos: (s.theta / 180 * 100) + '%',
+      thetaEven: () => this.setState({ theta: 90 }),
+      thetaZero: () => this.setState({ theta: 0 }),
+      ketLabel: '|ψ⟩ = ' + alpha.toFixed(2) + '|0⟩ + ' + beta.toFixed(2) + '|1⟩',
+      p0W: this.pct(p0), p1W: this.pct(p1),
+      p0Label: this.pct(p0), p1Label: this.pct(p1),
+      p2Progress: r2 ? 'level' : 'lean is ' + this.pct(p0) + ' / ' + this.pct(p1),
+
+      m3StateLabel: s.m3 === null ? 'IN SUPERPOSITION' : 'COLLAPSED',
+      m3Ket: s.m3 === null ? '0.71|0⟩ + 0.71|1⟩' : '|' + s.m3 + '⟩',
+      m3Note: s.m3 === null ? 'No value inside it yet.' : 'Definite. Measuring again cannot move it.',
+      m3BtnLabel: s.m3 === null ? 'MEASURE ▸' : 'MEASURE AGAIN ▸',
+      doMeasure3: () => this.setState(st => {
+        if (st.m3 === null) {
+          const r = Math.random() < 0.5 ? 0 : 1;
+          return { m3: r, m3c0: st.m3c0 + (r === 0 ? 1 : 0), m3c1: st.m3c1 + (r === 1 ? 1 : 0), m3Log: ['|' + r + '⟩'] };
+        }
+        return { m3Reps: st.m3Reps + 1, m3Log: st.m3Log.concat('|' + st.m3 + '⟩') };
+      }),
+      reset3: () => this.setState({ m3: null, m3Log: [] }),
+      m3Runs: s.m3c0 + s.m3c1,
+      m3W0: (s.m3c0 / Math.max(s.m3c0, s.m3c1, 1) * 100) + '%',
+      m3W1: (s.m3c1 / Math.max(s.m3c0, s.m3c1, 1) * 100) + '%',
+      m3C0: s.m3c0, m3C1: s.m3c1,
+      m3Log: s.m3Log.length ? s.m3Log.join('  →  ') : 'no measurements on this qubit',
+      p3Progress: s.m3Reps >= 1 ? 'repeat observed' : (s.m3 === null ? 'measure once first' : 'now measure the same qubit again'),
+
+      phiStops: phiLabels.map((l, i) => ({
+        label: l, set: () => this.setState(st => ({ phi: i, seenPhi: Object.assign({}, st.seenPhi, { [i]: true }) })),
+        bg: s.phi === i ? '#00867a' : '#f7f4ec', fg: s.phi === i ? '#f7f4ec' : '#00867a',
+        edge: i === 0 ? '0' : '2px solid #00867a'
+      })),
+      phiGate: 'P(' + phiLabels[s.phi] + ')',
+      phiMidKet: '0.71|0⟩ + 0.71|1⟩ · 50 / 50',
+      phiW0: this.pct(phiP0), phiW1: this.pct(1 - phiP0),
+      phiL0: this.pct(phiP0), phiL1: this.pct(1 - phiP0),
+      phiNote: phiNotes[s.phi],
+      p4Progress: r4 ? 'π reached' : 'now at φ = ' + phiLabels[s.phi],
+
+      dragA: this.start('tA'), dragB: this.start('tB'),
+      aPos: (s.tA / 180 * 100) + '%', bPos: (s.tB / 180 * 100) + '%',
+      aLabel: this.pct(pa0) + ' toward |0⟩', bLabel: this.pct(pb0) + ' toward |0⟩',
+      levelBoth: () => this.setState({ tA: 90, tB: 90 }),
+      prodKet: '(' + Math.sqrt(pa0).toFixed(2) + '|0⟩ + ' + Math.sqrt(1 - pa0).toFixed(2) + '|1⟩) ⊗ (' + Math.sqrt(pb0).toFixed(2) + '|0⟩ + ' + Math.sqrt(1 - pb0).toFixed(2) + '|1⟩)',
+      regRows,
+      p5Progress: r5 ? 'four even bars' : 'level both tracks',
+
+      cLabel: '|' + s.cc + '⟩', tLabelIn: '|' + s.ct + '⟩',
+      cOutLabel: s.cnotOut === null ? '?' : '|' + s.cnotOut[0] + '⟩',
+      tOutLabel: s.cnotOut === null ? '?' : '|' + s.cnotOut[1] + '⟩',
+      toggleC: () => this.setState(st => ({ cc: 1 - st.cc, cnotOut: null })),
+      toggleT: () => this.setState(st => ({ ct: 1 - st.ct, cnotOut: null })),
+      applyCnot: () => this.setState(st => ({
+        cnotOut: [st.cc, st.cc === 1 ? 1 - st.ct : st.ct],
+        cnotSeen: Object.assign({}, st.cnotSeen, { ['' + st.cc + st.ct]: true })
+      })),
+      cnotRows,
+      p6Progress: seenCount + '/4 rows',
+
+      targetLocked: locked,
+      targetOpen: !locked,
+      targetChip: locked ? 'OPENS AT 6/6' : (targetDone ? 'UNDERSTOOD' : 'OPEN'),
+      targetBg: locked ? '#efebdf' : '#16150f',
+      targetFg: locked ? '#8c8676' : '#f7f4ec',
+      remainingList: remaining.length ? remaining.join('\n') : 'nothing — scroll down',
+
+      hasH, hasCnot,
+      buildLabel: s.build.length ? s.build.join(' · ') : 'empty',
+      placeH: () => this.setState(st => st.build.includes('H') || st.build.length >= budget ? {} : { build: st.build.concat('H'), factor: false, tgtM: null }),
+      placeCnot: () => this.setState(st => !st.build.includes('H') || st.build.includes('CNOT') || st.build.length >= budget ? {} : { build: st.build.concat('CNOT'), factor: false, tgtM: null }),
+      clearBuild: () => this.setState({ build: [], factor: false, tgtM: null }),
+      hBtnBg: hasH ? '#00867a' : '#f7f4ec',
+      hBtnFg: hasH ? '#f7f4ec' : '#00867a',
+      cnotBtnBorder: hasH ? '#00867a' : '#b8b1a0',
+      cnotBtnBg: hasCnot ? '#00867a' : '#f7f4ec',
+      cnotBtnFg: hasCnot ? '#f7f4ec' : (hasH ? '#00867a' : '#b8b1a0'),
+      tgtRows: tgt.map((r, i) => ({ ket: r.ket, w: this.pct(r.v), col: cols[i], pct: this.pct(r.v) })),
+      runFactor: () => this.setState({ factor: true }),
+      factorText, factorCol,
+      measureQ0: () => this.setState({ tgtM: Math.random() < 0.5 ? 0 : 1 }),
+      tgtMeasureText,
+      targetDone,
+      targetProgress: targetDone ? 'BUILT · TESTED · MEASURED' : 'BUILD H THEN CNOT, RUN THE TEST, THEN MEASURE q₀'
+    };
+  }
+}
+
+</script>
+</body>
+</html>

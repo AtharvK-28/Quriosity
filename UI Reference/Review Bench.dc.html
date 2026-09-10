@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  body{margin:0;background:#e3ded1;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  a{color:#00867a;text-decoration:none}
+  a:hover{color:#005f57}
+  button{font-family:'JetBrains Mono',monospace}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#e3ded1;color:#16150f">
+
+  <div style="position:sticky;top:0;z-index:20;background:#f7f4ec;border-bottom:2px solid #16150f;display:flex;align-items:stretch;height:78px">
+    <div style="flex:none;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 26px;border-right:2px solid #16150f">
+      <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#00867a">RETURN · NOTHING NEW TODAY</div>
+      <div style="font:400 25px/1 'Instrument Serif',serif">Review bench</div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;gap:20px;padding:0 26px;min-width:0;overflow:hidden;flex-wrap:wrap">
+      <div style="flex:none;display:flex;align-items:baseline;gap:9px">
+        <span style="font:700 22px/1 'JetBrains Mono',monospace;color:#16150f">{{ dueCount }}</span>
+        <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">BELOW THRESHOLD</span>
+      </div>
+      <div style="flex:none;display:flex;align-items:baseline;gap:9px">
+        <span style="font:700 22px/1 'JetBrains Mono',monospace;color:#00867a">{{ doneCount }}</span>
+        <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">RESTORED TODAY</span>
+      </div>
+    </div>
+    <div style="flex:none;display:grid;place-items:center;padding:0 26px;border-left:2px solid #16150f;max-width:300px">
+      <span style="font:400 14px/1.4 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Skipping costs nothing but the decay. There is no streak to break.</span>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:0">
+
+    <div style="flex:none;width:352px;position:sticky;top:78px;align-self:flex-start;border-right:2px solid #16150f;background:#efebdf;padding:28px 24px 40px;min-height:calc(100vh - 78px)">
+      <div style="font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#6b665a;margin-bottom:8px">RETENTION ENVELOPES</div>
+      <div style="font:400 14px/1.5 'Space Grotesk',sans-serif;color:#5a564b;margin-bottom:22px;text-wrap:pretty">Each concept decays from the day you last re-derived it. The tick is the threshold where this bench asks for it back.</div>
+
+      <div style="display:flex;flex-direction:column;gap:0">
+        <sc-for list="{{ rail }}" as="c" hint-placeholder-count="6">
+          <button type="button" onClick="{{ c.pick }}" style="text-align:left;border:0;border-top:1px solid #ddd7c8;background:{{ c.bg }};padding:14px 10px;display:flex;flex-direction:column;gap:9px;cursor:pointer">
+            <span style="display:flex;align-items:baseline;gap:10px">
+              <span style="flex:none;font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a;width:24px">{{ c.num }}</span>
+              <span style="flex:1;font:500 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">{{ c.name }}</span>
+              <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:{{ c.col }}">{{ c.pctLabel }}</span>
+            </span>
+            <span style="display:block;position:relative;height:18px;border:2px solid #16150f;background:#f7f4ec">
+              <span style="position:absolute;left:0;top:0;bottom:0;width:{{ c.w }};background:{{ c.col }};display:block"></span>
+              <span style="position:absolute;left:60%;top:-4px;bottom:-4px;width:2px;background:#16150f;display:block"></span>
+            </span>
+            <span style="font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a">{{ c.meta }}</span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="margin-top:26px;border:2px solid #16150f;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+        <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">HOW THE INTERVAL MOVES</span>
+        <span style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Re-derive it and the interval doubles. Miss it and it halves. The arithmetic is shown, never hidden behind a level.</span>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;padding:36px 44px 110px;display:flex;flex-direction:column;gap:26px;max-width:1000px">
+
+      <div>
+        <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#6b665a;margin-bottom:14px">TASK · {{ activeNum }} OF 6</div>
+        <h1 style="font:400 40px/1.08 'Instrument Serif',serif;margin:0 0 14px;max-width:30ch;text-wrap:pretty">{{ activePrompt }}</h1>
+        <p style="font:400 16px/1.6 'Space Grotesk',sans-serif;color:#5a564b;margin:0;max-width:60ch;text-wrap:pretty">{{ activeSub }}</p>
+      </div>
+
+      <div style="border:2px solid #16150f;background:#f7f4ec">
+        <div style="display:flex;align-items:center;gap:16px;padding:18px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">{{ activeKindLabel }}</span>
+          <span style="flex:1;font:500 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">{{ activeName }}</span>
+          <span style="flex:none;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;padding:8px 12px;border:2px solid {{ activeCol }};color:{{ activeCol }}">{{ activeChip }}</span>
+        </div>
+
+        <div style="padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+
+          <sc-if value="{{ isChoice }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ choices }}" as="ch" hint-placeholder-count="3">
+                <button type="button" onClick="{{ ch.pick }}" style="text-align:left;display:flex;gap:16px;align-items:flex-start;padding:17px 19px;border:2px solid {{ ch.border }};background:{{ ch.bg }};cursor:pointer">
+                  <span style="flex:none;font:700 13px/1.4 'JetBrains Mono',monospace;color:{{ ch.border }}">{{ ch.tag }}</span>
+                  <span style="flex:1;font:500 16px/1.45 'Space Grotesk',sans-serif;color:#16150f;text-wrap:pretty">{{ ch.text }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isDial }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:none;width:280px;display:flex;flex-direction:column;gap:13px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#00867a">DRAG TO THE TARGET</div>
+                <div onPointerDown="{{ dragDial }}" style="height:34px;border:2px solid #00867a;background:#f0ece0;position:relative;cursor:ew-resize;touch-action:none">
+                  <span style="position:absolute;top:0;bottom:0;left:{{ dialPos }};width:12px;background:#00867a;display:block;transform:translateX(-6px)"></span>
+                </div>
+                <div style="border:2px solid #16150f;padding:15px 16px">
+                  <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a;margin-bottom:9px">STATE</div>
+                  <div style="font:700 17px/1.4 'JetBrains Mono',monospace">{{ dialKet }}</div>
+                </div>
+              </div>
+              <div style="flex:1;min-width:290px;display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">p|0⟩</span>
+                  <span style="flex:1;height:28px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ dialW0 }};background:#16150f;display:block"></span></span>
+                  <span style="flex:none;width:64px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ dialL0 }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">p|1⟩</span>
+                  <span style="flex:1;height:28px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ dialW1 }};background:#00867a;display:block"></span></span>
+                  <span style="flex:none;width:64px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ dialL1 }}</span>
+                </div>
+                <div style="font:500 13px/1.5 'JetBrains Mono',monospace;color:#6b665a">{{ dialTargetNote }}</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isPhase }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+              <div style="flex:none;width:300px;display:flex;flex-direction:column;gap:13px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#00867a">CHOOSE THE PHASE TURN</div>
+                <div style="display:flex;border:2px solid #00867a">
+                  <sc-for list="{{ phaseStops }}" as="st" hint-placeholder-count="5">
+                    <button type="button" onClick="{{ st.set }}" style="flex:1;padding:15px 0;border:0;border-left:{{ st.edge }};background:{{ st.bg }};color:{{ st.fg }};font:700 13px/1 'JetBrains Mono',monospace;cursor:pointer">{{ st.label }}</button>
+                  </sc-for>
+                </div>
+                <div style="border:2px solid #16150f;padding:15px 16px;display:flex;align-items:center;gap:12px">
+                  <span style="flex:none;width:36px;height:36px;border:2px solid #16150f;display:grid;place-items:center;font:700 14px/1 'JetBrains Mono',monospace">H</span>
+                  <span style="flex:none;width:64px;height:36px;border:2px solid #4a3fd4;color:#4a3fd4;display:grid;place-items:center;font:700 12px/1 'JetBrains Mono',monospace">{{ phaseGate }}</span>
+                  <span style="flex:none;width:36px;height:36px;border:2px solid #16150f;display:grid;place-items:center;font:700 14px/1 'JetBrains Mono',monospace">H</span>
+                  <span style="flex:none;width:36px;height:36px;border:2px solid #00867a;color:#00867a;display:grid;place-items:center;font:700 13px/1 'JetBrains Mono',monospace">M</span>
+                </div>
+              </div>
+              <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:14px">
+                <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">FINAL READING</div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">|0⟩</span>
+                  <span style="flex:1;height:28px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ phaseW0 }};background:#16150f;display:block"></span></span>
+                  <span style="flex:none;width:56px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ phaseL0 }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="flex:none;width:44px;font:500 13px/1 'JetBrains Mono',monospace">|1⟩</span>
+                  <span style="flex:1;height:28px;border:2px solid #16150f;background:#f0ece0;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ phaseW1 }};background:#00867a;display:block"></span></span>
+                  <span style="flex:none;width:56px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ phaseL1 }}</span>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isTables }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <sc-for list="{{ tableOpts }}" as="opt" hint-placeholder-count="3">
+                <button type="button" onClick="{{ opt.pick }}" style="flex:1;min-width:230px;text-align:left;padding:18px;border:2px solid {{ opt.border }};background:{{ opt.bg }};cursor:pointer;display:flex;flex-direction:column;gap:12px">
+                  <span style="font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:{{ opt.border }}">{{ opt.tag }}</span>
+                  <sc-for list="{{ opt.rows }}" as="r" hint-placeholder-count="4">
+                    <span style="display:flex;align-items:center;gap:10px">
+                      <span style="flex:none;width:44px;font:500 12px/1 'JetBrains Mono',monospace;color:#16150f">{{ r.ket }}</span>
+                      <span style="flex:1;height:16px;border:2px solid #16150f;background:#f7f4ec;display:block;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ r.w }};background:#16150f;display:block"></span></span>
+                    </span>
+                  </sc-for>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ hasFeedback }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:24px;border-left:2px solid {{ fbCol }};padding:4px 0 4px 20px;display:flex;flex-direction:column;gap:11px">
+              <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:{{ fbCol }}">{{ fbTag }}</span>
+              <span style="font:400 20px/1.45 'Instrument Serif',serif;color:#16150f;max-width:56ch;text-wrap:pretty">{{ fbText }}</span>
+              <sc-if value="{{ fbShowLink }}" hint-placeholder-val="{{ false }}">
+                <a href="Quantum Learn Screen.dc.html" style="font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#00867a">▸ REOPEN {{ fbLinkLabel }}</a>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap">
+          <span style="font:500 12px/1.5 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">{{ footHint }}</span>
+          <div style="display:flex;gap:10px">
+            <sc-if value="{{ needsCheck }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ check }}" style="padding:14px 26px;border:2px solid #00867a;background:#00867a;color:#f7f4ec;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;cursor:pointer" style-hover="background:#005f57;border-color:#005f57">CHECK ▸</button>
+            </sc-if>
+            <button type="button" onClick="{{ nextDue }}" style="padding:14px 22px;border:2px solid #16150f;background:#f7f4ec;color:#16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;cursor:pointer" style-hover="background:#16150f;color:#f7f4ec">{{ nextLabel }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="border:2px solid #16150f;background:#f7f4ec;display:flex;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px;padding:22px 24px;border-right:2px solid #16150f">
+          <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a;margin-bottom:14px">INTERVAL ARITHMETIC · {{ activeName }}</div>
+          <div style="display:flex;flex-direction:column;gap:10px;font:500 14px/1 'JetBrains Mono',monospace;color:#3f3c33">
+            <div style="display:flex;justify-content:space-between;gap:16px"><span>last re-derived</span><span style="color:#6b665a">{{ lastSeen }}</span></div>
+            <div style="display:flex;justify-content:space-between;gap:16px"><span>current interval</span><span style="color:#6b665a">{{ curInterval }}</span></div>
+            <div style="display:flex;justify-content:space-between;gap:16px"><span>retention now</span><span style="color:{{ activeCol }}">{{ activePct }}</span></div>
+            <div style="display:flex;justify-content:space-between;gap:16px"><span>if restored</span><span style="color:#00867a">{{ nextInterval }}</span></div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:280px;padding:22px 24px">
+          <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a;margin-bottom:14px">THIS SESSION</div>
+          <div style="font:400 26px/1.2 'Instrument Serif',serif;margin-bottom:12px;max-width:26ch;text-wrap:pretty">{{ sessionLine }}</div>
+          <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;max-width:44ch;text-wrap:pretty">Nothing here was a flashcard. Every restore was the instrument handed back to you with the answer removed.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;dueThreshold&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:60,&quot;min&quot;:30,&quot;max&quot;:90,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Retention&quot;},&quot;showArithmetic&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Retention&quot;}}">
+class Component extends DCLogic {
+  state = {
+    active: 3,
+    days: [2, 9, 1, 14, 5, 21],
+    interval: [4, 8, 2, 16, 8, 32],
+    hit: [0, 0, 0, 0, 0, 0],
+    pick: {},
+    dial: 30,
+    phase: 0,
+    fb: null,
+    restored: 0
+  };
+
+  componentDidMount() {
+    this._move = e => { if (this._drag) this.applyDrag(e.clientX); };
+    this._up = () => { this._drag = false; };
+    window.addEventListener('pointermove', this._move);
+    window.addEventListener('pointerup', this._up);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('pointermove', this._move);
+    window.removeEventListener('pointerup', this._up);
+  }
+  applyDrag(x) {
+    const r = this._rect; if (!r) return;
+    let f = (x - r.left) / r.width;
+    f = Math.max(0, Math.min(1, f));
+    this.setState({ dial: Math.round(f * 180) });
+  }
+
+  defs() {
+    return [
+      { name: 'classical randomness', kind: 'choice', label: 'RE-READ',
+        prompt: 'Twenty coin flips came back 13 heads, 7 tails. What does that license you to say?',
+        sub: 'Same plot-reading habit as everywhere else in the app: shape first, then split.',
+        choices: [
+          { t: 'The coin is biased toward heads.', ok: false, fb: 'Twenty flips is a small sample — 13/7 turns up about one time in eight with a perfectly fair coin. A split alone is never evidence of bias at this scale.' },
+          { t: 'Nothing yet — a fair coin produces splits like this often at twenty flips.', ok: true, fb: 'Correct, and this is the habit that matters: a plot is only as sharp as its sample. The ratio has to hold as the shots climb.' },
+          { t: 'The next flip is more likely to be tails, to even it out.', ok: false, fb: 'That is the gambler\'s fallacy. The coin has no memory of the thirteen, and nothing in this app ever will either.' }
+        ] },
+      { name: 'amplitude', kind: 'dial', label: 'RE-DERIVE',
+        prompt: 'Set the qubit so it lands on |1⟩ three times in four.',
+        sub: 'No answer is shown. Move the dial until the reading says what was asked.',
+        target: 0.75, targetNote: 'target · p|1⟩ = 75%',
+        okFb: 'Restored. p|1⟩ = 0.75 means an amplitude of 0.87 on |1⟩ — the odds are the square, never the amplitude itself.',
+        badFb: 'Not there yet. Watch p|1⟩, not the handle position: the relationship between the two is a cosine, not a straight line.' },
+      { name: 'measurement collapse', kind: 'choice', label: 'RE-READ',
+        prompt: 'You measure a level qubit and get |1⟩. You measure the same qubit again.',
+        sub: 'One reading, then a second on the untouched qubit.',
+        choices: [
+          { t: 'Fifty-fifty again — it was in superposition.', ok: false, fb: 'It was. The first measurement ended that: the lean is gone and the qubit is now simply |1⟩.' },
+          { t: '|1⟩ again, with certainty.', ok: true, fb: 'Restored. The second reading carries no information — which is exactly why collapse is a change to the qubit, not a look at it.' },
+          { t: 'Undefined — you cannot measure the same qubit twice.', ok: false, fb: 'You can, freely. It is just boring afterwards, and the boredom is the whole lesson.' }
+        ] },
+      { name: 'phase', kind: 'phase', label: 'RE-DERIVE',
+        prompt: 'Pick the phase turn that sends this circuit to a certain |1⟩.',
+        sub: 'H, then a phase turn, then H, then measure. Only one stop makes the final reading certain.',
+        target: 2,
+        okFb: 'Restored. A half turn made the two paths cancel on |0⟩ — a change no measurement in the middle could ever have detected.',
+        badFb: 'That leaves the paths partly adding, so the reading stays an even coin. You want total cancellation on |0⟩.' },
+      { name: 'two-qubit register', kind: 'tables', label: 'PREDICT',
+        prompt: 'Two independent qubits, each set level. Which register table is that?',
+        sub: 'Predict before you look — the table is fixed by two multiplications.',
+        opts: [
+          { rows: [0.5, 0, 0, 0.5], ok: false, fb: 'That table only appears when the two qubits are linked. Independent leans always fill all four rows.' },
+          { rows: [0.25, 0.25, 0.25, 0.25], ok: true, fb: 'Restored. Each row is 0.5 × 0.5. Four equal outcomes and still two entirely separate stories.' },
+          { rows: [1, 0, 0, 0], ok: false, fb: 'That is both qubits definite at |0⟩ — no lean at all on either one.' }
+        ] },
+      { name: 'conditional operation', kind: 'choice', label: 'RE-READ',
+        prompt: 'CNOT with a control that is not definite — a level qubit. What comes out?',
+        sub: 'You ran all four definite rows once. This is the row that was not on the table.',
+        choices: [
+          { t: 'The target flips half the time, at random.', ok: false, fb: 'Nearly, and the difference is everything: the two cases do not resolve into one random outcome, they persist side by side until something is measured.' },
+          { t: 'Both branches survive — |00⟩ and |11⟩ together, neither qubit decided.', ok: true, fb: 'Restored. Two gates, and the pair can no longer be described one qubit at a time. That is the whole construction of entanglement.' },
+          { t: 'Nothing — CNOT needs a definite control to act on.', ok: false, fb: 'It never needed to look at the control. It acts on each branch of the state, which is precisely why it can link two qubits.' }
+        ] }
+    ];
+  }
+
+  retention(i) {
+    const s = this.state;
+    const half = s.interval[i];
+    return Math.max(0.03, Math.min(1, Math.pow(0.5, s.days[i] / half)));
+  }
+
+  renderVals() {
+    const s = this.state;
+    const defs = this.defs();
+    const threshold = (this.props.dueThreshold ?? 60) / 100;
+    const showArithmetic = this.props.showArithmetic ?? true;
+    const ai = s.active;
+    const d = defs[ai];
+
+    const rets = defs.map((x, i) => this.retention(i));
+    const dueCount = rets.filter(r => r < threshold).length;
+
+    const rail = defs.map((x, i) => {
+      const r = rets[i];
+      const low = r < threshold;
+      return {
+        num: '0' + (i + 1), name: x.name,
+        pctLabel: Math.round(r * 100) + '%',
+        w: Math.round(r * 100) + '%',
+        col: low ? '#e8306f' : '#00867a',
+        bg: i === ai ? '#f7f4ec' : '#efebdf',
+        meta: s.hit[i] ? 'restored today · next in ' + s.interval[i] + 'd' : 'last seen ' + s.days[i] + 'd ago · interval ' + s.interval[i] + 'd',
+        pick: () => this.setState({ active: i, fb: null })
+      };
+    });
+
+    const fb = s.fb && s.fb.i === ai ? s.fb : null;
+    const picked = s.pick[ai];
+
+    const choices = (d.choices || []).map((c, i) => {
+      const isP = picked === i;
+      const border = isP ? (c.ok ? '#00867a' : '#e8306f') : '#16150f';
+      return { tag: String.fromCharCode(65 + i), text: c.t, border,
+        bg: isP ? (c.ok ? '#e8f1ef' : '#faeaf0') : '#f7f4ec',
+        pick: () => this.setState(st => {
+          const fbOnly = { pick: Object.assign({}, st.pick, { [ai]: i }), fb: { i: ai, ok: c.ok, text: c.fb } };
+          if (st.pick[ai] === i || (c.ok && st.hit[ai])) return fbOnly;
+          return Object.assign(fbOnly, {
+            days: c.ok ? st.days.map((v, k) => k === ai ? 0 : v) : st.days,
+            interval: st.interval.map((v, k) => k === ai ? (c.ok ? v * 2 : Math.max(1, Math.round(v / 2))) : v),
+            hit: c.ok ? st.hit.map((v, k) => k === ai ? 1 : v) : st.hit,
+            restored: c.ok && !st.hit[ai] ? st.restored + 1 : st.restored
+          });
+        }) };
+    });
+
+    const tableOpts = (d.opts || []).map((o, i) => {
+      const isP = picked === i;
+      const border = isP ? (o.ok ? '#00867a' : '#e8306f') : '#16150f';
+      const kets = ['|00⟩', '|01⟩', '|10⟩', '|11⟩'];
+      return { tag: String.fromCharCode(65 + i), border,
+        bg: isP ? (o.ok ? '#e8f1ef' : '#faeaf0') : '#f7f4ec',
+        rows: o.rows.map((v, k) => ({ ket: kets[k], w: Math.round(v * 100) + '%' })),
+        pick: () => this.setState(st => {
+          const fbOnly = { pick: Object.assign({}, st.pick, { [ai]: i }), fb: { i: ai, ok: o.ok, text: o.fb } };
+          if (st.pick[ai] === i || (o.ok && st.hit[ai])) return fbOnly;
+          return Object.assign(fbOnly, {
+            days: o.ok ? st.days.map((v, k) => k === ai ? 0 : v) : st.days,
+            interval: st.interval.map((v, k) => k === ai ? (o.ok ? v * 2 : Math.max(1, Math.round(v / 2))) : v),
+            hit: o.ok ? st.hit.map((v, k) => k === ai ? 1 : v) : st.hit,
+            restored: o.ok && !st.hit[ai] ? st.restored + 1 : st.restored
+          });
+        }) };
+    });
+
+    const p0 = Math.pow(Math.cos((s.dial * Math.PI / 180) / 2), 2);
+    const phaseP0 = [1, 0.5, 0, 0.5, 1][s.phase];
+    const phaseLabels = ['0', 'π/2', 'π', '3π/2', '2π'];
+
+    const commit = (ok, attemptKey) => this.setState(st => {
+      const seen = st.pick['att' + ai];
+      const fbOnly = {
+        pick: Object.assign({}, st.pick, { ['att' + ai]: attemptKey }),
+        fb: { i: ai, ok, text: ok ? d.okFb : d.badFb }
+      };
+      if (seen === attemptKey || (ok && st.hit[ai])) return fbOnly;
+      return Object.assign(fbOnly, {
+        days: ok ? st.days.map((v, k) => k === ai ? 0 : v) : st.days,
+        interval: st.interval.map((v, k) => k === ai ? (ok ? v * 2 : Math.max(1, Math.round(v / 2))) : v),
+        hit: ok ? st.hit.map((v, k) => k === ai ? 1 : v) : st.hit,
+        restored: ok && !st.hit[ai] ? st.restored + 1 : st.restored
+      });
+    });
+
+    const ret = rets[ai];
+    const low = ret < threshold;
+
+    return {
+      dueCount, doneCount: s.restored, rail,
+      activeNum: '0' + (ai + 1), activeName: d.name,
+      activeKindLabel: d.label, activePrompt: d.prompt, activeSub: d.sub,
+      activeCol: low ? '#e8306f' : '#00867a',
+      activeChip: s.hit[ai] ? 'RESTORED' : (low ? 'BELOW THRESHOLD' : 'HOLDING'),
+      activePct: Math.round(ret * 100) + '%',
+
+      isChoice: d.kind === 'choice', isDial: d.kind === 'dial',
+      isPhase: d.kind === 'phase', isTables: d.kind === 'tables',
+      choices, tableOpts,
+
+      dragDial: e => { this._drag = true; this._rect = e.currentTarget.getBoundingClientRect(); this.applyDrag(e.clientX); },
+      dialPos: (s.dial / 180 * 100) + '%',
+      dialW0: Math.round(p0 * 100) + '%', dialW1: Math.round((1 - p0) * 100) + '%',
+      dialL0: Math.round(p0 * 100) + '%', dialL1: Math.round((1 - p0) * 100) + '%',
+      dialKet: '|ψ⟩ = ' + Math.sqrt(p0).toFixed(2) + '|0⟩ + ' + Math.sqrt(1 - p0).toFixed(2) + '|1⟩',
+      dialTargetNote: d.targetNote || '',
+
+      phaseStops: phaseLabels.map((l, i) => ({
+        label: l, set: () => this.setState({ phase: i }),
+        bg: s.phase === i ? '#00867a' : '#f7f4ec',
+        fg: s.phase === i ? '#f7f4ec' : '#00867a',
+        edge: i === 0 ? '0' : '2px solid #00867a'
+      })),
+      phaseGate: 'P(' + phaseLabels[s.phase] + ')',
+      phaseW0: Math.round(phaseP0 * 100) + '%', phaseW1: Math.round((1 - phaseP0) * 100) + '%',
+      phaseL0: Math.round(phaseP0 * 100) + '%', phaseL1: Math.round((1 - phaseP0) * 100) + '%',
+
+      needsCheck: d.kind === 'dial' || d.kind === 'phase',
+      check: () => {
+        if (d.kind === 'dial') commit(Math.abs((1 - p0) - d.target) <= 0.02, 'd' + Math.round((1 - p0) * 100));
+        else commit(s.phase === d.target, 'p' + s.phase);
+      },
+      nextLabel: defs.some((x, i) => rets[i] < threshold && !s.hit[i] && i !== ai) ? 'NEXT DUE ▸' : 'NEXT UNREVIEWED ▸',
+      nextDue: () => {
+        const idx = defs.map((x, i) => i);
+        const due = idx.filter(i => rets[i] < threshold && !s.hit[i] && i !== ai);
+        const unseen = idx.filter(i => !s.hit[i] && i !== ai);
+        const nxt = due.length ? due[0] : (unseen.length ? unseen[0] : (ai + 1) % defs.length);
+        this.setState({ active: nxt, fb: null });
+      },
+
+      hasFeedback: !!fb,
+      fbTag: fb ? (fb.ok ? 'RESTORED · INTERVAL DOUBLED' : 'NOT RESTORED · INTERVAL HALVED') : '',
+      fbCol: fb ? (fb.ok ? '#00867a' : '#e8306f') : '#6b665a',
+      fbText: fb ? fb.text : '',
+      fbShowLink: !!fb && !fb.ok,
+      fbLinkLabel: 'PREREQ 0' + (ai + 1),
+
+      footHint: fb ? (fb.ok ? 'next due item is one click away' : 'try again, or reopen the panel it came from')
+        : (d.kind === 'choice' || d.kind === 'tables' ? 'pick one — the diagnosis names your specific mistake'
+          : 'set it, then check'),
+
+      lastSeen: showArithmetic ? (s.days[ai] === 0 ? 'today' : s.days[ai] + ' days ago') : '—',
+      curInterval: showArithmetic ? s.interval[ai] + ' days' : '—',
+      nextInterval: showArithmetic ? (s.interval[ai] * 2) + ' days' : '—',
+      sessionLine: s.restored === 0 ? 'Nothing restored yet — start anywhere in the rail.'
+        : s.restored + (s.restored === 1 ? ' concept re-derived from scratch.' : ' concepts re-derived from scratch.')
+    };
+  }
+}
+
+</script>
+</body>
+</html>

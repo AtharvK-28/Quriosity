@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  body{margin:0;background:#e3ded1;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  a{color:#00867a;text-decoration:none}
+  a:hover{color:#005f57}
+</style>
+</helmet>
+
+<section style="padding:52px 56px 42px">
+  <div style="display:flex;gap:52px;flex-wrap:wrap;align-items:flex-start;max-width:1560px">
+    <div style="flex:1;min-width:520px">
+      <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#8c8676;margin-bottom:22px">V2 · INSTRUMENT DIRECTION · SUPERSEDES V1</div>
+      <h1 style="font:400 60px/1.02 'Instrument Serif',serif;letter-spacing:-.01em;margin:0 0 20px;max-width:17ch;color:#16150f">The interface should behave like the physics.</h1>
+      <p style="font:400 17px/1.65 'Space Grotesk',sans-serif;color:#5a564b;margin:0 0 12px;max-width:60ch;text-wrap:pretty">No hearts, no path, no confetti. This reads as a <em style="font-family:'Instrument Serif',serif;font-size:19px">precision instrument you are learning to operate</em> — printed on graph paper, annotated in the margin, flat and unshadowed.</p>
+      <p style="font:400 17px/1.65 'Space Grotesk',sans-serif;color:#5a564b;margin:0 0 28px;max-width:60ch;text-wrap:pretty">Three borrowed mechanics were replaced with quantum-native ones, below. They aren't reskins — they change what the screen is <em style="font-family:'Instrument Serif',serif;font-size:19px">for</em>.</p>
+    </div>
+
+    <div style="width:460px;border:2px solid #16150f;background:#f7f4ec">
+      <div style="padding:14px 20px;border-bottom:2px solid #16150f;font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#16150f">MECHANIC SUBSTITUTIONS</div>
+      <div style="padding:22px 20px;display:flex;flex-direction:column;gap:20px">
+        <div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:7px">
+            <span style="font:500 13px/1 'JetBrains Mono',monospace;color:#a8a08c;text-decoration:line-through">5 hearts</span>
+            <span style="font:500 13px/1 'JetBrains Mono',monospace;color:#8c8676">→</span>
+            <span style="font:700 14px/1 'Space Grotesk',sans-serif;color:#16150f">Coherence envelope</span>
+          </div>
+          <div style="font:400 14px/1.5 'Space Grotesk',sans-serif;color:#5a564b">Decays continuously while you deliberate. Errors collapse it faster. It recovers on its own — nothing to buy back.</div>
+        </div>
+        <div style="height:1px;background:#ddd7c8"></div>
+        <div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:7px">
+            <span style="font:500 13px/1 'JetBrains Mono',monospace;color:#a8a08c;text-decoration:line-through">Lesson path</span>
+            <span style="font:500 13px/1 'JetBrains Mono',monospace;color:#8c8676">→</span>
+            <span style="font:700 14px/1 'Space Grotesk',sans-serif;color:#16150f">Interference field</span>
+          </div>
+          <div style="font:400 14px/1.5 'Space Grotesk',sans-serif;color:#5a564b">Concepts plotted by abstraction × formalism. You don't advance in a line — your frontier spreads outward.</div>
+        </div>
+        <div style="height:1px;background:#ddd7c8"></div>
+        <div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:7px">
+            <span style="font:500 13px/1 'JetBrains Mono',monospace;color:#a8a08c;text-decoration:line-through">Correct! banner</span>
+            <span style="font:500 13px/1 'JetBrains Mono',monospace;color:#8c8676">→</span>
+            <span style="font:700 14px/1 'Space Grotesk',sans-serif;color:#16150f">Measurement</span>
+          </div>
+          <div style="font:400 14px/1.5 'Space Grotesk',sans-serif;color:#5a564b">Your build is run and plotted. The histogram is the grade — no one tells you it's right.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:0;margin-top:40px;border:2px solid #16150f;background:#f7f4ec">
+    <div style="flex:1.2;min-width:400px;padding:24px;border-right:2px solid #16150f">
+      <div style="font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8c8676;margin-bottom:20px">INK &amp; SPECTRUM</div>
+      <div style="display:flex;gap:0;border:1px solid #16150f">
+        <div style="flex:1;height:76px;background:#16150f"></div>
+        <div style="flex:1;height:76px;background:#00867a"></div>
+        <div style="flex:1;height:76px;background:#4a3fd4"></div>
+        <div style="flex:1;height:76px;background:#e8306f"></div>
+        <div style="flex:1;height:76px;background:#e8a33d"></div>
+        <div style="flex:1;height:76px;background:#f7f4ec"></div>
+      </div>
+      <div style="display:flex;gap:0;margin-top:8px;font:400 10px/1.4 'JetBrains Mono',monospace;color:#8c8676">
+        <div style="flex:1">ink</div><div style="flex:1">measure</div><div style="flex:1">phase</div><div style="flex:1">error</div><div style="flex:1">flag</div><div style="flex:1">paper</div>
+      </div>
+      <div style="margin-top:22px;font:400 14px/1.6 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Spectral hues are <strong style="font-weight:700;color:#16150f">data only</strong> — never decoration, never a button fill except for the single primary action. Everything structural is ink on paper.</div>
+    </div>
+    <div style="flex:1;min-width:340px;padding:24px;border-right:2px solid #16150f">
+      <div style="font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8c8676;margin-bottom:20px">TYPE</div>
+      <div style="font:400 38px/1.05 'Instrument Serif',serif;color:#16150f">Instrument Serif</div>
+      <div style="font:400 12px/1.5 'JetBrains Mono',monospace;color:#8c8676;margin-top:8px">conceptual statements only · 30–60px</div>
+      <div style="height:1px;background:#ddd7c8;margin:18px 0"></div>
+      <div style="font:700 24px/1.1 'Space Grotesk',sans-serif;color:#16150f">Space Grotesk</div>
+      <div style="font:400 12px/1.5 'JetBrains Mono',monospace;color:#8c8676;margin-top:8px">all UI, body, labels · 15px floor</div>
+      <div style="height:1px;background:#ddd7c8;margin:18px 0"></div>
+      <div style="font:700 20px/1.1 'JetBrains Mono',monospace;color:#16150f">JetBrains Mono</div>
+      <div style="font:400 12px/1.5 'JetBrains Mono',monospace;color:#8c8676;margin-top:8px">gates, kets, readouts, axes</div>
+    </div>
+    <div style="flex:1;min-width:300px;padding:24px">
+      <div style="font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8c8676;margin-bottom:20px">RULES</div>
+      <div style="display:flex;flex-direction:column;gap:12px;font:400 14px/1.4 'Space Grotesk',sans-serif;color:#3f3c33">
+        <div style="display:flex;justify-content:space-between;gap:16px"><span>Shadows</span><span style="font-family:'JetBrains Mono';color:#8c8676">none, ever</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span>Radius</span><span style="font-family:'JetBrains Mono';color:#8c8676">0 — 3px max</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span>Frame</span><span style="font-family:'JetBrains Mono';color:#8c8676">2px ink</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span>Grid</span><span style="font-family:'JetBrains Mono';color:#8c8676">24px graph</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span>Margin col</span><span style="font-family:'JetBrains Mono';color:#8c8676">212px annotations</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span>Registration</span><span style="font-family:'JetBrains Mono';color:#8c8676">corner crosses</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="t1" style="padding:16px 56px 72px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 30px">
+    <a href="#t1" style="font:700 12px/1 'JetBrains Mono',monospace;padding:6px 10px;background:#16150f;color:#f7f4ec">1</a>
+    <span style="font:700 16px/1.2 'Space Grotesk',sans-serif;color:#16150f">Seven screens · bench, field, insight, measurement, duel, logbook</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:46px;align-items:flex-start">
+
+    <div id="1a" style="flex:none;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ showLabels }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:baseline;gap:11px">
+          <a href="#1a" style="font:700 12px/1 'JetBrains Mono',monospace;padding:5px 9px;background:#16150f;color:#f7f4ec">1a</a>
+          <span style="font:700 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">The Bench</span>
+          <span style="font:400 14px/1.3 'Space Grotesk',sans-serif;color:#8c8676">hero · build task with live coherence decay</span>
+        </div>
+      </sc-if>
+      <div style="width:1280px;height:840px;border:2px solid #16150f;overflow:hidden;background:#f7f4ec;display:flex;flex-direction:column;color:#16150f">
+
+        <div style="flex:none;height:64px;border-bottom:2px solid #16150f;display:flex;align-items:stretch">
+          <div style="width:64px;border-right:1px solid #ddd7c8;display:grid;place-items:center;font:400 22px/1 'Instrument Serif',serif">Ψ</div>
+          <div style="flex:1;display:flex;align-items:center;padding:0 22px;gap:18px">
+            <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">FIELD 03 · CORRELATION</span>
+            <span style="font:700 15px/1 'Space Grotesk',sans-serif">Two coins, one answer</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:0 22px;border-left:1px solid #ddd7c8">
+            <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">COHERENCE</span>
+            <div style="width:132px;height:26px;position:relative">
+              <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,#16150f 0 2px,transparent 2px 7px);clip-path:polygon(0 4%,72% 34%,72% 66%,0 96%)"></div>
+              <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,#ddd7c8 0 2px,transparent 2px 7px);clip-path:polygon(72% 34%,100% 46%,100% 54%,72% 66%)"></div>
+              <div style="position:absolute;left:0;right:0;top:50%;height:1px;background:#ddd7c8"></div>
+            </div>
+            <span style="font:700 14px/1 'JetBrains Mono',monospace">0.72</span>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;padding:30px 34px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+            <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#00867a;margin-bottom:14px">TASK 04 / 07</div>
+            <h2 style="font:400 40px/1.08 'Instrument Serif',serif;margin:0 0 10px;max-width:22ch;text-wrap:pretty">Build a pair that always agrees, without either one deciding first.</h2>
+            <p style="font:400 16px/1.55 'Space Grotesk',sans-serif;color:#5a564b;margin:0 0 26px;max-width:56ch">Two slots. Neither qubit may hold a definite value before measurement.</p>
+
+            <div style="border:2px solid #16150f;background:#f7f4ec;position:relative">
+              <div style="position:absolute;top:-1px;left:-1px;width:9px;height:9px;border-top:2px solid #16150f;border-left:2px solid #16150f"></div>
+              <div style="position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-top:2px solid #16150f;border-right:2px solid #16150f"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #ddd7c8">
+                <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">CIRCUIT · 2 QUBITS · DEPTH 1 → 2</span>
+                <span style="display:flex;align-items:center;gap:14px">
+                  <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">BRANCHES</span>
+                  <span style="font:700 13px/1 'JetBrains Mono',monospace">2</span>
+                  <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#00867a">→ 2 BOUND</span>
+                </span>
+              </div>
+
+              <div style="position:relative;height:242px;margin:34px 30px 0;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+
+                <div style="position:absolute;left:0;top:32px;font:500 14px/1 'JetBrains Mono',monospace;color:#8c8676">q₀</div>
+                <div style="position:absolute;left:0;top:162px;font:500 14px/1 'JetBrains Mono',monospace;color:#8c8676">q₁</div>
+
+                <div style="position:absolute;left:56px;width:48px;top:39px;height:2px;background:#16150f"></div>
+                <div style="position:absolute;left:56px;right:92px;top:169px;height:2px;background:#16150f"></div>
+
+                <div style="position:absolute;left:104px;top:4px;width:72px;height:72px;border:2px solid #16150f;background:#f7f4ec;display:grid;place-items:center">
+                  <span style="font:700 26px/1 'JetBrains Mono',monospace">H</span>
+                  <span style="position:absolute;top:4px;left:6px;font:400 10px/1 'JetBrains Mono',monospace;color:#a8a08c">1</span>
+                  <span style="position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;background:#00867a"></span>
+                </div>
+
+                <div style="position:absolute;left:176px;width:76px;top:32px;height:2px;background:#00867a"></div>
+                <div style="position:absolute;left:176px;width:76px;top:46px;height:2px;background:#00867a"></div>
+                <div style="position:absolute;left:176px;width:76px;top:39px;height:1px;background:repeating-linear-gradient(90deg,#b8b1a0 0 3px,transparent 3px 8px)"></div>
+                <div style="position:absolute;left:186px;top:56px;font:400 10px/1 'JetBrains Mono',monospace;color:#00867a;letter-spacing:.08em">2 STRANDS</div>
+
+                <div style="position:absolute;left:344px;right:92px;top:32px;height:146px;border-top:2px dashed #00867a;border-bottom:2px dashed #00867a;background:repeating-linear-gradient(135deg,rgba(0,134,122,.14) 0 3px,transparent 3px 11px)"></div>
+                <div style="position:absolute;left:344px;right:92px;top:39px;height:1px;background:repeating-linear-gradient(90deg,#7fc3bd 0 4px,transparent 4px 9px)"></div>
+                <div style="position:absolute;left:344px;right:92px;top:169px;height:1px;background:repeating-linear-gradient(90deg,#7fc3bd 0 4px,transparent 4px 9px)"></div>
+                <div style="position:absolute;left:392px;top:92px;display:flex;align-items:center;gap:10px;background:#f7f4ec;border:2px solid #00867a;padding:8px 14px">
+                  <span style="font:700 14px/1 'JetBrains Mono',monospace;color:#00867a">|Φ⁺⟩</span>
+                  <span style="font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">BOUND · NOT SEPARABLE</span>
+                </div>
+
+                <div style="position:absolute;left:252px;top:4px;width:72px;height:72px;border:2px dashed #00867a;background:rgba(0,134,122,.08)"></div>
+                <div style="position:absolute;left:275px;top:157px;width:26px;height:26px;border-radius:50%;border:2px dashed #00867a;background:#f7f4ec"></div>
+                <div style="position:absolute;left:287px;top:76px;width:2px;height:81px;background:repeating-linear-gradient(#00867a 0 4px,transparent 4px 9px)"></div>
+
+                <div style="position:absolute;left:232px;top:-16px;width:72px;height:72px;border:2px solid #16150f;z-index:1"></div>
+                <div style="position:absolute;left:226px;top:-22px;width:72px;height:72px;border:2px solid #16150f;background:#16150f;color:#f7f4ec;display:grid;place-items:center;z-index:2">
+                  <span style="font:700 15px/1 'JetBrains Mono',monospace">CNOT</span>
+                </div>
+                <div style="position:absolute;left:130px;top:-16px;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#16150f;z-index:2">IN HAND →</div>
+
+                <div style="position:absolute;right:0;top:22px;width:34px;height:34px;border:2px solid #16150f;display:grid;place-items:center;font:500 13px/1 'JetBrains Mono',monospace">M</div>
+                <div style="position:absolute;right:0;top:152px;width:34px;height:34px;border:2px solid #16150f;display:grid;place-items:center;font:500 13px/1 'JetBrains Mono',monospace">M</div>
+
+                <div style="position:absolute;left:56px;right:92px;top:216px;height:1px;background:#ddd7c8"></div>
+                <div style="position:absolute;left:80px;top:212px;width:2px;height:9px;background:#b8b1a0"></div>
+                <div style="position:absolute;left:214px;top:212px;width:2px;height:9px;background:#b8b1a0"></div>
+                <div style="position:absolute;left:418px;top:209px;width:10px;height:10px;background:#16150f"></div>
+                <div style="position:absolute;left:72px;top:230px;font:400 10px/1 'JetBrains Mono',monospace;color:#a8a08c">t0</div>
+                <div style="position:absolute;left:206px;top:230px;font:400 10px/1 'JetBrains Mono',monospace;color:#a8a08c">t1</div>
+                <div style="position:absolute;left:410px;top:230px;font:500 10px/1 'JetBrains Mono',monospace;color:#16150f">t2 · scrub</div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:26px;padding:13px 30px 12px;margin-top:8px;border-top:1px solid #ddd7c8">
+                <span style="display:flex;align-items:center;gap:9px;font:400 12px/1 'JetBrains Mono',monospace;color:#8c8676"><span style="width:22px;height:2px;background:#16150f"></span>definite</span>
+                <span style="display:flex;align-items:center;gap:9px;font:400 12px/1 'JetBrains Mono',monospace;color:#8c8676"><span style="width:22px;height:8px;border-top:2px solid #00867a;border-bottom:2px solid #00867a"></span>superposed</span>
+                <span style="display:flex;align-items:center;gap:9px;font:400 12px/1 'JetBrains Mono',monospace;color:#8c8676"><span style="width:22px;height:10px;background:repeating-linear-gradient(135deg,rgba(0,134,122,.5) 0 2px,transparent 2px 7px);border-top:1px dashed #00867a;border-bottom:1px dashed #00867a"></span>bound</span>
+                <span style="flex:1"></span>
+                <span style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">dashed = preview, not yet committed</span>
+              </div>
+            </div>
+
+            <div style="margin-top:24px;display:flex;align-items:stretch;gap:0;border:2px solid #16150f">
+              <div style="padding:0 14px;display:grid;place-items:center;border-right:2px solid #16150f;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;writing-mode:vertical-rl;transform:rotate(180deg)">TRAY</div>
+              <div style="flex:1;display:flex">
+                <div style="flex:1;height:70px;border-right:1px solid #ddd7c8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;background:#f0ece0">
+                  <span style="font:700 18px/1 'JetBrains Mono',monospace;color:#b8b1a0">H</span>
+                  <span style="font:400 9px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#b8b1a0">PLACED</span>
+                </div>
+                <div style="flex:1;height:70px;border-right:1px solid #ddd7c8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+                  <span style="font:700 18px/1 'JetBrains Mono',monospace">X</span>
+                  <span style="display:flex;gap:3px"><span style="width:5px;height:5px;background:#16150f"></span></span>
+                </div>
+                <div style="flex:1;height:70px;border-right:1px solid #ddd7c8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+                  <span style="font:700 18px/1 'JetBrains Mono',monospace">Z</span>
+                  <span style="display:flex;gap:3px"><span style="width:5px;height:5px;background:#16150f"></span></span>
+                </div>
+                <div style="flex:1.4;height:70px;border-right:1px solid #ddd7c8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#16150f">
+                  <span style="font:700 15px/1 'JetBrains Mono',monospace;color:#f7f4ec">CNOT</span>
+                  <span style="display:flex;gap:3px"><span style="width:5px;height:5px;background:#f7f4ec"></span><span style="width:5px;height:5px;background:#f7f4ec"></span><span style="width:5px;height:5px;background:#f7f4ec"></span></span>
+                </div>
+                <div style="flex:1.4;height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+                  <span style="font:700 15px/1 'JetBrains Mono',monospace">SWAP</span>
+                  <span style="display:flex;gap:3px"><span style="width:5px;height:5px;background:#16150f"></span><span style="width:5px;height:5px;background:#16150f"></span></span>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex:1"></div>
+            <div style="display:flex;align-items:center;gap:20px;padding-top:22px">
+              <div style="font:400 14px/1.4 'Space Grotesk',sans-serif;color:#8c8676">Release to commit · <span style="color:#16150f">⌫</span> to put it back</div>
+              <div style="flex:1"></div>
+              <div style="padding:15px 26px;border:2px solid #16150f;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.12em">RESET</div>
+              <div style="padding:17px 44px;background:#16150f;color:#f7f4ec;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em">MEASURE ▸</div>
+            </div>
+          </div>
+
+            <div style="width:300px;flex:none;border-left:2px solid #16150f;display:flex;flex-direction:column">
+              <div style="padding:16px 20px;background:#16150f;color:#f7f4ec;display:flex;align-items:center;justify-content:space-between">
+                <span style="font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em">STATE · LIVE</span>
+                <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#7fc3bd">t2 PREVIEW</span>
+              </div>
+
+              <div style="padding:22px 20px 20px;border-bottom:1px solid #ddd7c8">
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px"><span style="font:700 14px/1 'JetBrains Mono',monospace">|00⟩</span><span style="font:500 12px/1 'JetBrains Mono',monospace;color:#8c8676">0.50 → 0.50</span></div>
+                    <div style="position:relative;height:20px;background:#eae5d8">
+                      <div style="position:absolute;left:0;top:0;bottom:0;width:50%;background:#16150f"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px"><span style="font:700 14px/1 'JetBrains Mono',monospace;color:#a8a08c">|01⟩</span><span style="font:500 12px/1 'JetBrains Mono',monospace;color:#a8a08c">0.00</span></div>
+                    <div style="position:relative;height:20px;background:#eae5d8"></div>
+                  </div>
+                  <div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px"><span style="font:700 14px/1 'JetBrains Mono',monospace">|10⟩</span><span style="font:500 12px/1 'JetBrains Mono',monospace;color:#e8306f">0.50 → 0.00</span></div>
+                    <div style="position:relative;height:20px;background:#eae5d8">
+                      <div style="position:absolute;left:0;top:0;bottom:0;width:50%;background:repeating-linear-gradient(135deg,#16150f 0 2px,transparent 2px 6px)"></div>
+                      <div style="position:absolute;left:0;top:0;bottom:0;width:50%;border:2px solid #e8306f"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px"><span style="font:700 14px/1 'JetBrains Mono',monospace">|11⟩</span><span style="font:500 12px/1 'JetBrains Mono',monospace;color:#00867a">0.00 → 0.50</span></div>
+                    <div style="position:relative;height:20px;background:#eae5d8">
+                      <div style="position:absolute;left:0;top:0;bottom:0;width:50%;border:2px dashed #00867a;background:rgba(0,134,122,.1)"></div>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:18px;font:400 12px/1.5 'JetBrains Mono',monospace;color:#a8a08c;text-wrap:pretty">solid = now · dashed = if you drop</div>
+              </div>
+
+              <div style="padding:20px;border-bottom:1px solid #ddd7c8;display:flex;flex-direction:column;gap:13px;font:400 13px/1.4 'JetBrains Mono',monospace;color:#3f3c33">
+                <div style="display:flex;justify-content:space-between"><span style="color:#8c8676">branches</span><span>2</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#8c8676">separable</span><span>yes <span style="color:#00867a">→ no</span></span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#8c8676">coherence cost</span><span style="color:#e8306f">−0.03</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#8c8676">depth after</span><span>2</span></div>
+              </div>
+
+              <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:22px 20px">
+                  <div style="font:400 19px/1.25 'Instrument Serif',serif;margin-bottom:10px">Watch |10⟩ empty out.</div>
+                  <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">That branch doesn't vanish — CNOT walks it over to |11⟩. Two possibilities in, two out; they're just tied together now.</div>
+                </div>
+              </sc-if>
+
+              <div style="flex:1"></div>
+              <div style="padding:20px;border-top:1px solid #ddd7c8;font:400 13px/1.5 'Space Grotesk',sans-serif;color:#8c8676;text-wrap:pretty">Nothing is scored until you measure. Rearranging is free.</div>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1b" style="flex:none;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ showLabels }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:baseline;gap:11px">
+          <a href="#1b" style="font:700 12px/1 'JetBrains Mono',monospace;padding:5px 9px;background:#16150f;color:#f7f4ec">1b</a>
+          <span style="font:700 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">The Field</span>
+          <span style="font:400 14px/1.3 'Space Grotesk',sans-serif;color:#8c8676">concepts plotted, not queued · replaces the path</span>
+        </div>
+      </sc-if>
+      <div style="width:1280px;height:840px;border:2px solid #16150f;overflow:hidden;background:#f7f4ec;display:flex;flex-direction:column;color:#16150f">
+        <div style="flex:none;height:64px;border-bottom:2px solid #16150f;display:flex;align-items:stretch">
+          <div style="width:64px;border-right:1px solid #ddd7c8;display:grid;place-items:center;font:400 22px/1 'Instrument Serif',serif">Ψ</div>
+          <div style="flex:1;display:flex;align-items:center;padding:0 22px;gap:26px">
+            <span style="font:700 15px/1 'Space Grotesk',sans-serif;padding-bottom:3px;border-bottom:2px solid #16150f">Field</span>
+            <span style="font:400 15px/1 'Space Grotesk',sans-serif;color:#8c8676">Bench</span>
+            <span style="font:400 15px/1 'Space Grotesk',sans-serif;color:#8c8676">Duel</span>
+            <span style="font:400 15px/1 'Space Grotesk',sans-serif;color:#8c8676">Logbook</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding:0 22px;border-left:1px solid #ddd7c8;font:500 12px/1 'JetBrains Mono',monospace;color:#8c8676">
+            <span>FRONTIER r=2.4</span><span style="color:#ddd7c8">|</span><span style="color:#16150f">18 / 46 RESOLVED</span>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="flex:1;min-width:0;position:relative;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+
+            <div style="position:absolute;left:14%;top:78%;width:640px;height:640px;border:1px dashed #cfc8b6;border-radius:50%;transform:translate(-50%,-50%)"></div>
+            <div style="position:absolute;left:14%;top:78%;width:1000px;height:1000px;border:1px dashed #ddd7c8;border-radius:50%;transform:translate(-50%,-50%)"></div>
+            <div style="position:absolute;left:14%;top:78%;width:1400px;height:1400px;border:1px dashed #e6e0d1;border-radius:50%;transform:translate(-50%,-50%)"></div>
+
+            <div style="position:absolute;left:9%;top:80%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:22px;height:22px;background:#16150f"></div>
+              <div style="font:500 12px/1 'JetBrains Mono',monospace">superposition</div>
+            </div>
+            <div style="position:absolute;left:22%;top:66%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:22px;height:22px;background:#16150f"></div>
+              <div style="font:500 12px/1 'JetBrains Mono',monospace">measurement</div>
+            </div>
+            <div style="position:absolute;left:13%;top:52%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:22px;height:22px;background:#16150f"></div>
+              <div style="font:500 12px/1 'JetBrains Mono',monospace">bloch sphere</div>
+            </div>
+            <div style="position:absolute;left:33%;top:78%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:22px;height:22px;background:#16150f"></div>
+              <div style="font:500 12px/1 'JetBrains Mono',monospace">gate algebra</div>
+            </div>
+
+            <div style="position:absolute;left:35%;top:56%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div style="width:38px;height:38px;border:2px solid #00867a;background:#f7f4ec;position:relative;display:grid;place-items:center">
+                <div style="width:14px;height:14px;background:#00867a"></div>
+                <div style="position:absolute;width:66px;height:66px;border:1px solid #00867a;border-radius:50%"></div>
+              </div>
+              <div style="font:700 14px/1 'Space Grotesk',sans-serif;color:#00867a">entanglement</div>
+              <div style="font:400 11px/1 'JetBrains Mono',monospace;color:#00867a">OPEN NOW</div>
+            </div>
+
+            <div style="position:absolute;left:52%;top:70%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:20px;height:20px;border:2px solid #8c8676;transform:rotate(45deg)"></div>
+              <div style="font:400 12px/1 'JetBrains Mono',monospace;color:#5a564b">teleportation</div>
+            </div>
+            <div style="position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:20px;height:20px;border:2px solid #8c8676;transform:rotate(45deg)"></div>
+              <div style="font:400 12px/1 'JetBrains Mono',monospace;color:#5a564b">density matrix</div>
+            </div>
+            <div style="position:absolute;left:68%;top:56%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:20px;height:20px;border:2px solid #b8b1a0;transform:rotate(45deg)"></div>
+              <div style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">grover</div>
+            </div>
+            <div style="position:absolute;left:78%;top:78%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:20px;height:20px;border:2px solid #b8b1a0;transform:rotate(45deg)"></div>
+              <div style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">error correction</div>
+            </div>
+            <div style="position:absolute;left:82%;top:34%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:20px;height:20px;border:2px solid #b8b1a0;transform:rotate(45deg)"></div>
+              <div style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">shor</div>
+            </div>
+            <div style="position:absolute;left:64%;top:20%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="width:20px;height:20px;border:2px solid #b8b1a0;transform:rotate(45deg)"></div>
+              <div style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">vqe</div>
+            </div>
+
+            <div style="position:absolute;left:34px;bottom:22px;font:400 11px/1 'JetBrains Mono',monospace;color:#a8a08c;letter-spacing:.1em">ABSTRACTION →</div>
+            <div style="position:absolute;left:22px;top:34px;font:400 11px/1 'JetBrains Mono',monospace;color:#a8a08c;letter-spacing:.1em;writing-mode:vertical-rl">FORMALISM →</div>
+          </div>
+
+          <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}">
+            <div style="width:300px;flex:none;border-left:2px solid #16150f;display:flex;flex-direction:column">
+              <div style="padding:26px 24px;border-bottom:1px solid #ddd7c8">
+                <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#00867a;margin-bottom:14px">SELECTED</div>
+                <div style="font:400 30px/1.1 'Instrument Serif',serif;margin-bottom:12px">Entanglement</div>
+                <div style="font:400 14px/1.55 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Sits one step out from measurement and two from gate algebra — both already resolved, which is why it opened.</div>
+              </div>
+              <div style="padding:24px;border-bottom:1px solid #ddd7c8">
+                <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:16px">7 TASKS</div>
+                <div style="display:flex;flex-direction:column;gap:12px;font:400 14px/1.3 'Space Grotesk',sans-serif">
+                  <div style="display:flex;gap:12px;align-items:center"><span style="width:14px;height:14px;background:#16150f;flex:0 0 auto"></span><span>Correlated coins</span></div>
+                  <div style="display:flex;gap:12px;align-items:center"><span style="width:14px;height:14px;background:#16150f;flex:0 0 auto"></span><span>Reading a joint state</span></div>
+                  <div style="display:flex;gap:12px;align-items:center"><span style="width:14px;height:14px;background:#16150f;flex:0 0 auto"></span><span>Bell basis</span></div>
+                  <div style="display:flex;gap:12px;align-items:center"><span style="width:14px;height:14px;border:2px solid #00867a;flex:0 0 auto"></span><span style="color:#00867a;font-weight:700">Two coins, one answer</span></div>
+                  <div style="display:flex;gap:12px;align-items:center;color:#a8a08c"><span style="width:14px;height:14px;border:2px solid #cfc8b6;flex:0 0 auto"></span><span>Breaking the pair</span></div>
+                  <div style="display:flex;gap:12px;align-items:center;color:#a8a08c"><span style="width:14px;height:14px;border:2px solid #cfc8b6;flex:0 0 auto"></span><span>GHZ across three</span></div>
+                  <div style="display:flex;gap:12px;align-items:center;color:#a8a08c"><span style="width:14px;height:14px;border:2px solid #cfc8b6;flex:0 0 auto"></span><span>Monogamy</span></div>
+                </div>
+              </div>
+              <div style="flex:1"></div>
+              <div style="padding:24px;border-top:1px solid #ddd7c8">
+                <div style="padding:16px 0;background:#16150f;color:#f7f4ec;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-align:center">OPEN BENCH ▸</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <div id="1c" style="flex:none;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ showLabels }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:baseline;gap:11px">
+          <a href="#1c" style="font:700 12px/1 'JetBrains Mono',monospace;padding:5px 9px;background:#16150f;color:#f7f4ec">1c</a>
+          <span style="font:700 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">Insight page</span>
+          <span style="font:400 14px/1.3 'Space Grotesk',sans-serif;color:#8c8676">editorial spread · the instrument is inline</span>
+        </div>
+      </sc-if>
+      <div style="width:1280px;height:840px;border:2px solid #16150f;overflow:hidden;background:#f7f4ec;display:flex;color:#16150f">
+        <div style="flex:1;min-width:0;padding:56px 56px 0;display:flex;flex-direction:column">
+          <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8c8676;margin-bottom:26px">READING 02 · WHAT A QUBIT ACTUALLY HOLDS</div>
+          <h2 style="font:400 52px/1.05 'Instrument Serif',serif;margin:0 0 22px;max-width:19ch;text-wrap:pretty">A qubit does not store an answer. It stores a lean.</h2>
+          <p style="font:400 18px/1.65 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 18px;max-width:52ch;text-wrap:pretty">Tilt the arrow to the right and heads becomes likely. Tilt it left and tails does. Level it out and the coin becomes perfectly fair — not because it is hiding a value, but because it genuinely has none yet.</p>
+          <p style="font:400 18px/1.65 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 30px;max-width:52ch;text-wrap:pretty">The instrument on the right is live. Level the arrow and the Hadamard gate is added to your tray.</p>
+          <div style="display:inline-flex;align-self:flex-start;align-items:center;gap:14px;border:2px solid #16150f;padding:14px 20px">
+            <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">TARGET</span>
+            <span style="font:700 15px/1 'JetBrains Mono',monospace">P(heads) = 0.50 ± 0.02</span>
+          </div>
+          <div style="flex:1"></div>
+          <div style="border-top:1px solid #ddd7c8;padding:22px 0;display:flex;align-items:center;gap:18px">
+            <span style="font:400 15px/1.4 'Space Grotesk',sans-serif;color:#8c8676">Still leaning heads.</span>
+            <div style="flex:1"></div>
+            <div style="padding:16px 40px;border:2px solid #d5cfc0;color:#b8b1a0;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em">CONTINUE ▸</div>
+          </div>
+        </div>
+
+        <div style="width:520px;flex:none;border-left:2px solid #16150f;padding:44px;display:flex;flex-direction:column;justify-content:center;gap:34px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+          <div style="position:relative;width:280px;height:280px;align-self:center">
+            <div style="position:absolute;inset:0;border:2px solid #16150f;border-radius:50%;background:#f7f4ec"></div>
+            <div style="position:absolute;inset:38px;border:1px dashed #cfc8b6;border-radius:50%"></div>
+            <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:#eae5d8"></div>
+            <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:#eae5d8"></div>
+            <div style="position:absolute;left:50%;top:50%;width:4px;height:108px;background:#16150f;transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(62deg)"></div>
+            <div style="position:absolute;left:50%;top:50%;width:14px;height:14px;border-radius:50%;background:#16150f;transform:translate(-50%,-50%)"></div>
+            <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">|0⟩ HEADS</div>
+            <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">|1⟩ TAILS</div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:12px"><span>θ = 62°</span><span>DRAG</span></div>
+            <div style="position:relative;height:28px;display:flex;align-items:center">
+              <div style="width:100%;height:2px;background:#16150f"></div>
+              <div style="position:absolute;left:0;right:0;display:flex;justify-content:space-between">
+                <span style="width:1px;height:10px;background:#b8b1a0"></span><span style="width:1px;height:10px;background:#b8b1a0"></span><span style="width:1px;height:10px;background:#b8b1a0"></span><span style="width:1px;height:10px;background:#b8b1a0"></span><span style="width:1px;height:10px;background:#b8b1a0"></span>
+              </div>
+              <div style="position:absolute;left:34%;width:18px;height:28px;background:#16150f;transform:translateX(-50%)"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:0;border:2px solid #16150f">
+            <div style="flex:1;border-right:1px solid #ddd7c8;padding:16px">
+              <div style="display:flex;justify-content:space-between;font:500 12px/1 'JetBrains Mono',monospace;color:#8c8676;margin-bottom:12px"><span>HEADS</span><span style="color:#16150f;font-weight:700">0.70</span></div>
+              <div style="height:70px;background:#eae5d8;display:flex;align-items:flex-end"><div style="width:100%;height:70%;background:#16150f"></div></div>
+            </div>
+            <div style="flex:1;padding:16px">
+              <div style="display:flex;justify-content:space-between;font:500 12px/1 'JetBrains Mono',monospace;color:#8c8676;margin-bottom:12px"><span>TAILS</span><span style="color:#16150f;font-weight:700">0.30</span></div>
+              <div style="height:70px;background:#eae5d8;display:flex;align-items:flex-end"><div style="width:100%;height:30%;background:#00867a"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1d" style="flex:none;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ showLabels }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:baseline;gap:11px">
+          <a href="#1d" style="font:700 12px/1 'JetBrains Mono',monospace;padding:5px 9px;background:#16150f;color:#f7f4ec">1d</a>
+          <span style="font:700 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">Measurement · pass</span>
+          <span style="font:400 14px/1.3 'Space Grotesk',sans-serif;color:#8c8676">the plot is the verdict — nobody says "correct"</span>
+        </div>
+      </sc-if>
+      <div style="width:1280px;height:840px;border:2px solid #16150f;overflow:hidden;background:#f7f4ec;display:flex;flex-direction:column;color:#16150f">
+        <div style="flex:none;padding:34px 56px 26px;border-bottom:2px solid #16150f;display:flex;align-items:flex-end;gap:26px">
+          <div>
+            <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#00867a;margin-bottom:14px">RUN COMPLETE · 1024 SHOTS</div>
+            <h2 style="font:400 40px/1.05 'Instrument Serif',serif;margin:0;max-width:24ch">Both qubits agreed 963 times out of 1024.</h2>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;gap:0;border:2px solid #16150f">
+            <div style="padding:16px 24px;border-right:1px solid #ddd7c8"><div style="font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:10px">FIDELITY</div><div style="font:700 24px/1 'JetBrains Mono',monospace">0.94</div></div>
+            <div style="padding:16px 24px;border-right:1px solid #ddd7c8"><div style="font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:10px">DEPTH</div><div style="font:700 24px/1 'JetBrains Mono',monospace">2</div></div>
+            <div style="padding:16px 24px"><div style="font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:10px">COHERENCE</div><div style="font:700 24px/1 'JetBrains Mono',monospace">0.68</div></div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="flex:1;min-width:0;padding:38px 56px;display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px">
+              <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8c8676">OUTCOME DISTRIBUTION</span>
+              <span style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">expected: 00 and 11 only</span>
+            </div>
+            <div style="flex:1;display:flex;align-items:flex-end;gap:0;border-bottom:2px solid #16150f;border-left:2px solid #16150f;padding-left:26px;position:relative">
+              <div style="position:absolute;left:0;right:0;top:0;border-top:1px dashed #ddd7c8"></div>
+              <div style="position:absolute;left:0;right:0;top:50%;border-top:1px dashed #ddd7c8"></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:12px;height:100%;justify-content:flex-end;padding:0 30px">
+                <div style="font:700 15px/1 'JetBrains Mono',monospace">497</div>
+                <div style="width:100%;height:82%;background:#16150f"></div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:12px;height:100%;justify-content:flex-end;padding:0 30px">
+                <div style="font:700 15px/1 'JetBrains Mono',monospace;color:#e8306f">29</div>
+                <div style="width:100%;height:5%;background:#e8306f"></div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:12px;height:100%;justify-content:flex-end;padding:0 30px">
+                <div style="font:700 15px/1 'JetBrains Mono',monospace;color:#e8306f">32</div>
+                <div style="width:100%;height:5.5%;background:#e8306f"></div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:12px;height:100%;justify-content:flex-end;padding:0 30px">
+                <div style="font:700 15px/1 'JetBrains Mono',monospace">466</div>
+                <div style="width:100%;height:77%;background:#16150f"></div>
+              </div>
+            </div>
+            <div style="display:flex;padding-left:28px;margin-top:12px">
+              <div style="flex:1;text-align:center;font:500 13px/1 'JetBrains Mono',monospace">00</div>
+              <div style="flex:1;text-align:center;font:500 13px/1 'JetBrains Mono',monospace;color:#e8306f">01</div>
+              <div style="flex:1;text-align:center;font:500 13px/1 'JetBrains Mono',monospace;color:#e8306f">10</div>
+              <div style="flex:1;text-align:center;font:500 13px/1 'JetBrains Mono',monospace">11</div>
+            </div>
+          </div>
+
+          <div style="width:376px;flex:none;border-left:2px solid #16150f;display:flex;flex-direction:column">
+            <div style="padding:32px 28px;border-bottom:1px solid #ddd7c8">
+              <div style="font:400 26px/1.2 'Instrument Serif',serif;margin-bottom:14px">The 61 disagreements are the hardware, not you.</div>
+              <div style="font:400 15px/1.6 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">On an ideal simulator this plot has two bars and nothing else. Those two pink stubs are real device noise — and they're the reason error correction exists, three fields out on your map.</div>
+            </div>
+            <div style="padding:28px;border-bottom:1px solid #ddd7c8">
+              <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:18px">RESOLVED</div>
+              <div style="display:flex;flex-direction:column;gap:13px;font:400 15px/1.3 'Space Grotesk',sans-serif">
+                <div style="display:flex;gap:12px;align-items:center"><span style="width:14px;height:14px;background:#16150f;flex:0 0 auto"></span><span>Two coins, one answer</span></div>
+                <div style="display:flex;gap:12px;align-items:center;color:#00867a;font-weight:700"><span style="width:14px;height:14px;border:2px solid #00867a;flex:0 0 auto"></span><span>Breaking the pair · now open</span></div>
+              </div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="padding:28px;display:flex;flex-direction:column;gap:12px">
+              <div style="padding:17px 0;background:#16150f;color:#f7f4ec;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-align:center">NEXT TASK ▸</div>
+              <div style="padding:15px 0;border:2px solid #16150f;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.12em;text-align:center">RUN ON REAL HARDWARE</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1e" style="flex:none;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ showLabels }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:baseline;gap:11px">
+          <a href="#1e" style="font:700 12px/1 'JetBrains Mono',monospace;padding:5px 9px;background:#16150f;color:#f7f4ec">1e</a>
+          <span style="font:700 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">Measurement · miss</span>
+          <span style="font:400 14px/1.3 'Space Grotesk',sans-serif;color:#8c8676">diagnosis from the data, not a scold</span>
+        </div>
+      </sc-if>
+      <div style="width:1280px;height:840px;border:2px solid #16150f;overflow:hidden;background:#f7f4ec;display:flex;flex-direction:column;color:#16150f">
+        <div style="flex:none;height:8px;background:#e8306f"></div>
+        <div style="flex:none;padding:30px 56px 26px;border-bottom:2px solid #16150f">
+          <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#e8306f;margin-bottom:14px">RUN COMPLETE · CONDITION NOT MET</div>
+          <h2 style="font:400 38px/1.08 'Instrument Serif',serif;margin:0;max-width:30ch">They agreed every time — but q₀ had already made up its mind.</h2>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="flex:1;min-width:0;padding:34px 56px;display:flex;flex-direction:column;gap:26px">
+            <div style="border:2px solid #16150f">
+              <div style="padding:10px 16px;border-bottom:1px solid #ddd7c8;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">YOUR CIRCUIT</div>
+              <div style="padding:28px 26px">
+                <div style="display:flex;align-items:center;margin-bottom:30px">
+                  <div style="width:40px;font:500 13px/1 'JetBrains Mono',monospace;color:#8c8676">q₀</div>
+                  <div style="flex:1;height:2px;background:#16150f;display:flex;align-items:center;gap:26px;padding-left:26px">
+                    <div style="width:62px;height:62px;flex:0 0 auto;border:2px solid #e8306f;background:#e8306f;color:#f7f4ec;display:grid;place-items:center;font:700 22px/1 'JetBrains Mono',monospace">X</div>
+                    <div style="width:62px;height:62px;flex:0 0 auto;border:2px solid #16150f;display:grid;place-items:center;font:700 13px/1 'JetBrains Mono',monospace">CNOT</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center">
+                  <div style="width:40px;font:500 13px/1 'JetBrains Mono',monospace;color:#8c8676">q₁</div>
+                  <div style="flex:1;height:2px;background:#16150f;display:flex;align-items:center;gap:26px;padding-left:26px">
+                    <div style="width:62px;flex:0 0 auto"></div>
+                    <div style="width:62px;flex:0 0 auto;position:relative;display:flex;justify-content:center">
+                      <div style="position:absolute;bottom:0;height:64px;width:2px;background:#16150f"></div>
+                      <div style="position:absolute;top:-12px;width:24px;height:24px;border-radius:50%;border:2px solid #16150f;background:#f7f4ec"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex:1;display:flex;gap:28px">
+              <div style="flex:1;display:flex;flex-direction:column">
+                <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:16px">YOU PRODUCED</div>
+                <div style="flex:1;display:flex;align-items:flex-end;gap:0;border-bottom:2px solid #16150f;border-left:2px solid #16150f">
+                  <div style="flex:1;height:100%;display:flex;align-items:flex-end;padding:0 14px"><div style="width:100%;height:2%;background:#d5cfc0"></div></div>
+                  <div style="flex:1;height:100%;display:flex;align-items:flex-end;padding:0 14px"><div style="width:100%;height:2%;background:#d5cfc0"></div></div>
+                  <div style="flex:1;height:100%;display:flex;align-items:flex-end;padding:0 14px"><div style="width:100%;height:2%;background:#d5cfc0"></div></div>
+                  <div style="flex:1;height:100%;display:flex;align-items:flex-end;padding:0 14px"><div style="width:100%;height:100%;background:#e8306f"></div></div>
+                </div>
+                <div style="display:flex;margin-top:10px;font:500 12px/1 'JetBrains Mono',monospace;color:#8c8676">
+                  <div style="flex:1;text-align:center">00</div><div style="flex:1;text-align:center">01</div><div style="flex:1;text-align:center">10</div><div style="flex:1;text-align:center;color:#e8306f">11</div>
+                </div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column">
+                <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:16px">TARGET SHAPE</div>
+                <div style="flex:1;display:flex;align-items:flex-end;gap:0;border-bottom:2px solid #16150f;border-left:2px solid #16150f">
+                  <div style="flex:1;height:100%;display:flex;align-items:flex-end;padding:0 14px"><div style="width:100%;height:50%;border:2px dashed #8c8676;border-bottom:none"></div></div>
+                  <div style="flex:1;height:100%;display:flex;align-items:flex-end;padding:0 14px"><div style="width:100%;height:2%;background:#e6e0d1"></div></div>
+                  <div style="flex:1;height:100%;display:flex;align-items:flex-end;padding:0 14px"><div style="width:100%;height:2%;background:#e6e0d1"></div></div>
+                  <div style="flex:1;height:100%;display:flex;align-items:flex-end;padding:0 14px"><div style="width:100%;height:50%;border:2px dashed #8c8676;border-bottom:none"></div></div>
+                </div>
+                <div style="display:flex;margin-top:10px;font:500 12px/1 'JetBrains Mono',monospace;color:#8c8676">
+                  <div style="flex:1;text-align:center">00</div><div style="flex:1;text-align:center">01</div><div style="flex:1;text-align:center">10</div><div style="flex:1;text-align:center">11</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:376px;flex:none;border-left:2px solid #16150f;display:flex;flex-direction:column">
+            <div style="padding:32px 28px;border-bottom:1px solid #ddd7c8">
+              <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#e8306f;margin-bottom:16px">DIAGNOSIS</div>
+              <div style="font:400 15px/1.65 'Space Grotesk',sans-serif;color:#3f3c33;margin-bottom:16px;text-wrap:pretty">One bar, not two. A single outcome every run means there was never any uncertainty to share.</div>
+              <div style="font:400 15px/1.65 'Space Grotesk',sans-serif;color:#3f3c33;text-wrap:pretty"><strong style="font-weight:700">X</strong> flips q₀ to a definite 1. CNOT then faithfully copies that certainty. You need a gate that leaves q₀ genuinely undecided before the copy happens.</div>
+            </div>
+            <div style="padding:28px;border-bottom:1px solid #ddd7c8">
+              <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:16px">COHERENCE COST</div>
+              <div style="display:flex;align-items:center;gap:16px">
+                <div style="flex:1;height:26px;position:relative">
+                  <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,#16150f 0 2px,transparent 2px 7px);clip-path:polygon(0 8%,48% 36%,48% 64%,0 92%)"></div>
+                  <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,#f0b5cb 0 2px,transparent 2px 7px);clip-path:polygon(48% 36%,72% 44%,72% 56%,48% 64%)"></div>
+                </div>
+                <span style="font:700 16px/1 'JetBrains Mono',monospace">0.48</span>
+                <span style="font:500 13px/1 'JetBrains Mono',monospace;color:#e8306f">−0.20</span>
+              </div>
+              <div style="font:400 13px/1.5 'Space Grotesk',sans-serif;color:#8c8676;margin-top:14px">Recovers fully in about four minutes.</div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="padding:28px;display:flex;flex-direction:column;gap:12px">
+              <div style="padding:17px 0;background:#16150f;color:#f7f4ec;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-align:center">BACK TO BENCH ▸</div>
+              <div style="padding:15px 0;border:2px solid #16150f;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.12em;text-align:center">SHOW THE DERIVATION</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1f" style="flex:none;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ showLabels }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:baseline;gap:11px">
+          <a href="#1f" style="font:700 12px/1 'JetBrains Mono',monospace;padding:5px 9px;background:#16150f;color:#f7f4ec">1f</a>
+          <span style="font:700 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">Duel</span>
+          <span style="font:400 14px/1.3 'Space Grotesk',sans-serif;color:#8c8676">the negative — oscilloscope, phosphor on black</span>
+        </div>
+      </sc-if>
+      <div style="width:1280px;height:840px;border:2px solid #16150f;overflow:hidden;background:#0d0f0d;display:flex;flex-direction:column;color:#dfe8dd">
+        <div style="flex:none;height:74px;border-bottom:1px solid #24291f;display:flex;align-items:stretch">
+          <div style="flex:1;display:flex;align-items:center;gap:16px;padding:0 26px">
+            <div style="width:12px;height:12px;background:#46e6a8"></div>
+            <span style="font:700 16px/1 'Space Grotesk',sans-serif">You</span>
+            <span style="font:400 13px/1 'JetBrains Mono',monospace;color:#6b7566">1204</span>
+          </div>
+          <div style="display:grid;place-items:center;padding:0 40px;border-left:1px solid #24291f;border-right:1px solid #24291f">
+            <div style="font:700 30px/1 'JetBrains Mono',monospace;color:#46e6a8;letter-spacing:.02em">00:47</div>
+            <div style="font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:#6b7566;margin-top:8px">ROUND 2/3</div>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:0 26px">
+            <span style="font:400 13px/1 'JetBrains Mono',monospace;color:#6b7566">1251</span>
+            <span style="font:700 16px/1 'Space Grotesk',sans-serif">Wei L.</span>
+            <div style="width:12px;height:12px;background:#e8306f"></div>
+          </div>
+        </div>
+
+        <div style="flex:none;padding:32px 56px 0">
+          <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:#6b7566;margin-bottom:14px">CHALLENGE</div>
+          <h2 style="font:400 34px/1.15 'Instrument Serif',serif;color:#f2f6f0;margin:0;max-width:38ch">Reach |Φ⁺⟩ in the fewest gates. Circuit depth breaks a tie.</h2>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex;gap:0;padding:30px 56px 0">
+          <div style="flex:1;border:1px solid #46e6a8;display:flex;flex-direction:column;background-image:linear-gradient(#141a13 1px,transparent 1px),linear-gradient(90deg,#141a13 1px,transparent 1px);background-size:24px 24px">
+            <div style="display:flex;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #24291f">
+              <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#46e6a8">YOUR BOARD</span>
+              <span style="font:500 11px/1 'JetBrains Mono',monospace;color:#6b7566">2 GATES · DEPTH 2</span>
+            </div>
+            <div style="padding:32px 24px;flex:1">
+              <div style="display:flex;align-items:center;margin-bottom:34px">
+                <div style="width:34px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b7566">q₀</div>
+                <div style="flex:1;height:1px;background:#46e6a8;display:flex;align-items:center;gap:22px;padding-left:22px">
+                  <div style="width:56px;height:56px;flex:0 0 auto;border:1px solid #46e6a8;background:#0d0f0d;display:grid;place-items:center;font:700 20px/1 'JetBrains Mono',monospace;color:#46e6a8">H</div>
+                  <div style="width:56px;height:56px;flex:0 0 auto;border:1px solid #46e6a8;background:#0d0f0d;display:grid;place-items:center;font:700 12px/1 'JetBrains Mono',monospace;color:#46e6a8">CNOT</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div style="width:34px;font:500 13px/1 'JetBrains Mono',monospace;color:#6b7566">q₁</div>
+                <div style="flex:1;height:1px;background:#46e6a8;display:flex;align-items:center;gap:22px;padding-left:22px">
+                  <div style="width:56px;flex:0 0 auto"></div>
+                  <div style="width:56px;flex:0 0 auto;position:relative;display:flex;justify-content:center">
+                    <div style="position:absolute;bottom:0;height:62px;width:1px;background:#46e6a8"></div>
+                    <div style="position:absolute;top:-11px;width:22px;height:22px;border-radius:50%;border:1px solid #46e6a8;background:#0d0f0d"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="padding:18px;border-top:1px solid #24291f">
+              <div style="padding:15px 0;background:#46e6a8;color:#0d0f0d;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-align:center">LOCK IT IN</div>
+            </div>
+          </div>
+
+          <div style="flex:1;border:1px solid #24291f;border-left:none;display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #24291f">
+              <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#6b7566">WEI L.</span>
+              <span style="display:flex;align-items:center;gap:8px;font:500 11px/1 'JetBrains Mono',monospace;color:#e8306f"><span style="width:7px;height:7px;background:#e8306f"></span>PLACING</span>
+            </div>
+            <div style="flex:1;display:grid;place-items:center;padding:24px">
+              <div style="text-align:center">
+                <div style="display:flex;gap:8px;justify-content:center;margin-bottom:22px">
+                  <div style="width:44px;height:44px;border:1px dashed #2e3529"></div>
+                  <div style="width:44px;height:44px;border:1px dashed #2e3529"></div>
+                  <div style="width:44px;height:44px;border:1px dashed #2e3529"></div>
+                  <div style="width:44px;height:44px;border:1px dashed #2e3529"></div>
+                </div>
+                <div style="font:400 15px/1.6 'Space Grotesk',sans-serif;color:#6b7566;max-width:30ch">Boards stay dark until both players lock in.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:none;height:70px;display:flex;align-items:center;padding:0 56px;gap:14px;font:500 12px/1 'JetBrains Mono',monospace;color:#6b7566">
+          <span style="width:8px;height:8px;background:#46e6a8"></span>ROUND 1 TO YOU · 3 GATES V 4
+          <span style="flex:1"></span>
+          <span>14 SPECTATORS</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="1g" style="flex:none;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ showLabels }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:baseline;gap:11px">
+          <a href="#1g" style="font:700 12px/1 'JetBrains Mono',monospace;padding:5px 9px;background:#16150f;color:#f7f4ec">1g</a>
+          <span style="font:700 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">Logbook</span>
+          <span style="font:400 14px/1.3 'Space Grotesk',sans-serif;color:#8c8676">recall has a half-life · review is decay, not streaks</span>
+        </div>
+      </sc-if>
+      <div style="width:1280px;height:840px;border:2px solid #16150f;overflow:hidden;background:#f7f4ec;display:flex;flex-direction:column;color:#16150f">
+        <div style="flex:none;padding:38px 56px 30px;border-bottom:2px solid #16150f;display:flex;align-items:flex-end">
+          <div>
+            <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8c8676;margin-bottom:16px">LOGBOOK · 94 DAYS OPEN</div>
+            <h2 style="font:400 42px/1.05 'Instrument Serif',serif;margin:0">Everything you know is decaying. Here is how fast.</h2>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;gap:0;border:2px solid #16150f">
+            <div style="padding:16px 26px;border-right:1px solid #ddd7c8"><div style="font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:10px">RESOLVED</div><div style="font:700 26px/1 'JetBrains Mono',monospace">18</div></div>
+            <div style="padding:16px 26px;border-right:1px solid #ddd7c8"><div style="font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:10px">DUE NOW</div><div style="font:700 26px/1 'JetBrains Mono',monospace;color:#e8306f">3</div></div>
+            <div style="padding:16px 26px"><div style="font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:10px">BENCH HOURS</div><div style="font:700 26px/1 'JetBrains Mono',monospace">31.4</div></div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="flex:1;min-width:0;padding:32px 56px;display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;padding-bottom:14px;border-bottom:2px solid #16150f">
+              <div style="flex:1.6">CONCEPT</div><div style="flex:2">RETENTION CURVE</div><div style="width:90px;text-align:right">STRENGTH</div><div style="width:110px;text-align:right">REVIEW IN</div>
+            </div>
+
+            <div style="display:flex;align-items:center;padding:20px 0;border-bottom:1px solid #ddd7c8">
+              <div style="flex:1.6"><div style="font:700 16px/1 'Space Grotesk',sans-serif">Superposition</div><div style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c;margin-top:8px">field 01</div></div>
+              <div style="flex:2;height:34px;display:flex;align-items:flex-end;gap:3px">
+                <div style="flex:1;height:100%;background:#16150f"></div><div style="flex:1;height:96%;background:#16150f"></div><div style="flex:1;height:92%;background:#16150f"></div><div style="flex:1;height:89%;background:#16150f"></div><div style="flex:1;height:86%;background:#16150f"></div><div style="flex:1;height:84%;background:#16150f"></div><div style="flex:1;height:82%;background:#16150f"></div><div style="flex:1;height:80%;background:#16150f"></div>
+              </div>
+              <div style="width:90px;text-align:right;font:700 16px/1 'JetBrains Mono',monospace">0.80</div>
+              <div style="width:110px;text-align:right;font:500 14px/1 'JetBrains Mono',monospace;color:#8c8676">11 days</div>
+            </div>
+
+            <div style="display:flex;align-items:center;padding:20px 0;border-bottom:1px solid #ddd7c8">
+              <div style="flex:1.6"><div style="font:700 16px/1 'Space Grotesk',sans-serif">Measurement</div><div style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c;margin-top:8px">field 01</div></div>
+              <div style="flex:2;height:34px;display:flex;align-items:flex-end;gap:3px">
+                <div style="flex:1;height:100%;background:#16150f"></div><div style="flex:1;height:90%;background:#16150f"></div><div style="flex:1;height:80%;background:#16150f"></div><div style="flex:1;height:72%;background:#16150f"></div><div style="flex:1;height:64%;background:#16150f"></div><div style="flex:1;height:58%;background:#16150f"></div><div style="flex:1;height:53%;background:#16150f"></div><div style="flex:1;height:49%;background:#16150f"></div>
+              </div>
+              <div style="width:90px;text-align:right;font:700 16px/1 'JetBrains Mono',monospace">0.49</div>
+              <div style="width:110px;text-align:right;font:500 14px/1 'JetBrains Mono',monospace;color:#8c8676">2 days</div>
+            </div>
+
+            <div style="display:flex;align-items:center;padding:20px 0;border-bottom:1px solid #ddd7c8;background:#fbeef3;margin:0 -18px;padding-left:18px;padding-right:18px">
+              <div style="flex:1.6"><div style="font:700 16px/1 'Space Grotesk',sans-serif;color:#c2185b">Bloch sphere</div><div style="font:400 12px/1 'JetBrains Mono',monospace;color:#d18fae;margin-top:8px">field 02</div></div>
+              <div style="flex:2;height:34px;display:flex;align-items:flex-end;gap:3px">
+                <div style="flex:1;height:100%;background:#e8306f"></div><div style="flex:1;height:78%;background:#e8306f"></div><div style="flex:1;height:60%;background:#e8306f"></div><div style="flex:1;height:47%;background:#e8306f"></div><div style="flex:1;height:37%;background:#e8306f"></div><div style="flex:1;height:30%;background:#e8306f"></div><div style="flex:1;height:25%;background:#e8306f"></div><div style="flex:1;height:21%;background:#e8306f"></div>
+              </div>
+              <div style="width:90px;text-align:right;font:700 16px/1 'JetBrains Mono',monospace;color:#c2185b">0.21</div>
+              <div style="width:110px;text-align:right;font:700 14px/1 'JetBrains Mono',monospace;color:#c2185b">overdue</div>
+            </div>
+
+            <div style="display:flex;align-items:center;padding:20px 0;border-bottom:1px solid #ddd7c8">
+              <div style="flex:1.6"><div style="font:700 16px/1 'Space Grotesk',sans-serif">Gate algebra</div><div style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c;margin-top:8px">field 02</div></div>
+              <div style="flex:2;height:34px;display:flex;align-items:flex-end;gap:3px">
+                <div style="flex:1;height:100%;background:#16150f"></div><div style="flex:1;height:94%;background:#16150f"></div><div style="flex:1;height:88%;background:#16150f"></div><div style="flex:1;height:83%;background:#16150f"></div><div style="flex:1;height:78%;background:#16150f"></div><div style="flex:1;height:74%;background:#16150f"></div><div style="flex:1;height:70%;background:#16150f"></div><div style="flex:1;height:67%;background:#16150f"></div>
+              </div>
+              <div style="width:90px;text-align:right;font:700 16px/1 'JetBrains Mono',monospace">0.67</div>
+              <div style="width:110px;text-align:right;font:500 14px/1 'JetBrains Mono',monospace;color:#8c8676">6 days</div>
+            </div>
+
+            <div style="display:flex;align-items:center;padding:20px 0">
+              <div style="flex:1.6"><div style="font:700 16px/1 'Space Grotesk',sans-serif">Entanglement</div><div style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c;margin-top:8px">field 03 · in progress</div></div>
+              <div style="flex:2;height:34px;display:flex;align-items:flex-end;gap:3px">
+                <div style="flex:1;height:100%;background:#00867a"></div><div style="flex:1;height:97%;background:#00867a"></div><div style="flex:1;height:95%;background:#00867a"></div><div style="flex:1;height:20%;background:#e6e0d1"></div><div style="flex:1;height:20%;background:#e6e0d1"></div><div style="flex:1;height:20%;background:#e6e0d1"></div><div style="flex:1;height:20%;background:#e6e0d1"></div><div style="flex:1;height:20%;background:#e6e0d1"></div>
+              </div>
+              <div style="width:90px;text-align:right;font:700 16px/1 'JetBrains Mono',monospace;color:#00867a">0.95</div>
+              <div style="width:110px;text-align:right;font:500 14px/1 'JetBrains Mono',monospace;color:#8c8676">—</div>
+            </div>
+            <div style="flex:1"></div>
+          </div>
+
+          <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}">
+            <div style="width:330px;flex:none;border-left:2px solid #16150f;display:flex;flex-direction:column">
+              <div style="padding:30px 26px;border-bottom:1px solid #ddd7c8">
+                <div style="font:400 26px/1.2 'Instrument Serif',serif;margin-bottom:14px">Bloch sphere is nearly gone.</div>
+                <div style="font:400 15px/1.6 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">You resolved it 31 days ago and haven't touched it since. One six-minute bench session puts it back above 0.80 for a month.</div>
+              </div>
+              <div style="padding:26px;border-bottom:1px solid #ddd7c8">
+                <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:16px">HALF-LIFE MODEL</div>
+                <div style="display:flex;flex-direction:column;gap:11px;font:400 13px/1.4 'JetBrains Mono',monospace;color:#3f3c33">
+                  <div style="display:flex;justify-content:space-between"><span style="color:#8c8676">t½ current</span><span>9.2 d</span></div>
+                  <div style="display:flex;justify-content:space-between"><span style="color:#8c8676">after review</span><span>28 d</span></div>
+                  <div style="display:flex;justify-content:space-between"><span style="color:#8c8676">after 2nd</span><span>74 d</span></div>
+                </div>
+              </div>
+              <div style="flex:1"></div>
+              <div style="padding:26px">
+                <div style="padding:17px 0;background:#16150f;color:#f7f4ec;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-align:center">REVIEW 3 CONCEPTS ▸</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <div id="1h" style="flex:none;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ showLabels }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:baseline;gap:11px">
+          <a href="#1h" style="font:700 12px/1 'JetBrains Mono',monospace;padding:5px 9px;background:#16150f;color:#f7f4ec">1h</a>
+          <span style="font:700 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">Code view</span>
+          <span style="font:400 14px/1.3 'Space Grotesk',sans-serif;color:#8c8676">same circuit, two dialects, tied line by line</span>
+        </div>
+      </sc-if>
+      <div style="width:1280px;height:840px;border:2px solid #16150f;overflow:hidden;background:#f7f4ec;display:flex;flex-direction:column;color:#16150f">
+
+        <div style="flex:none;height:64px;border-bottom:2px solid #16150f;display:flex;align-items:stretch">
+          <div style="width:64px;border-right:1px solid #ddd7c8;display:grid;place-items:center;font:400 22px/1 'Instrument Serif',serif">Ψ</div>
+          <div style="flex:1;display:flex;align-items:center;padding:0 22px;gap:18px">
+            <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">BENCH · FIELD 03</span>
+            <span style="font:700 15px/1 'Space Grotesk',sans-serif">Two coins, one answer</span>
+          </div>
+          <div style="display:flex;align-items:stretch;border-left:1px solid #ddd7c8">
+            <div style="padding:0 22px;display:grid;place-items:center;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">CIRCUIT</div>
+            <div style="padding:0 22px;display:grid;place-items:center;background:#16150f;color:#f7f4ec;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em">CODE</div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+            <div style="flex:none;display:flex;border-bottom:2px solid #16150f">
+              <div style="padding:15px 24px;background:#16150f;color:#f7f4ec;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.06em">Qiskit</div>
+              <div style="padding:15px 24px;border-right:1px solid #ddd7c8;font:400 13px/1 'JetBrains Mono',monospace;color:#8c8676">Cirq</div>
+              <div style="padding:15px 24px;border-right:1px solid #ddd7c8;font:400 13px/1 'JetBrains Mono',monospace;color:#8c8676">PennyLane</div>
+              <div style="flex:1"></div>
+              <div style="padding:15px 24px;border-left:1px solid #ddd7c8;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;color:#00867a">COMPARING ▸ OPENQASM 3</div>
+            </div>
+
+            <div style="flex:1;min-height:0;display:flex;font:400 14px/30px 'JetBrains Mono',monospace">
+
+              <div style="flex:1;min-width:0;display:flex">
+                <div style="width:56px;flex:none;border-right:1px solid #eae5d8;text-align:right;padding:18px 10px 0 0;color:#c4bdab;font-size:12px">
+                  <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div style="color:#00867a;font-weight:700">10</div><div>11</div>
+                </div>
+                <div style="width:48px;flex:none;border-right:1px solid #eae5d8;padding:18px 0 0;text-align:center;font-size:11px;color:#a8a08c">
+                  <div style="height:30px"></div><div style="height:30px"></div><div style="height:30px"></div><div style="height:30px"></div><div style="height:30px"></div><div style="height:30px"></div><div>t1</div><div style="height:30px"></div><div style="height:30px"></div><div style="color:#00867a;font-weight:700">t2</div><div style="height:30px"></div>
+                </div>
+                <div style="flex:1;min-width:0;padding:18px 0 0 20px">
+                  <div><span style="color:#7c5cf0">from</span> qiskit <span style="color:#7c5cf0">import</span> QuantumCircuit</div>
+                  <div style="height:30px"></div>
+                  <div>qc <span style="color:#8c8676">=</span> <span style="color:#00867a">QuantumCircuit</span>(<span style="color:#c2185b">2</span>, <span style="color:#c2185b">2</span>)</div>
+                  <div style="height:30px"></div>
+                  <div><span style="color:#a8a08c"># put q0 on the fence</span></div>
+                  <div style="height:30px"></div>
+                  <div>qc.<span style="color:#00867a">h</span>(<span style="color:#c2185b">0</span>)</div>
+                  <div style="height:30px"></div>
+                  <div><span style="color:#a8a08c"># tie q1 to whatever q0 becomes</span></div>
+                  <div style="background:rgba(0,134,122,.1);margin-left:-20px;padding-left:16px;border-left:4px solid #00867a">qc.<span style="color:#00867a">cx</span>(<span style="color:#c2185b">0</span>, <span style="color:#c2185b">1</span>)<span style="color:#00867a;font-weight:700">▏</span></div>
+                  <div>qc.<span style="color:#00867a">measure</span>([<span style="color:#c2185b">0</span>,<span style="color:#c2185b">1</span>], [<span style="color:#c2185b">0</span>,<span style="color:#c2185b">1</span>])</div>
+                </div>
+              </div>
+
+              <div style="width:52px;flex:none;border-left:1px solid #eae5d8;border-right:1px solid #eae5d8;background:#f3efe4;padding:18px 0 0;text-align:center;font-size:12px;color:#b8b1a0">
+                <div style="height:30px"></div><div style="height:30px"></div><div style="height:30px"></div><div style="height:30px"></div><div style="height:30px"></div><div style="height:30px"></div><div>⟷</div><div style="height:30px"></div><div style="height:30px"></div><div style="color:#00867a;font-weight:700">⟷</div><div>⟷</div>
+              </div>
+
+              <div style="flex:1;min-width:0;display:flex">
+                <div style="width:44px;flex:none;border-right:1px solid #eae5d8;text-align:right;padding:18px 10px 0 0;color:#c4bdab;font-size:12px">
+                  <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div style="color:#00867a;font-weight:700">10</div><div>11</div>
+                </div>
+                <div style="flex:1;min-width:0;padding:18px 0 0 20px">
+                  <div><span style="color:#7c5cf0">OPENQASM</span> <span style="color:#c2185b">3.0</span>;</div>
+                  <div><span style="color:#7c5cf0">include</span> <span style="color:#c2185b">"stdgates.inc"</span>;</div>
+                  <div style="height:30px"></div>
+                  <div><span style="color:#7c5cf0">qubit</span>[<span style="color:#c2185b">2</span>] q;</div>
+                  <div><span style="color:#7c5cf0">bit</span>[<span style="color:#c2185b">2</span>] c;</div>
+                  <div style="height:30px"></div>
+                  <div><span style="color:#00867a">h</span> q[<span style="color:#c2185b">0</span>];</div>
+                  <div style="height:30px"></div>
+                  <div style="height:30px"></div>
+                  <div style="background:rgba(0,134,122,.1);margin-left:-20px;padding-left:16px;border-left:4px solid #00867a"><span style="color:#00867a">cx</span> q[<span style="color:#c2185b">0</span>], q[<span style="color:#c2185b">1</span>];</div>
+                  <div>c <span style="color:#8c8676">=</span> <span style="color:#00867a">measure</span> q;</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex:none;border-top:2px solid #16150f;display:flex;align-items:center;padding:0 24px;height:76px;gap:20px">
+              <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">BACKEND</span>
+              <span style="padding:11px 16px;border:2px solid #16150f;font:500 13px/1 'JetBrains Mono',monospace">sim · ideal ▾</span>
+              <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676">SHOTS</span>
+              <span style="padding:11px 16px;border:2px solid #16150f;font:500 13px/1 'JetBrains Mono',monospace">1024</span>
+              <span style="flex:1"></span>
+              <span style="font:400 13px/1.4 'Space Grotesk',sans-serif;color:#8c8676">Edits here redraw the circuit.</span>
+              <span style="padding:15px 34px;background:#16150f;color:#f7f4ec;font:500 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em">MEASURE ▸</span>
+            </div>
+          </div>
+
+          <div style="width:322px;flex:none;border-left:2px solid #16150f;display:flex;flex-direction:column">
+            <div style="padding:16px 20px;background:#16150f;color:#f7f4ec;display:flex;align-items:center;justify-content:space-between">
+              <span style="font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em">LINE 10</span>
+              <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#7fc3bd">qc.cx(0, 1)</span>
+            </div>
+
+            <div style="padding:24px 20px;border-bottom:1px solid #ddd7c8">
+              <div style="font:400 24px/1.2 'Instrument Serif',serif;margin-bottom:12px">Control on q₀, target on q₁.</div>
+              <div style="font:400 14px/1.6 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Flips the target only when the control is 1. Because q₀ is currently in both states at once, both versions of that rule happen — which is what ties them.</div>
+            </div>
+
+            <div style="padding:20px;border-bottom:1px solid #ddd7c8">
+              <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:16px">AT THIS LINE</div>
+              <div style="position:relative;height:96px;border:1px solid #ddd7c8;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:16px 16px">
+                <div style="position:absolute;left:16px;width:26px;top:27px;height:2px;background:#16150f"></div>
+                <div style="position:absolute;left:16px;right:16px;top:69px;height:2px;background:#16150f"></div>
+                <div style="position:absolute;left:42px;top:14px;width:28px;height:28px;border:2px solid #16150f;background:#f7f4ec;display:grid;place-items:center;font:700 12px/1 'JetBrains Mono',monospace">H</div>
+                <div style="position:absolute;left:70px;width:34px;top:22px;height:2px;background:#00867a"></div>
+                <div style="position:absolute;left:70px;width:34px;top:33px;height:2px;background:#00867a"></div>
+                <div style="position:absolute;left:104px;top:14px;width:28px;height:28px;border:2px solid #00867a;background:rgba(0,134,122,.1)"></div>
+                <div style="position:absolute;left:117px;top:42px;width:2px;height:20px;background:repeating-linear-gradient(#00867a 0 3px,transparent 3px 7px)"></div>
+                <div style="position:absolute;left:109px;top:62px;width:16px;height:16px;border-radius:50%;border:2px solid #00867a;background:#f7f4ec"></div>
+                <div style="position:absolute;left:140px;right:16px;top:22px;height:56px;border-top:2px dashed #00867a;border-bottom:2px dashed #00867a;background:repeating-linear-gradient(135deg,rgba(0,134,122,.14) 0 2px,transparent 2px 8px)"></div>
+              </div>
+            </div>
+
+            <div style="padding:20px">
+              <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#8c8676;margin-bottom:16px">SAME IDEA ELSEWHERE</div>
+              <div style="display:flex;flex-direction:column;gap:14px;font:400 12px/1.4 'JetBrains Mono',monospace">
+                <div><div style="color:#a8a08c;margin-bottom:5px">cirq</div><div>cirq.CNOT(q0, q1)</div></div>
+                <div><div style="color:#a8a08c;margin-bottom:5px">pennylane</div><div>qml.CNOT(wires=[0,1])</div></div>
+                <div><div style="color:#a8a08c;margin-bottom:5px">openqasm</div><div>cx q[0], q[1];</div></div>
+              </div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="padding:20px;border-top:1px solid #ddd7c8;font:400 13px/1.5 'Space Grotesk',sans-serif;color:#8c8676;text-wrap:pretty">Switching dialect never changes the circuit — only the spelling.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="1i" style="flex:none;display:flex;flex-direction:column;gap:12px">
+      <sc-if value="{{ showLabels }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:baseline;gap:11px">
+          <a href="#1i" style="font:700 12px/1 'JetBrains Mono',monospace;padding:5px 9px;background:#16150f;color:#f7f4ec">1i</a>
+          <span style="font:700 15px/1.3 'Space Grotesk',sans-serif;color:#16150f">Arena lobby</span>
+          <span style="font:400 14px/1.3 'Space Grotesk',sans-serif;color:#8c8676">quick match, tandem 2v2, relay, tournaments</span>
+        </div>
+      </sc-if>
+      <div style="width:1280px;height:840px;border:2px solid #16150f;overflow:hidden;background:#f7f4ec;display:flex;flex-direction:column;color:#16150f">
+
+        <div style="flex:none;height:64px;border-bottom:2px solid #16150f;display:flex;align-items:stretch">
+          <div style="width:64px;border-right:1px solid #ddd7c8;display:grid;place-items:center;font:400 22px/1 'Instrument Serif',serif">Ψ</div>
+          <div style="flex:1;display:flex;align-items:center;padding:0 22px;gap:26px">
+            <span style="font:400 15px/1 'Space Grotesk',sans-serif;color:#8c8676">Field</span>
+            <span style="font:400 15px/1 'Space Grotesk',sans-serif;color:#8c8676">Bench</span>
+            <span style="font:700 15px/1 'Space Grotesk',sans-serif;padding-bottom:3px;border-bottom:2px solid #16150f">Arena</span>
+            <span style="font:400 15px/1 'Space Grotesk',sans-serif;color:#8c8676">Logbook</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:0 22px;border-left:1px solid #ddd7c8;font:500 12px/1 'JetBrains Mono',monospace;color:#8c8676">
+            <span>SEASON 4</span><span style="color:#ddd7c8">|</span><span style="color:#16150f">1204 ELO</span><span style="color:#ddd7c8">|</span><span>18W · 11L</span>
+          </div>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex">
+          <div style="flex:1;min-width:0;padding:28px;display:flex;flex-direction:column;gap:22px">
+
+            <div style="flex:none;background:#0d0f0d;color:#dfe8dd;padding:28px 32px;display:flex;align-items:center;gap:36px">
+              <div style="flex:1">
+                <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.2em;color:#6b7566;margin-bottom:14px">RANKED · 1V1</div>
+                <div style="font:400 36px/1.05 'Instrument Serif',serif;color:#f2f6f0;margin-bottom:14px">Quick match</div>
+                <div style="display:flex;align-items:center;gap:20px;font:400 13px/1 'JetBrains Mono',monospace;color:#6b7566">
+                  <span style="display:flex;align-items:center;gap:9px"><span style="width:8px;height:8px;background:#46e6a8"></span>7 SEARCHING IN YOUR BAND</span>
+                  <span>±80 ELO</span>
+                  <span>~00:24 WAIT</span>
+                </div>
+              </div>
+              <div style="flex:none;display:flex;flex-direction:column;gap:12px;width:250px">
+                <div style="padding:19px 0;background:#46e6a8;color:#0d0f0d;font:700 14px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-align:center">FIND OPPONENT</div>
+                <div style="padding:15px 0;border:1px solid #2e3529;color:#dfe8dd;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-align:center">PRACTICE VS BOT</div>
+              </div>
+            </div>
+
+            <div style="flex:none;display:flex;gap:0;border:2px solid #16150f">
+              <div style="flex:1;padding:22px;border-right:1px solid #ddd7c8">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+                  <span style="font:700 16px/1 'Space Grotesk',sans-serif">Tandem</span>
+                  <span style="font:500 11px/1 'JetBrains Mono',monospace;color:#8c8676">2V2</span>
+                </div>
+                <div style="font:400 13px/1.5 'Space Grotesk',sans-serif;color:#5a564b;margin-bottom:18px;min-height:58px;text-wrap:pretty">You own q₀, your partner owns q₁. Neither of you can place on the other's wire — you have to talk.</div>
+                <div style="height:52px;position:relative;border:1px solid #eae5d8;background-image:linear-gradient(90deg,#f0ece0 1px,transparent 1px);background-size:12px 12px;margin-bottom:16px">
+                  <div style="position:absolute;left:8px;right:8px;top:15px;height:2px;background:#16150f"></div>
+                  <div style="position:absolute;left:8px;right:8px;top:37px;height:2px;background:#16150f"></div>
+                  <div style="position:absolute;left:28px;top:6px;width:20px;height:20px;background:#00867a"></div>
+                  <div style="position:absolute;left:70px;top:28px;width:20px;height:20px;background:#7c5cf0"></div>
+                  <div style="position:absolute;left:112px;top:6px;width:20px;height:20px;background:#00867a"></div>
+                </div>
+                <div style="padding:13px 0;border:2px solid #16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-align:center">FIND A PARTNER</div>
+              </div>
+
+              <div style="flex:1;padding:22px;border-right:1px solid #ddd7c8">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+                  <span style="font:700 16px/1 'Space Grotesk',sans-serif">Relay</span>
+                  <span style="font:500 11px/1 'JetBrains Mono',monospace;color:#8c8676">2V2 · ALTERNATING</span>
+                </div>
+                <div style="font:400 13px/1.5 'Space Grotesk',sans-serif;color:#5a564b;margin-bottom:18px;min-height:58px;text-wrap:pretty">One shared circuit, one gate each, strict turns. Undo is disabled — you inherit whatever they left you.</div>
+                <div style="height:52px;position:relative;border:1px solid #eae5d8;background-image:linear-gradient(90deg,#f0ece0 1px,transparent 1px);background-size:12px 12px;margin-bottom:16px">
+                  <div style="position:absolute;left:8px;right:8px;top:25px;height:2px;background:#16150f"></div>
+                  <div style="position:absolute;left:22px;top:16px;width:20px;height:20px;background:#00867a"></div>
+                  <div style="position:absolute;left:54px;top:16px;width:20px;height:20px;background:#7c5cf0"></div>
+                  <div style="position:absolute;left:86px;top:16px;width:20px;height:20px;background:#00867a"></div>
+                  <div style="position:absolute;left:118px;top:16px;width:20px;height:20px;border:2px dashed #7c5cf0"></div>
+                </div>
+                <div style="padding:13px 0;border:2px solid #16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-align:center">OPEN A LOBBY</div>
+              </div>
+
+              <div style="flex:1;padding:22px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+                  <span style="font:700 16px/1 'Space Grotesk',sans-serif">Blind</span>
+                  <span style="font:500 11px/1 'JetBrains Mono',monospace;color:#8c8676">1V1 · HIDDEN</span>
+                </div>
+                <div style="font:400 13px/1.5 'Space Grotesk',sans-serif;color:#5a564b;margin-bottom:18px;min-height:58px;text-wrap:pretty">Your state ladder is covered. You build from the physics in your head and find out at measurement.</div>
+                <div style="height:52px;position:relative;border:1px solid #eae5d8;background-image:linear-gradient(90deg,#f0ece0 1px,transparent 1px);background-size:12px 12px;margin-bottom:16px">
+                  <div style="position:absolute;left:8px;right:8px;top:25px;height:2px;background:#16150f"></div>
+                  <div style="position:absolute;left:22px;top:16px;width:20px;height:20px;background:#00867a"></div>
+                  <div style="position:absolute;left:64px;right:8px;top:4px;bottom:4px;background:repeating-linear-gradient(135deg,#16150f 0 2px,transparent 2px 7px)"></div>
+                </div>
+                <div style="padding:13px 0;border:2px solid #16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-align:center">QUEUE BLIND</div>
+              </div>
+            </div>
+
+            <div style="flex:1;min-height:0;border:2px solid #16150f;display:flex">
+              <div style="flex:1;padding:22px 24px;border-right:1px solid #ddd7c8;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+                  <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#e8306f">LIVE NOW</span>
+                  <span style="font:500 11px/1 'JetBrains Mono',monospace;color:#8c8676">ROUND OF 8</span>
+                </div>
+                <div style="font:400 26px/1.15 'Instrument Serif',serif;margin-bottom:6px">Open Circuit · weekly</div>
+                <div style="font:400 13px/1.5 'Space Grotesk',sans-serif;color:#5a564b;margin-bottom:18px">32 entrants · shortest correct circuit advances · unlocks the Grover field</div>
+                <div style="flex:1"></div>
+                <div style="display:flex;align-items:center;gap:16px">
+                  <div style="padding:14px 28px;background:#16150f;color:#f7f4ec;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em">TAKE YOUR SEAT</div>
+                  <div style="font:500 13px/1 'JetBrains Mono',monospace;color:#e8306f">STARTS 04:12:33</div>
+                </div>
+              </div>
+
+              <div style="width:300px;flex:none;padding:22px 24px">
+                <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8c8676;margin-bottom:18px">BRACKET</div>
+                <div style="display:flex;gap:0;align-items:stretch;height:132px">
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:6px">
+                    <div style="height:22px;border:1px solid #16150f;display:flex;align-items:center;padding:0 8px;font:500 11px/1 'JetBrains Mono',monospace">you</div>
+                    <div style="height:22px;border:1px solid #cfc8b6;display:flex;align-items:center;padding:0 8px;font:400 11px/1 'JetBrains Mono',monospace;color:#a8a08c">rui</div>
+                    <div style="height:22px;border:1px solid #cfc8b6;display:flex;align-items:center;padding:0 8px;font:400 11px/1 'JetBrains Mono',monospace;color:#a8a08c">wei</div>
+                    <div style="height:22px;border:1px solid #cfc8b6;display:flex;align-items:center;padding:0 8px;font:400 11px/1 'JetBrains Mono',monospace;color:#a8a08c">ana</div>
+                  </div>
+                  <div style="width:22px;flex:none;display:flex;flex-direction:column">
+                    <div style="flex:1;border-right:1px solid #cfc8b6;border-top:1px solid #cfc8b6;border-bottom:1px solid #cfc8b6;margin:11px 0"></div>
+                    <div style="flex:1;border-right:1px solid #cfc8b6;border-top:1px solid #cfc8b6;border-bottom:1px solid #cfc8b6;margin:11px 0"></div>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:space-around">
+                    <div style="height:22px;border:1px dashed #cfc8b6"></div>
+                    <div style="height:22px;border:1px dashed #cfc8b6"></div>
+                  </div>
+                  <div style="width:22px;flex:none;display:flex;flex-direction:column">
+                    <div style="flex:1;border-right:1px solid #cfc8b6;border-top:1px solid #cfc8b6;border-bottom:1px solid #cfc8b6;margin:33px 0"></div>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+                    <div style="height:22px;border:1px solid #16150f;display:flex;align-items:center;justify-content:center;font:500 11px/1 'JetBrains Mono',monospace">◆</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:340px;flex:none;border-left:2px solid #16150f;display:flex;flex-direction:column">
+            <div style="padding:20px;border-bottom:1px solid #ddd7c8">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px">
+                <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#e8306f">INVITES · 2</span>
+                <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#a8a08c">expire in 4m</span>
+              </div>
+              <div style="border:2px solid #16150f;padding:14px;margin-bottom:10px">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                  <span style="width:22px;height:22px;background:#7c5cf0;flex:0 0 auto"></span>
+                  <span style="font:700 14px/1 'Space Grotesk',sans-serif">Priya N.</span>
+                  <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#8c8676;margin-left:auto">TANDEM</span>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <div style="flex:1;padding:9px 0;background:#16150f;color:#f7f4ec;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.12em;text-align:center">ACCEPT</div>
+                  <div style="padding:9px 14px;border:2px solid #16150f;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.12em">✕</div>
+                </div>
+              </div>
+              <div style="border:1px solid #cfc8b6;padding:14px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span style="width:22px;height:22px;background:#e8a33d;flex:0 0 auto"></span>
+                  <span style="font:700 14px/1 'Space Grotesk',sans-serif">Kofi A.</span>
+                  <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#8c8676;margin-left:auto">RELAY</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex:1;min-height:0;padding:20px;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px">
+                <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8c8676">FRIENDS</span>
+                <span style="font:500 11px/1 'JetBrains Mono',monospace;color:#00867a">4 ONLINE</span>
+              </div>
+              <div style="display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #eae5d8">
+                  <span style="width:8px;height:8px;background:#00867a;flex:0 0 auto"></span>
+                  <span style="font:700 14px/1 'Space Grotesk',sans-serif">Tomás R.</span>
+                  <span style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">1251</span>
+                  <span style="margin-left:auto;padding:7px 12px;border:2px solid #16150f;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.12em">CHALLENGE</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #eae5d8">
+                  <span style="width:8px;height:8px;background:#00867a;flex:0 0 auto"></span>
+                  <span style="font:700 14px/1 'Space Grotesk',sans-serif">Sana K.</span>
+                  <span style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">1188</span>
+                  <span style="margin-left:auto;padding:7px 12px;border:2px solid #16150f;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.12em">CHALLENGE</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #eae5d8">
+                  <span style="width:8px;height:8px;background:#e8a33d;flex:0 0 auto"></span>
+                  <span style="font:700 14px/1 'Space Grotesk',sans-serif">Wei L.</span>
+                  <span style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">1251</span>
+                  <span style="margin-left:auto;font:400 11px/1 'JetBrains Mono',monospace;color:#a8a08c">IN A DUEL</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #eae5d8">
+                  <span style="width:8px;height:8px;background:#00867a;flex:0 0 auto"></span>
+                  <span style="font:700 14px/1 'Space Grotesk',sans-serif">Diego M.</span>
+                  <span style="font:400 12px/1 'JetBrains Mono',monospace;color:#a8a08c">1042</span>
+                  <span style="margin-left:auto;padding:7px 12px;border:2px solid #16150f;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.12em">CHALLENGE</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 0">
+                  <span style="width:8px;height:8px;border:1px solid #cfc8b6;flex:0 0 auto"></span>
+                  <span style="font:400 14px/1 'Space Grotesk',sans-serif;color:#a8a08c">Ana P.</span>
+                  <span style="font:400 12px/1 'JetBrains Mono',monospace;color:#cfc8b6">offline</span>
+                </div>
+              </div>
+              <div style="flex:1"></div>
+              <div style="padding:14px 0;border:2px solid #16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;text-align:center">INVITE BY LINK</div>
+            </div>
+
+            <div style="padding:20px;border-top:1px solid #ddd7c8">
+              <div style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#8c8676;margin-bottom:14px">LAST MATCH</div>
+              <div style="display:flex;align-items:center;gap:14px">
+                <span style="font:700 14px/1 'Space Grotesk',sans-serif;color:#00867a">WON</span>
+                <span style="font:400 13px/1 'JetBrains Mono',monospace;color:#5a564b">3 gates v 4</span>
+                <span style="margin-left:auto;font:500 13px/1 'JetBrains Mono',monospace;color:#00867a">+18</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showLabels&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Presentation&quot;},&quot;showAnnotations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Presentation&quot;}}"></script>
+</body>
+</html>

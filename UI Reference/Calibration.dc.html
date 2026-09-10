@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  body{margin:0;background:#e3ded1;font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  a{color:#00867a;text-decoration:none}
+  a:hover{color:#005f57}
+  button{font-family:'JetBrains Mono',monospace}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#e3ded1;color:#16150f">
+
+  <div style="position:sticky;top:0;z-index:20;background:#f7f4ec;border-bottom:2px solid #16150f;display:flex;align-items:stretch;height:74px">
+    <div style="flex:none;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 26px;border-right:2px solid #16150f">
+      <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#00867a">FIRST RUN · NO PHYSICS YET</div>
+      <div style="font:400 24px/1 'Instrument Serif',serif">Calibration</div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;gap:14px;padding:0 26px;min-width:0;overflow:hidden;flex-wrap:wrap">
+      <sc-for list="{{ pips }}" as="pip" hint-placeholder-count="4">
+        <div style="flex:none;display:flex;align-items:center;gap:9px">
+          <span style="width:15px;height:15px;border:2px solid #16150f;background:{{ pip.fill }}"></span>
+          <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:{{ pip.col }}">{{ pip.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="flex:none;display:grid;place-items:center;padding:0 26px;border-left:2px solid #16150f">
+      <span style="font:500 12px/1.4 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a;text-align:right">STEP {{ stepLabel }} OF 4</span>
+    </div>
+  </div>
+
+  <div style="max-width:1040px;padding:40px 44px 110px;display:flex;flex-direction:column;gap:30px">
+
+    <sc-if value="{{ atStart }}" hint-placeholder-val="{{ true }}">
+      <div>
+        <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#6b665a;margin-bottom:16px">WHY THIS SCREEN EXISTS</div>
+        <h1 style="font:400 44px/1.06 'Instrument Serif',serif;margin:0 0 16px;max-width:28ch;text-wrap:pretty">Every lesson here hands you a reading. First, learn to read.</h1>
+        <p style="font:400 17px/1.6 'Space Grotesk',sans-serif;color:#5a564b;margin:0;max-width:66ch;text-wrap:pretty">Four short steps. Nothing is graded and nothing is timed — this is you and the instrument agreeing on vocabulary before the instrument starts telling you things about the world.</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ atStep1 }}" hint-placeholder-val="{{ true }}">
+      <div style="border:2px solid #16150f;background:#f7f4ec">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">STEP 01</span>
+          <span style="flex:1;font:400 29px/1.1 'Instrument Serif',serif">A plot is the verdict. Read one.</span>
+        </div>
+
+        <div style="padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+          <p style="font:400 16px/1.55 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 24px;max-width:62ch;text-wrap:pretty">This app never says “correct”. It runs your circuit many times and plots how often each outcome appeared. Here is one such plot, from {{ shots }} runs of a two-qubit circuit.</p>
+
+          <div style="border:2px solid #16150f;background:#f7f4ec;padding:24px 26px 20px;margin-bottom:26px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px">
+              <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">OUTCOME FREQUENCY · {{ shots }} SHOTS</span>
+              <span style="font:500 12px/1 'JetBrains Mono',monospace;color:#6b665a">counts</span>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:30px;height:210px;border-bottom:2px solid #16150f;padding:0 14px">
+              <sc-for list="{{ histo }}" as="bar" hint-placeholder-count="4">
+                <div style="flex:1;min-width:0;height:210px;position:relative">
+                  <span style="position:absolute;left:0;right:0;bottom:{{ bar.labelBottom }};text-align:center;font:500 13px/1 'JetBrains Mono',monospace;color:#6b665a">{{ bar.count }}</span>
+                  <span style="position:absolute;left:0;right:0;bottom:0;height:{{ bar.h }};background:{{ bar.col }};border:{{ bar.border }};display:block"></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:30px;padding:12px 14px 0">
+              <sc-for list="{{ histo }}" as="bar" hint-placeholder-count="4">
+                <span style="flex:1;text-align:center;font:700 14px/1 'JetBrains Mono',monospace;color:#16150f">{{ bar.ket }}</span>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a;margin-bottom:14px">WHICH STATEMENT DOES THIS PLOT SUPPORT?</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ choices }}" as="ch" hint-placeholder-count="3">
+              <button type="button" onClick="{{ ch.pick }}" style="text-align:left;display:flex;gap:16px;align-items:flex-start;padding:17px 19px;border:2px solid {{ ch.border }};background:{{ ch.bg }};cursor:pointer;font-family:'Space Grotesk',sans-serif">
+                <span style="flex:none;font:700 13px/1.4 'JetBrains Mono',monospace;color:{{ ch.border }}">{{ ch.tag }}</span>
+                <span style="flex:1;font:500 16px/1.45 'Space Grotesk',sans-serif;color:#16150f;text-wrap:pretty">{{ ch.text }}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ hasFeedback }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:22px;border-left:2px solid {{ fbCol }};padding:4px 0 4px 20px;display:flex;flex-direction:column;gap:9px">
+              <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:{{ fbCol }}">{{ fbTag }}</span>
+              <span style="font:400 19px/1.45 'Instrument Serif',serif;color:#16150f;max-width:58ch;text-wrap:pretty">{{ fbText }}</span>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap">
+          <span style="font:500 12px/1.5 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">{{ s1Hint }}</span>
+          <button type="button" onClick="{{ next }}" style="padding:14px 26px;border:2px solid {{ s1BtnCol }};background:{{ s1BtnBg }};color:{{ s1BtnFg }};font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;cursor:pointer">NEXT ▸</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ atStep2 }}" hint-placeholder-val="{{ false }}">
+      <div style="border:2px solid #16150f;background:#f7f4ec">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">STEP 02</span>
+          <span style="flex:1;font:400 29px/1.1 'Instrument Serif',serif">Four symbols you will see on every panel</span>
+        </div>
+
+        <div style="padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+          <p style="font:400 16px/1.55 'Space Grotesk',sans-serif;color:#3f3c33;margin:0 0 26px;max-width:62ch;text-wrap:pretty">Tap each part of this line. Nothing to memorise — you are just being told what the marks mean, once, in plain words.</p>
+
+          <div style="border:2px solid #16150f;background:#f7f4ec;padding:34px 26px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin-bottom:24px">
+            <sc-for list="{{ tokens }}" as="tk" hint-placeholder-count="6">
+              <button type="button" onClick="{{ tk.pick }}" style="padding:12px 14px;border:2px solid {{ tk.border }};background:{{ tk.bg }};color:#16150f;font:700 26px/1 'JetBrains Mono',monospace;cursor:{{ tk.cursor }}">{{ tk.txt }}</button>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:0;border:2px solid #16150f">
+            <sc-for list="{{ glossary }}" as="g" hint-placeholder-count="4">
+              <div style="display:flex;gap:20px;align-items:flex-start;padding:16px 20px;border-bottom:1px solid #ddd7c8;background:{{ g.bg }}">
+                <span style="flex:none;width:64px;font:700 19px/1.2 'JetBrains Mono',monospace;color:{{ g.col }}">{{ g.sym }}</span>
+                <span style="flex:1;font:400 16px/1.5 'Space Grotesk',sans-serif;color:{{ g.textCol }};text-wrap:pretty">{{ g.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap">
+          <span style="font:500 12px/1.5 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">{{ s2Hint }}</span>
+          <div style="display:flex;gap:10px">
+            <button type="button" onClick="{{ back }}" style="padding:14px 20px;border:2px solid #16150f;background:#f7f4ec;color:#16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;cursor:pointer" style-hover="background:#16150f;color:#f7f4ec">◂ BACK</button>
+            <button type="button" onClick="{{ next }}" style="padding:14px 26px;border:2px solid {{ s2BtnCol }};background:{{ s2BtnBg }};color:{{ s2BtnFg }};font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;cursor:pointer">NEXT ▸</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ atStep3 }}" hint-placeholder-val="{{ false }}">
+      <div style="border:2px solid #16150f;background:#f7f4ec">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">STEP 03</span>
+          <span style="flex:1;font:400 29px/1.1 'Instrument Serif',serif">Where the screen keeps things</span>
+        </div>
+
+        <div style="padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px">
+          <div style="display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap">
+            <div style="flex:1;min-width:420px">
+              <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a;margin-bottom:14px">{{ taskPrompt }}</div>
+
+              <div style="border:2px solid #16150f;background:#f7f4ec;display:flex;flex-direction:column;height:326px">
+                <div style="flex:none;display:flex;align-items:stretch;height:52px;border-bottom:2px solid #16150f">
+                  <div style="flex:1;display:flex;align-items:center;padding:0 14px;font:400 15px/1 'Instrument Serif',serif;color:#6b665a;border-right:1px solid #ddd7c8">Entanglement</div>
+                  <button type="button" onClick="{{ hitBudget }}" style="flex:none;width:150px;border:0;border-left:1px solid #ddd7c8;background:{{ budgetBg }};display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer">
+                    <span style="width:8px;height:16px;border:2px solid #16150f;background:#16150f;display:block"></span>
+                    <span style="width:8px;height:16px;border:2px solid #16150f;background:#16150f;display:block"></span>
+                    <span style="width:8px;height:16px;border:2px solid #16150f;background:#f7f4ec;display:block"></span>
+                    <span style="width:8px;height:16px;border:2px solid #16150f;background:#f7f4ec;display:block"></span>
+                  </button>
+                </div>
+                <div style="flex:1;min-height:0;display:flex;align-items:stretch">
+                  <button type="button" onClick="{{ hitRail }}" style="flex:none;width:126px;border:0;border-right:2px solid #16150f;background:{{ railBg }};padding:14px 12px;display:flex;flex-direction:column;gap:9px;cursor:pointer;text-align:left">
+                    <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#6b665a">CHAIN</span>
+                    <span style="height:2px;background:#ddd7c8;display:block"></span>
+                    <span style="height:2px;background:#ddd7c8;display:block"></span>
+                    <span style="height:2px;background:#00867a;display:block"></span>
+                    <span style="height:2px;background:#ddd7c8;display:block"></span>
+                    <span style="height:2px;background:#ddd7c8;display:block"></span>
+                    <span style="height:2px;background:#ddd7c8;display:block"></span>
+                  </button>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+                    <div style="flex:1;min-height:0;display:flex;align-items:stretch">
+                      <div style="flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;gap:12px">
+                        <span style="font:400 20px/1.2 'Instrument Serif',serif;color:#6b665a">the working instrument</span>
+                        <span style="height:22px;border:2px solid #ddd7c8;display:block"></span>
+                        <span style="height:22px;border:2px solid #ddd7c8;display:block;width:70%"></span>
+                      </div>
+                      <button type="button" onClick="{{ hitMargin }}" style="flex:none;width:118px;border:0;border-left:1px solid #ddd7c8;background:{{ marginBg }};padding:16px 12px;cursor:pointer;text-align:left">
+                        <span style="font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.1em;color:#6b665a;display:block;margin-bottom:9px">MARGIN</span>
+                        <span style="height:2px;background:#ddd7c8;display:block;margin-bottom:6px"></span>
+                        <span style="height:2px;background:#ddd7c8;display:block;margin-bottom:6px"></span>
+                        <span style="height:2px;background:#ddd7c8;display:block;width:60%"></span>
+                      </button>
+                    </div>
+                    <button type="button" onClick="{{ hitStrip }}" style="flex:none;height:62px;border:0;border-top:2px solid #16150f;background:{{ stripBg }};display:flex;align-items:center;padding:0 18px;cursor:pointer;text-align:left">
+                      <span style="font:400 17px/1.2 'Instrument Serif',serif;color:#6b665a">a plain sentence about what just happened</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex:none;width:270px;display:flex;flex-direction:column;gap:16px">
+              <div style="border:2px solid #16150f;padding:18px;display:flex;flex-direction:column;gap:11px">
+                <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a">FOUND</span>
+                <sc-for list="{{ findList }}" as="f" hint-placeholder-count="3">
+                  <span style="display:flex;gap:10px;align-items:baseline;font:500 14px/1.4 'JetBrains Mono',monospace;color:{{ f.col }}">
+                    <span style="flex:none">{{ f.mark }}</span>
+                    <span style="flex:1">{{ f.name }}</span>
+                  </span>
+                </sc-for>
+              </div>
+              <sc-if value="{{ hasHitNote }}" hint-placeholder-val="{{ false }}">
+                <div style="border-left:2px solid {{ hitCol }};padding:4px 0 4px 18px">
+                  <span style="font:400 17px/1.45 'Instrument Serif',serif;color:#16150f;text-wrap:pretty">{{ hitNote }}</span>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap">
+          <span style="font:500 12px/1.5 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">{{ s3Hint }}</span>
+          <div style="display:flex;gap:10px">
+            <button type="button" onClick="{{ back }}" style="padding:14px 20px;border:2px solid #16150f;background:#f7f4ec;color:#16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;cursor:pointer" style-hover="background:#16150f;color:#f7f4ec">◂ BACK</button>
+            <button type="button" onClick="{{ next }}" style="padding:14px 26px;border:2px solid {{ s3BtnCol }};background:{{ s3BtnBg }};color:{{ s3BtnFg }};font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;cursor:pointer">NEXT ▸</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ atStep4 }}" hint-placeholder-val="{{ false }}">
+      <div style="border:2px solid #16150f;background:#f7f4ec">
+        <div style="display:flex;align-items:center;gap:18px;padding:20px 26px;border-bottom:2px solid #16150f">
+          <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a">STEP 04</span>
+          <span style="flex:1;font:400 29px/1.1 'Instrument Serif',serif">Set the terms you learn under</span>
+        </div>
+
+        <div style="padding:26px;background-image:linear-gradient(#eae5d8 1px,transparent 1px),linear-gradient(90deg,#eae5d8 1px,transparent 1px);background-size:24px 24px;display:flex;flex-direction:column;gap:26px">
+
+          <div>
+            <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#00867a;margin-bottom:8px">HOW MUCH HAVE YOU MET THIS BEFORE?</div>
+            <div style="font:400 15px/1.5 'Space Grotesk',sans-serif;color:#5a564b;margin-bottom:14px;max-width:58ch">Honest answers get you a better entry point. Nothing is locked either way.</div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              <sc-for list="{{ priors }}" as="p" hint-placeholder-count="3">
+                <button type="button" onClick="{{ p.pick }}" style="flex:1;min-width:210px;text-align:left;padding:18px;border:2px solid {{ p.border }};background:{{ p.bg }};cursor:pointer;display:flex;flex-direction:column;gap:8px">
+                  <span style="font:700 16px/1.2 'Space Grotesk',sans-serif;color:#16150f">{{ p.title }}</span>
+                  <span style="font:400 14px/1.45 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">{{ p.sub }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <button type="button" onClick="{{ toggleMargins }}" style="flex:1;min-width:280px;text-align:left;padding:18px 20px;border:2px solid #00867a;background:{{ marginPrefBg }};cursor:pointer;display:flex;gap:16px;align-items:flex-start">
+              <span style="flex:none;width:20px;height:20px;border:2px solid #16150f;background:{{ marginPrefFill }};display:block;margin-top:2px"></span>
+              <span style="flex:1;display:flex;flex-direction:column;gap:7px">
+                <span style="font:700 15px/1.2 'Space Grotesk',sans-serif;color:#16150f">Keep the margin notes</span>
+                <span style="font:400 14px/1.45 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Side commentary that connects each panel to the next one.</span>
+              </span>
+            </button>
+            <button type="button" onClick="{{ toggleSymbols }}" style="flex:1;min-width:280px;text-align:left;padding:18px 20px;border:2px solid #00867a;background:{{ symPrefBg }};cursor:pointer;display:flex;gap:16px;align-items:flex-start">
+              <span style="flex:none;width:20px;height:20px;border:2px solid #16150f;background:{{ symPrefFill }};display:block;margin-top:2px"></span>
+              <span style="flex:1;display:flex;flex-direction:column;gap:7px">
+                <span style="font:700 15px/1.2 'Space Grotesk',sans-serif;color:#16150f">Symbols first, words second</span>
+                <span style="font:400 14px/1.45 'Space Grotesk',sans-serif;color:#5a564b;text-wrap:pretty">Off means every ket is introduced in plain language before it appears alone.</span>
+              </span>
+            </button>
+          </div>
+
+          <div style="border:2px solid #16150f;padding:20px 22px;display:flex;gap:20px;align-items:flex-start;background:#f0ece0">
+            <span style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#6b665a;padding-top:4px">FIXED</span>
+            <span style="flex:1;font:400 21px/1.4 'Instrument Serif',serif;color:#16150f;max-width:54ch;text-wrap:pretty">Nothing in this app runs on a clock. Your gate budget is spent by gates you place — never by the time you take to think.</span>
+          </div>
+        </div>
+
+        <div style="border-top:2px solid #16150f;padding:16px 26px;display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap">
+          <span style="font:500 12px/1.5 'JetBrains Mono',monospace;letter-spacing:.12em;color:#6b665a">{{ s4Hint }}</span>
+          <div style="display:flex;gap:10px">
+            <button type="button" onClick="{{ back }}" style="padding:14px 20px;border:2px solid #16150f;background:#f7f4ec;color:#16150f;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;cursor:pointer" style-hover="background:#16150f;color:#f7f4ec">◂ BACK</button>
+            <button type="button" onClick="{{ next }}" style="padding:14px 26px;border:2px solid {{ s4BtnCol }};background:{{ s4BtnBg }};color:{{ s4BtnFg }};font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;cursor:pointer">FINISH ▸</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ atDone }}" hint-placeholder-val="{{ false }}">
+      <div style="border:2px solid #16150f;background:#16150f;color:#f7f4ec">
+        <div style="padding:34px 30px 30px;display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap">
+          <div style="flex:1;min-width:340px">
+            <div style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#46c8b8;margin-bottom:14px">CALIBRATED</div>
+            <div style="font:400 38px/1.08 'Instrument Serif',serif;margin-bottom:16px;max-width:24ch;text-wrap:pretty">You can now read anything this app will show you.</div>
+            <div style="font:400 16px/1.6 'Space Grotesk',sans-serif;color:#c9c5b6;max-width:52ch;text-wrap:pretty">A plot instead of a verdict, an amplitude instead of odds, and a sentence at the bottom of every panel telling you what the reading meant. That is the whole interface.</div>
+          </div>
+          <div style="flex:none;width:320px;border:2px solid #46c8b8;padding:22px;display:flex;flex-direction:column;gap:14px">
+            <span style="font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#46c8b8">YOUR TERMS</span>
+            <sc-for list="{{ summary }}" as="row" hint-placeholder-count="4">
+              <span style="display:flex;justify-content:space-between;gap:14px;font:500 13px/1.5 'JetBrains Mono',monospace;color:#f7f4ec">
+                <span style="color:#9aa396">{{ row.k }}</span>
+                <span style="text-align:right">{{ row.v }}</span>
+              </span>
+            </sc-for>
+            <a href="Quantum Learn Screen.dc.html" style="margin-top:6px;padding:15px 0;background:#46c8b8;color:#0d0f0d;font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.16em;text-align:center">BEGIN AT PREREQ 01 ▸</a>
+            <button type="button" onClick="{{ restart }}" style="padding:11px 0;border:2px solid #46c8b8;background:transparent;color:#46c8b8;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer">RUN CALIBRATION AGAIN</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;requireCorrect&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Pedagogy&quot;},&quot;detailedFeedback&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Pedagogy&quot;},&quot;shots&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1024,&quot;min&quot;:128,&quot;max&quot;:8192,&quot;step&quot;:128,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Pedagogy&quot;}}">
+class Component extends DCLogic {
+  state = {
+    step: 1,
+    pick: null,
+    tokens: {},
+    found: {}, hitNote: null, hitOk: false,
+    prior: null, margins: true, symbols: false
+  };
+
+  renderVals() {
+    const s = this.state;
+    const shots = this.props.shots ?? 1024;
+    const requireCorrect = this.props.requireCorrect ?? true;
+    const longFeedback = this.props.detailedFeedback ?? true;
+
+    const c00 = Math.round(shots * 0.4756);
+    const c11 = shots - c00;
+    const counts = [c00, 0, 0, c11];
+    const kets = ['|00⟩', '|01⟩', '|10⟩', '|11⟩'];
+    const cols = ['#16150f', '#00867a', '#4a3fd4', '#e8a33d'];
+    const maxC = Math.max.apply(null, counts);
+    const histo = counts.map((c, i) => {
+      const frac = c / maxC;
+      const px = Math.round(frac * 178);
+      return { ket: kets[i], count: c, h: px + 'px', labelBottom: (px + 8) + 'px',
+        col: c === 0 ? 'transparent' : cols[i], border: c === 0 ? '0' : '2px solid #16150f' };
+    });
+
+    const choiceDefs = [
+      { tag: 'A', ok: false, text: 'The pair is random — each qubit is just an independent coin flip.',
+        short: 'Half right, and that half is the trap.',
+        long: 'Half right, and that half is the trap. Two independent coins would land on |01⟩ and |10⟩ about half the time. Those columns are empty — so the qubits are not independent.' },
+      { tag: 'B', ok: true, text: 'The two qubits always agree, and which value they agree on is unpredictable.',
+        short: 'That is the reading.',
+        long: 'That is the reading. Two facts at once: perfect agreement (only |00⟩ and |11⟩ appear) and no preference between them (' + c00 + ' vs ' + c11 + ' of ' + shots + '). Every plot in this app is read the same way — shape first, then split.' },
+      { tag: 'C', ok: false, text: 'The circuit is broken — half the possible outcomes never appeared.',
+        short: 'Absence is a result here, not a failure.',
+        long: 'Absence is a result here, not a failure. Empty columns are the strongest thing on this plot: they say those outcomes are impossible, which is a much sharper claim than "rare".' }
+    ];
+    const picked = s.pick;
+    const s1Ok = picked !== null && choiceDefs[picked].ok;
+    const choices = choiceDefs.map((c, i) => {
+      const isPicked = picked === i;
+      const border = isPicked ? (c.ok ? '#00867a' : '#e8306f') : '#16150f';
+      return { tag: c.tag, text: c.text, border,
+        bg: isPicked ? (c.ok ? '#e8f1ef' : '#faeaf0') : '#f7f4ec',
+        pick: () => this.setState({ pick: i }) };
+    });
+    const fbDef = picked === null ? null : choiceDefs[picked];
+
+    const tokenDefs = [
+      { id: 'psi', txt: '|ψ⟩', clickable: true, sym: '|ψ⟩', text: 'The whole state of the qubit — everything there is to know about it. Not a value it is hiding.' },
+      { id: 'eq', txt: '=', clickable: false },
+      { id: 'amp', txt: '0.71', clickable: true, sym: '0.71', text: 'An amplitude. Square it for the odds: 0.71² ≈ 0.50, so this outcome shows up about half the time.' },
+      { id: 'ket0', txt: '|0⟩', clickable: true, sym: '|0⟩', text: 'One possible measured outcome, written in brackets. Read it aloud as "ket zero".' },
+      { id: 'plus', txt: '+', clickable: true, sym: '+', text: 'Both at once — not "or". This is the part with no everyday equivalent, and the part that does all the work.' },
+      { id: 'ket1', txt: '0.71|1⟩', clickable: false }
+    ];
+    const tokens = tokenDefs.map(t => ({
+      txt: t.txt,
+      cursor: t.clickable ? 'pointer' : 'default',
+      border: t.clickable ? (s.tokens[t.id] ? '#00867a' : '#16150f') : '#ddd7c8',
+      bg: t.clickable && s.tokens[t.id] ? '#e8f1ef' : '#f7f4ec',
+      pick: t.clickable ? () => this.setState(st => ({ tokens: Object.assign({}, st.tokens, { [t.id]: true }) })) : () => {}
+    }));
+    const glossDefs = tokenDefs.filter(t => t.clickable);
+    const glossary = glossDefs.map(t => {
+      const seen = !!s.tokens[t.id];
+      return { sym: t.sym, text: seen ? t.text : 'tap it above', col: seen ? '#16150f' : '#b8b1a0',
+        textCol: seen ? '#3f3c33' : '#b8b1a0', bg: seen ? '#f7f4ec' : '#f0ece0' };
+    });
+    const tokensSeen = glossDefs.filter(t => s.tokens[t.id]).length;
+    const s2Ok = tokensSeen >= glossDefs.length;
+
+    const tasks = [
+      { id: 'strip', name: 'the verdict strip', prompt: 'CLICK THE PART THAT TELLS YOU WHAT A PANEL JUST PROVED' },
+      { id: 'margin', name: 'the margin column', prompt: 'NOW CLICK WHERE THE SIDE COMMENTARY LIVES' },
+      { id: 'budget', name: 'the gate budget', prompt: 'LAST ONE — CLICK THE THING THAT IS NOT A TIMER' }
+    ];
+    const taskIdx = tasks.findIndex(t => !s.found[t.id]);
+    const current = taskIdx === -1 ? null : tasks[taskIdx];
+    const wrongNotes = {
+      strip: 'That is the verdict strip — the sentence at the bottom of every panel. Right answer, wrong question.',
+      margin: 'That is the margin column: commentary that ties one panel to the next, never load-bearing.',
+      budget: 'That is the gate budget. It drops when you place a gate and never when you pause.',
+      rail: 'That is the dependency rail — it tracks what is still open, not what you proved.'
+    };
+    const hit = id => () => {
+      if (!current) return;
+      if (id === current.id) {
+        this.setState(st => ({ found: Object.assign({}, st.found, { [id]: true }), hitOk: true,
+          hitNote: 'Found it — ' + current.name + '.' }));
+      } else {
+        this.setState({ hitOk: false, hitNote: wrongNotes[id] });
+      }
+    };
+    const zone = id => {
+      if (s.found[id]) return '#e8f1ef';
+      return current && current.id === id ? '#f7f4ec' : '#f7f4ec';
+    };
+    const findList = tasks.map(t => ({ name: t.name, mark: s.found[t.id] ? '●' : '○', col: s.found[t.id] ? '#00867a' : '#8c8676' }));
+    const s3Ok = taskIdx === -1;
+
+    const priorDefs = [
+      { id: 'none', title: 'Never, really', sub: 'No physics past school. Start at the coin and take every panel.' },
+      { id: 'school', title: 'School physics', sub: 'Comfortable with probability. Panels 01–03 will move fast.' },
+      { id: 'math', title: 'Some linear algebra', sub: 'Vectors and matrices are familiar. Notation is shown up front.' }
+    ];
+    const priors = priorDefs.map(p => ({ title: p.title, sub: p.sub,
+      border: s.prior === p.id ? '#00867a' : '#16150f',
+      bg: s.prior === p.id ? '#e8f1ef' : '#f7f4ec',
+      pick: () => this.setState({ prior: p.id, symbols: p.id === 'math' }) }));
+    const s4Ok = s.prior !== null;
+
+    const gate = { 1: requireCorrect ? s1Ok : true, 2: s2Ok, 3: s3Ok, 4: s4Ok }[s.step] ?? true;
+    const btn = ok => ({ col: ok ? '#00867a' : '#c9c2b0', bg: ok ? '#00867a' : '#f0ece0', fg: ok ? '#f7f4ec' : '#b8b1a0' });
+    const b = btn(gate);
+
+    const priorLabel = { none: 'from the coin', school: 'probability known', math: 'notation up front' }[s.prior] || '—';
+    const stepNames = ['read a plot', 'the notation', 'the screen', 'your terms'];
+    const pips = stepNames.map((n, i) => ({
+      label: n, fill: s.step > i + 1 ? '#00867a' : '#f7f4ec',
+      col: s.step === i + 1 ? '#16150f' : '#6b665a'
+    }));
+
+    return {
+      shots, histo, choices,
+      pips, stepLabel: Math.min(s.step, 4),
+      atStart: s.step === 1, atStep1: s.step === 1, atStep2: s.step === 2,
+      atStep3: s.step === 3, atStep4: s.step === 4, atDone: s.step === 5,
+
+      hasFeedback: picked !== null,
+      fbTag: fbDef ? (fbDef.ok ? 'THAT IS THE READING' : 'NOT QUITE') : '',
+      fbCol: fbDef ? (fbDef.ok ? '#00867a' : '#e8306f') : '#6b665a',
+      fbText: fbDef ? (longFeedback ? fbDef.long : fbDef.short) : '',
+      s1Hint: s1Ok ? 'reading confirmed' : (picked === null ? 'pick the statement the plot supports' : 'try another — the feedback tells you why'),
+      s1BtnCol: b.col, s1BtnBg: b.bg, s1BtnFg: b.fg,
+
+      tokens, glossary,
+      s2Hint: s2Ok ? 'all four decoded' : tokensSeen + ' of ' + glossDefs.length + ' decoded',
+      s2BtnCol: b.col, s2BtnBg: b.bg, s2BtnFg: b.fg,
+
+      taskPrompt: current ? current.prompt : 'ALL THREE FOUND',
+      hitStrip: hit('strip'), hitMargin: hit('margin'), hitBudget: hit('budget'), hitRail: hit('rail'),
+      stripBg: zone('strip'), marginBg: zone('margin'), budgetBg: zone('budget'), railBg: '#efebdf',
+      findList, hasHitNote: s.hitNote !== null, hitNote: s.hitNote || '',
+      hitCol: s.hitOk ? '#00867a' : '#e8a33d',
+      s3Hint: s3Ok ? 'you can find everything that matters' : 'three things to locate',
+      s3BtnCol: b.col, s3BtnBg: b.bg, s3BtnFg: b.fg,
+
+      priors,
+      toggleMargins: () => this.setState(st => ({ margins: !st.margins })),
+      toggleSymbols: () => this.setState(st => ({ symbols: !st.symbols })),
+      marginPrefBg: s.margins ? '#e8f1ef' : '#f7f4ec',
+      marginPrefFill: s.margins ? '#00867a' : '#f7f4ec',
+      symPrefBg: s.symbols ? '#e8f1ef' : '#f7f4ec',
+      symPrefFill: s.symbols ? '#00867a' : '#f7f4ec',
+      s4Hint: s4Ok ? 'entry point set' : 'pick where you are starting from',
+      s4BtnCol: b.col, s4BtnBg: b.bg, s4BtnFg: b.fg,
+
+      summary: [
+        { k: 'entry point', v: priorLabel },
+        { k: 'margin notes', v: s.margins ? 'on' : 'off' },
+        { k: 'notation', v: s.symbols ? 'symbols first' : 'words first' },
+        { k: 'timers', v: 'none' }
+      ],
+
+      next: () => { if (gate) this.setState(st => ({ step: st.step + 1, hitNote: null })); },
+      back: () => this.setState(st => ({ step: Math.max(1, st.step - 1), hitNote: null })),
+      restart: () => this.setState({ step: 1, pick: null, tokens: {}, found: {}, hitNote: null, prior: null, margins: true, symbols: false })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

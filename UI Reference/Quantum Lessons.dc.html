@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="page">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#efece4; }
+  * { box-sizing: border-box; }
+  a { color:#0f9b8e; text-decoration:none; }
+  a:hover { color:#0b7e73; }
+  @keyframes pop { 0%{transform:scale(.72);opacity:0} 60%{transform:scale(1.06)} 100%{transform:scale(1);opacity:1} }
+  @keyframes rise { from{transform:translateY(14px);opacity:0} to{transform:translateY(0);opacity:1} }
+  @keyframes grow { from{transform:scaleY(0)} to{transform:scaleY(1)} }
+</style>
+</helmet>
+
+<div style="height:100vh;overflow:hidden;display:flex;flex-direction:column;background:#efece4;font-family:Manrope,system-ui,sans-serif;color:#14120f">
+
+  <div style="flex:0 0 auto;display:flex;align-items:center;gap:20px;padding:18px 28px;background:#fffdf8;border-bottom:1px solid #e2ddd1">
+    <div style="width:34px;height:34px;border-radius:10px;background:#14120f;color:#f6f3ec;display:grid;place-items:center;font-weight:800;font-size:15px;flex:0 0 auto">Ψ</div>
+    <div style="display:flex;gap:6px;flex:1 1 auto;max-width:520px">
+      <sc-for list="{{ rail }}" as="s" hint-placeholder-count="6">
+        <div style="flex:1;height:8px;border-radius:99px;background:#e2ddd1;overflow:hidden">
+          <div style="height:100%;border-radius:99px;transition:width .45s cubic-bezier(.2,.8,.2,1);width:{{ s.w }};background:{{ s.bg }}"></div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;margin-left:auto">
+      <sc-if value="{{ showXp }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:14px;font-size:13px;font-weight:700;letter-spacing:.02em">
+          <span style="display:flex;align-items:center;gap:6px;color:#e0912f">◆ <span style="font-family:'JetBrains Mono',monospace">{{ xp }}</span> XP</span>
+          <span style="display:flex;align-items:center;gap:6px;color:#d64a5e">▲ 4 day streak</span>
+        </div>
+      </sc-if>
+      <div style="font-size:13px;color:#7d7669;font-weight:600">Lesson 1 · Superposition</div>
+    </div>
+  </div>
+
+  <div style="flex:1 1 auto;min-height:0;overflow-y:auto;padding:56px 28px 40px">
+  <div style="max-width:720px;margin:0 auto">
+
+    <sc-if value="{{ s1 }}" hint-placeholder-val="{{ true }}">
+      <div style="animation:rise .4s ease both">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#0f9b8e;margin-bottom:14px">Try it first</div>
+        <h1 style="font-size:40px;line-height:1.1;font-weight:800;letter-spacing:-.02em;margin:0 0 14px;text-wrap:pretty">One of these coins is lying about being a coin.</h1>
+        <p style="font-size:18px;line-height:1.55;color:#55504a;margin:0 0 34px;max-width:600px;text-wrap:pretty">Flip each one a few times. Don't read ahead — just watch what they do.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div style="background:#fffdf8;border:1px solid #e2ddd1;border-radius:20px;padding:26px;display:flex;flex-direction:column;align-items:center;gap:18px">
+            <div style="font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7d7669">Coin A</div>
+            <div onClick="{{ flipClassical }}" style="width:112px;height:112px;border-radius:50%;background:#14120f;color:#f6f3ec;display:grid;place-items:center;font-size:44px;font-weight:800;cursor:pointer;user-select:none;box-shadow:0 6px 0 #b9b2a3;transition:transform .12s" style-active="transform:translateY(4px);box-shadow:0 2px 0 #b9b2a3">{{ faceA }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#7d7669">{{ tallyA }}</div>
+          </div>
+          <div style="background:#fffdf8;border:1px solid #cfe8e4;border-radius:20px;padding:26px;display:flex;flex-direction:column;align-items:center;gap:18px">
+            <div style="font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#0f9b8e">Coin B</div>
+            <div onClick="{{ flipQuantum }}" style="width:112px;height:112px;border-radius:50%;background:#0f9b8e;color:#fffdf8;display:grid;place-items:center;font-size:44px;font-weight:800;cursor:pointer;user-select:none;box-shadow:0 6px 0 #0a6d64;transition:transform .12s" style-active="transform:translateY(4px);box-shadow:0 2px 0 #0a6d64">{{ faceB }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#0f9b8e">{{ tallyB }}</div>
+          </div>
+        </div>
+        <div style="margin-top:20px;font-size:15px;color:#7d7669;font-weight:600">{{ s1Hint }}</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:rise .4s ease both">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6d4ae0;margin-bottom:14px">Your call</div>
+        <h1 style="font-size:36px;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:0 0 14px;text-wrap:pretty">Coin B is spinning in a sealed box. Before you open it, what is it?</h1>
+        <p style="font-size:17px;line-height:1.55;color:#55504a;margin:0 0 30px">There's no trick here. Pick what you actually believe.</p>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ opts2 }}" as="o" hint-placeholder-count="3">
+            <div onClick="{{ o.pick }}" style="display:flex;align-items:center;gap:16px;padding:20px 22px;border-radius:16px;cursor:pointer;font-size:17px;font-weight:600;line-height:1.4;transition:all .18s;background:{{ o.bg }};border:2px solid {{ o.bd }};color:{{ o.fg }}">
+              <div style="width:30px;height:30px;flex:0 0 auto;border-radius:9px;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;background:{{ o.kbg }};color:{{ o.kfg }}">{{ o.key }}</div>
+              <div>{{ o.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:rise .4s ease both">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#0f9b8e;margin-bottom:14px">Build it</div>
+        <h1 style="font-size:36px;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:0 0 14px;text-wrap:pretty">You get one dial. Find the fairest coin in the universe.</h1>
+        <p style="font-size:17px;line-height:1.55;color:#55504a;margin:0 0 30px;max-width:620px;text-wrap:pretty">The dial tilts the qubit's arrow. How far it leans decides the odds. Land heads on exactly 50%.</p>
+
+        <div style="background:#fffdf8;border:1px solid #e2ddd1;border-radius:22px;padding:30px;display:grid;grid-template-columns:200px 1fr;gap:34px;align-items:center">
+          <div style="position:relative;width:200px;height:200px;border-radius:50%;background:#f6f3ec;border:1px solid #e2ddd1;display:grid;place-items:center">
+            <div style="position:absolute;inset:26px;border-radius:50%;border:1px dashed #d6d0c2"></div>
+            <div style="position:absolute;left:50%;top:50%;width:3px;height:74px;background:#14120f;border-radius:2px;transform-origin:50% 100%;transition:transform .18s;transform:translate(-50%,-100%) rotate({{ angle }}deg)"></div>
+            <div style="position:absolute;left:50%;top:50%;width:11px;height:11px;border-radius:50%;background:#14120f;transform:translate(-50%,-50%)"></div>
+            <div style="position:absolute;top:12px;font-size:11px;font-weight:800;letter-spacing:.1em;color:#7d7669">HEADS</div>
+            <div style="position:absolute;bottom:12px;font-size:11px;font-weight:800;letter-spacing:.1em;color:#7d7669">TAILS</div>
+          </div>
+
+          <div>
+            <div onPointerDown="{{ dialDown }}" onPointerMove="{{ dialMove }}" onPointerUp="{{ dialUp }}" style="height:44px;display:flex;align-items:center;cursor:grab;touch-action:none">
+              <div style="position:relative;width:100%;height:10px;border-radius:99px;background:#e2ddd1">
+                <div style="position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:#0f9b8e;width:{{ dialPct }}"></div>
+                <div style="position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:#fffdf8;border:3px solid #0f9b8e;transform:translate(-50%,-50%);box-shadow:0 2px 6px rgba(0,0,0,.12);left:{{ dialPct }}"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:22px">
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:7px"><span>Heads</span><span style="font-family:'JetBrains Mono',monospace">{{ pHeads }}</span></div>
+                <div style="height:56px;border-radius:10px;background:#e2ddd1;display:flex;align-items:flex-end;overflow:hidden"><div style="width:100%;background:#14120f;transition:height .18s;height:{{ pHeads }}"></div></div>
+              </div>
+              <div style="flex:1">
+                <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:7px"><span>Tails</span><span style="font-family:'JetBrains Mono',monospace">{{ pTails }}</span></div>
+                <div style="height:56px;border-radius:10px;background:#e2ddd1;display:flex;align-items:flex-end;overflow:hidden"><div style="width:100%;background:#0f9b8e;transition:height .18s;height:{{ pTails }}"></div></div>
+              </div>
+            </div>
+            <div style="margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#7d7669">tilt = {{ angleTxt }}  ·  P(heads) = cos²(θ/2)</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:rise .4s ease both">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#e0912f;margin-bottom:14px">Look closer</div>
+        <h1 style="font-size:36px;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:0 0 14px;text-wrap:pretty">Measuring isn't reading. It's deciding.</h1>
+        <p style="font-size:17px;line-height:1.55;color:#55504a;margin:0 0 28px;max-width:620px;text-wrap:pretty">Your fair coin is still spinning. Hit measure — then watch the arrow after each one.</p>
+
+        <div style="background:#fffdf8;border:1px solid #e2ddd1;border-radius:22px;padding:28px">
+          <div style="display:flex;align-items:flex-end;gap:26px">
+            <div onClick="{{ measure }}" style="flex:0 0 auto;padding:16px 26px;border-radius:14px;background:#14120f;color:#f6f3ec;font-size:16px;font-weight:800;cursor:pointer;user-select:none;box-shadow:0 4px 0 #b9b2a3" style-active="transform:translateY(3px);box-shadow:0 1px 0 #b9b2a3">Measure</div>
+            <div style="flex:1;display:flex;gap:16px;align-items:flex-end;height:130px">
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;height:100%">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;text-align:center">{{ n0 }}</div>
+                <div style="border-radius:8px 8px 0 0;background:#14120f;transition:height .25s;height:{{ h0 }}"></div>
+                <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-align:center;color:#7d7669">HEADS</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;height:100%">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;text-align:center">{{ n1 }}</div>
+                <div style="border-radius:8px 8px 0 0;background:#0f9b8e;transition:height .25s;height:{{ h1 }}"></div>
+                <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-align:center;color:#7d7669">TAILS</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:24px;padding-top:22px;border-top:1px solid #e8e3d7;display:flex;flex-wrap:wrap;gap:8px;min-height:44px;align-items:center">
+            <sc-for list="{{ shots }}" as="sh" hint-placeholder-count="0">
+              <div style="width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;animation:pop .3s ease both;background:{{ sh.bg }};color:{{ sh.fg }}">{{ sh.v }}</div>
+            </sc-for>
+            <div style="font-size:14px;color:#a09889;font-weight:600">{{ s4Hint }}</div>
+          </div>
+          <sc-if value="{{ ask4 }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:22px;padding-top:22px;border-top:1px solid #e8e3d7;animation:rise .3s ease both">
+              <div style="font-size:17px;font-weight:700;line-height:1.4;margin-bottom:16px;text-wrap:pretty">You measure one qubit, get Heads, then measure that <em>same</em> qubit again. What comes out?</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ opts4 }}" as="o" hint-placeholder-count="2">
+                  <div onClick="{{ o.pick }}" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:14px;cursor:pointer;font-size:16px;font-weight:600;line-height:1.4;transition:all .18s;background:{{ o.bg }};border:2px solid {{ o.bd }}">
+                    <div style="width:28px;height:28px;flex:0 0 auto;border-radius:8px;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;background:{{ o.kbg }};color:{{ o.kfg }}">{{ o.key }}</div>
+                    <div>{{ o.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ s5 }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:rise .4s ease both">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6d4ae0;margin-bottom:14px">Puzzle</div>
+        <h1 style="font-size:36px;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:0 0 14px;text-wrap:pretty">Now make two coins agree — without them touching.</h1>
+        <p style="font-size:17px;line-height:1.55;color:#55504a;margin:0 0 28px;max-width:620px;text-wrap:pretty">Drop two gates on the wires so every run comes back matching. Tap a gate, then tap a slot.</p>
+
+        <div style="background:#fffdf8;border:1px solid #e2ddd1;border-radius:22px;padding:28px">
+          <div style="display:flex;gap:12px;margin-bottom:26px">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.pick }}" style="padding:12px 18px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;cursor:pointer;user-select:none;transition:all .15s;background:{{ c.bg }};border:2px solid {{ c.bd }};color:{{ c.fg }}">{{ c.label }}</div>
+            </sc-for>
+            <div style="margin-left:auto;font-size:14px;color:#7d7669;font-weight:600;align-self:center">{{ chipHint }}</div>
+          </div>
+
+          <div style="position:relative;padding:8px 0">
+            <div style="display:flex;align-items:center;gap:0;margin-bottom:30px">
+              <div style="width:44px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#7d7669">q₀</div>
+              <div style="flex:1;height:2px;background:#d6d0c2;position:relative;display:flex;align-items:center;gap:24px;padding-left:24px">
+                <sc-for list="{{ slots }}" as="sl" hint-placeholder-count="2">
+                  <div onClick="{{ sl.drop }}" style="width:62px;height:62px;border-radius:14px;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;cursor:pointer;transition:all .18s;background:{{ sl.bg }};border:2px {{ sl.bs }} {{ sl.bd }};color:{{ sl.fg }}">{{ sl.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center">
+              <div style="width:44px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#7d7669">q₁</div>
+              <div style="flex:1;height:2px;background:#d6d0c2;position:relative;display:flex;align-items:center;gap:24px;padding-left:24px">
+                <div style="width:62px;flex:0 0 auto"></div>
+                <div style="width:62px;flex:0 0 auto;position:relative;display:flex;justify-content:center">
+                  <div style="position:absolute;bottom:0;height:46px;width:2px;background:{{ linkColor }};transition:background .2s"></div>
+                  <div style="position:absolute;top:-11px;width:22px;height:22px;border-radius:50%;border:2px solid {{ linkColor }};background:#fffdf8;transition:border-color .2s"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:28px;padding-top:22px;border-top:1px solid #e8e3d7;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+            <div onClick="{{ runPairs }}" style="padding:14px 24px;border-radius:13px;font-size:15px;font-weight:800;cursor:pointer;user-select:none;background:{{ runBg }};color:{{ runFg }};box-shadow:0 4px 0 {{ runShadow }}" style-active="transform:translateY(3px)">Run 8 times</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ pairs }}" as="p" hint-placeholder-count="0">
+                <div style="padding:7px 11px;border-radius:9px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;animation:pop .3s ease both;background:{{ p.bg }};color:{{ p.fg }}">{{ p.v }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ s6 }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:rise .4s ease both;text-align:center;padding-top:20px">
+        <div style="width:78px;height:78px;margin:0 auto 26px;border-radius:24px;background:#0f9b8e;color:#fffdf8;display:grid;place-items:center;font-size:34px;font-weight:800;animation:pop .5s ease both">✓</div>
+        <h1 style="font-size:38px;line-height:1.1;font-weight:800;letter-spacing:-.02em;margin:0 0 12px">Superposition, cleared.</h1>
+        <p style="font-size:18px;line-height:1.55;color:#55504a;margin:0 auto 34px;max-width:520px;text-wrap:pretty">You never read a definition. You just watched a coin refuse to pick a side, then made two of them lie in sync.</p>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left;margin-bottom:30px">
+          <div style="background:#fffdf8;border:1px solid #e2ddd1;border-radius:18px;padding:22px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#0f9b8e;margin-bottom:10px">01</div>
+            <div style="font-size:15px;font-weight:700;line-height:1.4;margin-bottom:6px">A qubit holds odds, not a value</div>
+            <div style="font-size:14px;line-height:1.5;color:#7d7669">Tilt the arrow, change the odds.</div>
+          </div>
+          <div style="background:#fffdf8;border:1px solid #e2ddd1;border-radius:18px;padding:22px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#e0912f;margin-bottom:10px">02</div>
+            <div style="font-size:15px;font-weight:700;line-height:1.4;margin-bottom:6px">Measuring forces a choice</div>
+            <div style="font-size:14px;line-height:1.5;color:#7d7669">And it sticks. The spin is gone.</div>
+          </div>
+          <div style="background:#fffdf8;border:1px solid #e2ddd1;border-radius:18px;padding:22px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#6d4ae0;margin-bottom:10px">03</div>
+            <div style="font-size:15px;font-weight:700;line-height:1.4;margin-bottom:6px">H then CNOT ties two qubits</div>
+            <div style="font-size:14px;line-height:1.5;color:#7d7669">Neither one decides alone.</div>
+          </div>
+        </div>
+
+        <div style="display:inline-flex;align-items:center;gap:14px;padding:16px 24px;border-radius:16px;background:#14120f;color:#f6f3ec">
+          <span style="font-size:15px;font-weight:700">Next up · Entanglement: the twins problem</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#e0912f">+{{ xp }} XP earned</span>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+  </div>
+
+  <div style="flex:0 0 auto;border-top:2px solid {{ fbBd }};background:{{ fbBg }};transition:background .25s,border-color .25s">
+    <div style="max-width:720px;margin:0 auto;padding:20px 28px;display:flex;align-items:center;gap:24px;min-height:88px">
+      <div style="flex:1 1 auto">
+        <sc-if value="{{ showFb }}" hint-placeholder-val="{{ false }}">
+          <div style="animation:rise .25s ease both">
+            <div style="font-size:17px;font-weight:800;margin-bottom:4px;color:{{ fbFg }}">{{ fbTitle }}</div>
+            <div style="font-size:15px;line-height:1.5;color:#55504a;text-wrap:pretty">{{ fbBody }}</div>
+          </div>
+        </sc-if>
+      </div>
+      <div onClick="{{ advance }}" style="flex:0 0 auto;padding:17px 40px;border-radius:14px;font-size:16px;font-weight:800;user-select:none;transition:opacity .2s;background:#14120f;color:#f6f3ec;box-shadow:0 4px 0 #b9b2a3;opacity:{{ contOp }};cursor:{{ contCur }}" style-active="transform:translateY(3px);box-shadow:0 1px 0 #b9b2a3">{{ contLabel }}</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#0f9b8e&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#0f9b8e&quot;,&quot;#6d4ae0&quot;,&quot;#e0912f&quot;,&quot;#d64a5e&quot;]},&quot;showXp&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Gamification&quot;}}">
+class Component extends DCLogic {
+  state = {
+    step: 1, xp: 0,
+    faceA: "H", faceB: "?", nA: 0, nB: 0, hB: 0,
+    pick2: null,
+    angle: 24, dialSolved: false, dragging: false,
+    shots: [], pick4: null,
+    slots: [null, null], picked: null, pairs: [], solved5: false
+  };
+
+  award(n, key) {
+    if (this.state["got_" + key]) return;
+    this.setState({ ["got_" + key]: true, xp: this.state.xp + n });
+  }
+
+  // step 1
+  flipClassical = () => this.setState(s => ({ nA: s.nA + 1, faceA: "H" }));
+  flipQuantum = () => {
+    const r = Math.random() < 0.5;
+    this.setState(s => ({ nB: s.nB + 1, hB: s.hB + (r ? 1 : 0), faceB: r ? "H" : "T" }));
+  };
+
+  // step 3 dial
+  setAngleFromEvent(e, el) {
+    const r = el.getBoundingClientRect();
+    let p = (e.clientX - r.left) / r.width;
+    p = Math.max(0, Math.min(1, p));
+    const a = Math.round(p * 180);
+    const solved = Math.abs(a - 90) <= 3;
+    this.setState({ angle: a, dialSolved: this.state.dialSolved || solved });
+    if (solved) this.award(30, "dial");
+  }
+  dialDown = (e) => { this.el = e.currentTarget; this.setState({ dragging: true }); this.setAngleFromEvent(e, this.el); e.currentTarget.setPointerCapture(e.pointerId); };
+  dialMove = (e) => { if (this.state.dragging) this.setAngleFromEvent(e, e.currentTarget); };
+  dialUp = () => this.setState({ dragging: false });
+
+  // step 4
+  measure = () => {
+    const v = Math.random() < 0.5 ? "H" : "T";
+    this.setState(s => ({ shots: s.shots.concat(v) }));
+    if (this.state.shots.length + 1 >= 12) this.award(25, "meas");
+  };
+
+  // step 5
+  pickChip = (g) => () => this.setState({ picked: g });
+  dropAt = (i) => () => {
+    if (!this.state.picked) return;
+    const slots = this.state.slots.slice();
+    slots[i] = this.state.picked;
+    this.setState({ slots, picked: null, pairs: [] });
+  };
+  runPairs = () => {
+    const [a, b] = this.state.slots;
+    if (!a || !b) return;
+    const entangled = a === "H" && b === "CNOT";
+    const out = [];
+    for (let i = 0; i < 8; i++) {
+      const q0 = Math.random() < 0.5 ? 0 : 1;
+      if (entangled) out.push("" + q0 + q0);
+      else if (a === "H" && b === "H") out.push("" + q0 + "0");
+      else out.push("" + q0 + (Math.random() < 0.5 ? 0 : 1));
+    }
+    this.setState({ pairs: out, solved5: entangled });
+    if (entangled) this.award(50, "bell");
+  };
+
+  advance = () => {
+    if (!this.canAdvance()) return;
+    if (this.state.step >= 6) {
+      const fresh = {
+        step: 1, xp: 0,
+        faceA: "H", faceB: "?", nA: 0, nB: 0, hB: 0,
+        pick2: null,
+        angle: 24, dialSolved: false, dragging: false,
+        shots: [], pick4: null,
+        slots: [null, null], picked: null, pairs: [], solved5: false
+      };
+      Object.keys(this.state).forEach(k => { if (k.indexOf("got_") === 0) fresh[k] = false; });
+      this.setState(fresh);
+      return;
+    }
+    this.setState(s => ({ step: s.step + 1 }));
+    document.querySelector("[style*='overflow-y']") && (document.querySelector("[style*='overflow-y']").scrollTop = 0);
+  };
+
+  canAdvance() {
+    const s = this.state;
+    if (s.step === 1) return s.nB >= 3 && s.nA >= 1;
+    if (s.step === 2) return s.pick2 === "c";
+    if (s.step === 3) return s.dialSolved;
+    if (s.step === 4) return s.shots.length >= 12 && s.pick4 === "b";
+    if (s.step === 5) return s.solved5;
+    return true;
+  }
+
+  feedback() {
+    const s = this.state;
+    if (s.step === 1) {
+      if (s.nB >= 3 && s.nA >= 1) return { t: "Coin A is a brick.", b: "It lands heads every time because it was already heads. Coin B decides on the way down — and that's the whole difference.", c: "#0f9b8e", bg: "#e8f4f1", bd: "#0f9b8e" };
+      return null;
+    }
+    if (s.step === 2) {
+      if (s.pick2 === "a") return { t: "Reasonable — and wrong.", b: "If it were secretly already heads, certain interference experiments would come out differently than they do. Nature says no hidden answer is written down.", c: "#d64a5e", bg: "#fbeceE", bd: "#d64a5e" };
+      if (s.pick2 === "b") return { t: "Close, but that's just ignorance.", b: "\"We don't know yet\" describes a shuffled deck. A qubit is stranger: there is no fact to be ignorant of.", c: "#e0912f", bg: "#fdf3e6", bd: "#e0912f" };
+      if (s.pick2 === "c") return { t: "That's it.", b: "It holds both outcomes at once, weighted. Opening the box doesn't reveal the answer — it creates one.", c: "#0f9b8e", bg: "#e8f4f1", bd: "#0f9b8e" };
+      return null;
+    }
+    if (s.step === 3) {
+      if (s.dialSolved) return { t: "90° — a perfect coin.", b: "The arrow lies flat between heads and tails, so both are equally likely. This tilt is what a Hadamard gate does in one move.", c: "#0f9b8e", bg: "#e8f4f1", bd: "#0f9b8e" };
+      const p = Math.round(Math.cos((s.angle * Math.PI) / 360) ** 2 * 100);
+      if (s.angle > 4) return { t: "Keep going.", b: "Heads is at " + p + "%. Level the arrow all the way out.", c: "#7d7669", bg: "#fffdf8", bd: "#e2ddd1" };
+      return null;
+    }
+    if (s.step === 4) {
+      if (s.shots.length < 12) return null;
+      if (s.pick4 === "a") return { t: "Not anymore.", b: "The spin didn't survive the look. Measure the same qubit again and you get the same answer, forever.", c: "#d64a5e", bg: "#fbecee", bd: "#d64a5e" };
+      if (s.pick4 === "b") return { t: "Exactly — it's stuck.", b: "Measurement collapses the superposition. Each of your 12 shots needed a freshly prepared qubit.", c: "#0f9b8e", bg: "#e8f4f1", bd: "#0f9b8e" };
+      return { t: "Your results are 50/50-ish.", b: "So here's the real question — answer it above to continue.", c: "#7d7669", bg: "#fffdf8", bd: "#e2ddd1" };
+    }
+    if (s.step === 5) {
+      if (s.solved5) return { t: "You built a Bell pair.", b: "H put q₀ on the fence; CNOT chained q₁ to whatever q₀ becomes. Neither has an answer alone, yet they always agree.", c: "#6d4ae0", bg: "#efeafc", bd: "#6d4ae0" };
+      if (s.pairs.length) return { t: "They don't match.", b: "Something is deciding independently. Try putting the coin in superposition first, then linking the second wire to it.", c: "#d64a5e", bg: "#fbecee", bd: "#d64a5e" };
+      return null;
+    }
+    return { t: "Lesson complete.", b: "Streak extended. Entanglement unlocks next.", c: "#0f9b8e", bg: "#e8f4f1", bd: "#0f9b8e" };
+  }
+
+  renderVals() {
+    const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+    const s = this.state;
+    const accent = this.props.accentColor ?? "#0f9b8e";
+    const fb = this.feedback();
+    const can = this.canAdvance();
+
+    const rail = [1, 2, 3, 4, 5, 6].map(i => ({
+      w: s.step > i ? "100%" : s.step === i ? "50%" : "0%",
+      bg: s.step > i ? accent : "#14120f"
+    }));
+
+    const opt = (key, label, correct) => {
+      const on = s.pick2 === key;
+      const ok = correct && on;
+      const bad = !correct && on;
+      return {
+        key: key.toUpperCase(), label,
+        pick: () => { this.setState({ pick2: key }); if (correct) this.award(25, "mcq2"); },
+        bg: ok ? "#e8f4f1" : bad ? "#fbecee" : "#fffdf8",
+        bd: ok ? accent : bad ? "#d64a5e" : "#e2ddd1",
+        fg: "#14120f",
+        kbg: ok ? accent : bad ? "#d64a5e" : "#f0ece2",
+        kfg: on ? "#fffdf8" : "#7d7669"
+      };
+    };
+
+    const pH = Math.cos((s.angle * Math.PI) / 360) ** 2;
+    const n0 = s.shots.filter(v => v === "H").length;
+    const n1 = s.shots.length - n0;
+    const mx = Math.max(1, n0, n1);
+
+    const chipDef = [["H", "H"], ["CNOT", "CNOT"], ["X", "X"]];
+    const chips = chipDef.map(([g, label]) => ({
+      label, pick: this.pickChip(g),
+      bg: s.picked === g ? "#14120f" : "#f6f3ec",
+      bd: s.picked === g ? "#14120f" : "#d6d0c2",
+      fg: s.picked === g ? "#f6f3ec" : "#14120f"
+    }));
+
+    const slots = [0, 1].map(i => {
+      const v = s.slots[i];
+      return {
+        label: v ?? "+", drop: this.dropAt(i),
+        bg: v ? "#fffdf8" : "#f6f3ec",
+        bs: v ? "solid" : "dashed",
+        bd: v ? (s.solved5 ? "#6d4ae0" : "#14120f") : "#c9c2b2",
+        fg: v ? "#14120f" : "#b3ab9a"
+      };
+    });
+
+    const pal = { H: ["#14120f", "#f6f3ec"], T: ["#0f9b8e", "#fffdf8"] };
+
+    return {
+      rail, xp: s.xp, showXp: this.props.showXp ?? true,
+      s1: s.step === 1, s2: s.step === 2, s3: s.step === 3, s4: s.step === 4, s5: s.step === 5, s6: s.step === 6,
+
+      flipClassical: this.flipClassical, flipQuantum: this.flipQuantum,
+      faceA: s.faceA, faceB: s.faceB,
+      tallyA: s.nA === 0 ? "not flipped" : plural(s.nA, "flip") + " · " + plural(s.nA, "head"),
+      tallyB: s.nB === 0 ? "not flipped" : plural(s.nB, "flip") + " · " + plural(s.hB, "head"),
+      s1Hint: s.nB >= 3 && s.nA >= 1 ? "Notice anything?" : "Flip Coin A once and Coin B at least three times.",
+
+      opts2: [
+        opt("a", "Already heads or already tails — we just can't see it yet.", false),
+        opt("b", "Random. Like a shuffled deck: the answer exists, we're just uninformed.", false),
+        opt("c", "Genuinely both, with odds attached. No answer exists until you look.", true)
+      ],
+
+      angle: s.angle,
+      dialPct: Math.round((s.angle / 180) * 100) + "%",
+      angleTxt: s.angle + "°",
+      pHeads: Math.round(pH * 100) + "%",
+      pTails: Math.round((1 - pH) * 100) + "%",
+      dialDown: this.dialDown, dialMove: this.dialMove, dialUp: this.dialUp,
+
+      measure: this.measure,
+      shots: s.shots.map(v => ({ v, bg: pal[v][0], fg: pal[v][1] })),
+      n0, n1,
+      h0: Math.round((n0 / mx) * 78) + "px",
+      h1: Math.round((n1 / mx) * 78) + "px",
+      s4Hint: s.shots.length < 12 ? "Take " + (12 - s.shots.length) + " more." : "12 shots — roughly even, as promised.",
+      ask4: s.shots.length >= 12,
+      opts4: [
+        { key: "A", label: "A fresh coin flip — could be either.", correct: false },
+        { key: "B", label: "Heads again, guaranteed. It's locked in now.", correct: true }
+      ].map(o => {
+        const k = o.key.toLowerCase();
+        const on = s.pick4 === k;
+        const ok = o.correct && on, bad = !o.correct && on;
+        return {
+          key: o.key, label: o.label,
+          pick: () => { this.setState({ pick4: k }); if (o.correct) this.award(25, "mcq4"); },
+          bg: ok ? "#e8f4f1" : bad ? "#fbecee" : "#f9f7f1",
+          bd: ok ? accent : bad ? "#d64a5e" : "#e2ddd1",
+          kbg: ok ? accent : bad ? "#d64a5e" : "#f0ece2",
+          kfg: on ? "#fffdf8" : "#7d7669"
+        };
+      }),
+
+      chips, slots,
+      chipHint: s.picked ? "Now tap a slot on q₀" : "Tap a gate to pick it up",
+      linkColor: s.slots[1] === "CNOT" ? "#6d4ae0" : "#d6d0c2",
+      runPairs: this.runPairs,
+      runBg: s.slots[0] && s.slots[1] ? "#14120f" : "#e2ddd1",
+      runFg: s.slots[0] && s.slots[1] ? "#f6f3ec" : "#a09889",
+      runShadow: s.slots[0] && s.slots[1] ? "#b9b2a3" : "#d6d0c2",
+      pairs: s.pairs.map(v => ({
+        v, bg: s.solved5 ? "#efeafc" : "#f0ece2", fg: s.solved5 ? "#6d4ae0" : "#55504a"
+      })),
+
+      showFb: !!fb,
+      fbTitle: fb ? fb.t : "", fbBody: fb ? fb.b : "",
+      fbFg: fb ? fb.c : "#14120f",
+      fbBg: fb ? fb.bg : "#fffdf8",
+      fbBd: fb ? fb.bd : "#e2ddd1",
+
+      advance: this.advance,
+      contOp: can ? "1" : "0.35",
+      contCur: can ? "pointer" : "not-allowed",
+      contLabel: s.step === 6 ? "Restart" : s.step === 4 && s.shots.length >= 12 && !s.pick4 ? "Answer above" : "Continue"
+    };
+  }
+
+  componentDidMount() {
+    this._k = (e) => {
+      if (this.state.step === 4 && this.state.shots.length >= 12 && !this.state.pick4) {
+        if (e.key === "a") this.setState({ pick4: "a" });
+        if (e.key === "b") { this.setState({ pick4: "b" }); this.award(25, "mcq4"); }
+      }
+      if (e.key === "Enter") this.advance();
+    };
+    window.addEventListener("keydown", this._k);
+  }
+  componentWillUnmount() { window.removeEventListener("keydown", this._k); }
+}
+</script>
+</body>
+</html>
