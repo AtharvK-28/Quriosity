@@ -16,6 +16,8 @@
 
 import { create } from "zustand";
 import { NODES, NODES_BY_ID, NODE_ORDER, UNITS, nodesInUnit, type LessonNode } from "@/lib/curriculum/nodes";
+import { setAnalyticsMode, track } from "@/lib/analytics";
+import { MAX_SIM_QUBITS } from "@/lib/sim/statevector";
 
 export type Mode = "guided" | "workbench" | "track";
 
@@ -62,6 +64,8 @@ interface SessionState {
   hydrated: boolean;
   mode: Mode;
   displayName: string;
+  /** The professional track being followed, in Track mode. */
+  trackId: string | null;
 
   progress: Record<string, NodeProgress>;
   challenges: Record<string, ChallengeProgress>;
@@ -74,6 +78,7 @@ interface SessionState {
 
   setMode(mode: Mode): void;
   setDisplayName(name: string): void;
+  setTrack(trackId: string | null): void;
 
   recordAttempt(nodeId: string, passed: boolean, fidelity: number, gateCount: number): void;
   /** Mark a missed node as re-derived, which is what opens the next unit. */
@@ -117,6 +122,7 @@ export const useSession = create<SessionState>((set, get) => ({
   hydrated: false,
   mode: "guided",
   displayName: "you",
+  trackId: null,
   progress: {},
   challenges: {},
   xp: 0,
@@ -125,12 +131,20 @@ export const useSession = create<SessionState>((set, get) => ({
   misconceptions: [],
 
   setMode(mode) {
+    const previous = get().mode;
     set({ mode });
+    setAnalyticsMode(mode);
+    track("mode_selected", { mode, is_change: get().hydrated && previous !== mode });
     persist(get());
   },
 
   setDisplayName(displayName) {
-    set({ displayName });
+    set({ displayName: displayName.slice(0, 60) });
+    persist(get());
+  },
+
+  setTrack(trackId) {
+    set({ trackId });
     persist(get());
   },
 
@@ -140,7 +154,9 @@ export const useSession = create<SessionState>((set, get) => ({
 
     p.attempts += 1;
     p.bestFidelity = Math.max(p.bestFidelity, fidelity);
-    if (p.firstAttemptCorrect === null) p.firstAttemptCorrect = passed;
+    const isFirst = p.firstAttemptCorrect === null;
+    if (isFirst) p.firstAttemptCorrect = passed;
+    track("node_attempted", { node_id: nodeId, attempt_index: p.attempts, is_first_attempt: isFirst });
 
     let xp = get().xp;
     let streakDays = get().streakDays;
@@ -157,12 +173,18 @@ export const useSession = create<SessionState>((set, get) => ({
       // XP is only ever awarded for a node passed for the first time, so it
       // cannot be farmed by re-running a solved circuit.
       xp += p.firstAttemptCorrect ? 30 : 20;
+      track("node_passed", {
+        node_id: nodeId,
+        attempts: p.attempts,
+        first_attempt_accuracy: p.firstAttemptCorrect ? 1 : 0,
+      });
 
       const t = today();
       if (streakLastDay !== t) {
         const gap = streakLastDay ? daysBetween(streakLastDay, t) : Infinity;
         streakDays = gap === 1 ? streakDays + 1 : 1;
         streakLastDay = t;
+        if (streakDays > 1) track("streak_extended", { length: streakDays });
       }
     } else if (!passed && p.state !== "passed") {
       p.state = "attempted";
@@ -206,6 +228,7 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 
   recordMisconception(misconceptionId, ruleId, nodeId) {
+    track("misconception_detected", { misconception_id: misconceptionId, node_id: nodeId });
     set({
       misconceptions: [
         ...get().misconceptions,
@@ -239,6 +262,7 @@ export const useSession = create<SessionState>((set, get) => ({
   reset() {
     set({
       mode: "guided",
+      trackId: null,
       progress: recomputeUnlocks({}),
       challenges: {},
       xp: 0,
@@ -323,10 +347,12 @@ export const useSession = create<SessionState>((set, get) => ({
     } catch {
       // A corrupt or unavailable store is not worth failing a session over.
     }
+    setAnalyticsMode(loaded.mode ?? "guided");
     set({
       hydrated: true,
       mode: loaded.mode ?? "guided",
       displayName: loaded.displayName ?? "you",
+      trackId: loaded.trackId ?? null,
       progress: recomputeUnlocks(loaded.progress ?? {}),
       challenges: loaded.challenges ?? {},
       xp: loaded.xp ?? 0,
@@ -345,6 +371,7 @@ function persist(s: SessionState) {
       JSON.stringify({
         mode: s.mode,
         displayName: s.displayName,
+        trackId: s.trackId,
         progress: s.progress,
         challenges: s.challenges,
         xp: s.xp,
@@ -472,12 +499,15 @@ export const MODE: Record<Mode, ModeCapabilities> = {
     // PRD E7-S5: proactive output here is a P1 defect, not a preference.
     proactiveTutor: false,
     lockedGates: false,
-    maxQubits: 12,
+    // The PRD asks for 20. Assumption A1's fallback applies: the browser
+    // simulator keeps every column for the scrubber, and 2²⁰ amplitudes per
+    // column does not fit, so the cap is the simulator's own and the UI says so.
+    maxQubits: MAX_SIM_QUBITS,
     defaultShots: 4096,
     primaryPanel: "code",
   },
   track: {
-    landingRoute: "/path",
+    landingRoute: "/tracks",
     motivation: false,
     streak: true,
     leaderboard: false,

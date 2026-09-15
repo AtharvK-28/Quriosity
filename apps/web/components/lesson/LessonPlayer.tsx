@@ -21,22 +21,27 @@
  */
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CircuitCanvas } from "@/components/circuit/CircuitCanvas";
 import { GateTray, TrayHint } from "@/components/circuit/GateTray";
 import { Histogram, probabilityMap, toFractions } from "@/components/viz/Histogram";
 import { BlochRow } from "@/components/viz/BlochSphere";
 import { StateTable } from "@/components/viz/StateTable";
+import { CodePanel } from "@/components/code/CodePanel";
 import { Button, Chip, Disclosure, MarginNote, Readout, Registration, Segmented } from "@/components/ui/primitives";
 import { emptyCircuit, gateCount, nextGateId, type Circuit, type GateType } from "@/lib/ir/types";
-import { GATES } from "@/lib/ir/gates";
 import { allQubitStates } from "@/lib/sim/analysis";
 import { targetProbabilities, targetNeedsPhase } from "@/lib/grade/fidelity";
-import { render, SDK_LABELS, type Sdk } from "@/lib/render";
+import type { Sdk } from "@/lib/render";
+import type { Finding } from "@/lib/tutor/rules";
+import { hasEvent, track } from "@/lib/analytics";
 import { useCircuit } from "@/stores/circuitStore";
 import { MODE, isNodeOpen, useSession } from "@/stores/sessionStore";
-import { NODES_BY_ID, nextNodeId, unitOf, type LessonNode } from "@/lib/curriculum/nodes";
+import { NODES, NODES_BY_ID, nextNodeId, unitOf, type LessonNode } from "@/lib/curriculum/nodes";
 import s from "./LessonPlayer.module.css";
+
+// Kept importable from here, where it used to live.
+export { CodePanel };
 
 type Beat = "brief" | "build" | "pass";
 type StateView = "bloch" | "table" | "code";
@@ -55,7 +60,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
   const caps = MODE[mode];
 
   const {
-    circuit, setCircuit, held, pendingControl, selectedGateId, highlighted,
+    circuit, version, setCircuit, replaceCircuit, held, pendingControl, selectedGateId, highlighted,
     run, running, error,
     hold, place, completeControlled, cancelPending, select, moveGate, removeGate, setParams,
     execute, applyFix, undo, clearRun,
@@ -66,6 +71,11 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
   const [sdk, setSdk] = useState<Sdk>("qiskit");
   const [attempts, setAttempts] = useState(0);
   const [consolidating, setConsolidating] = useState(false);
+
+  /** When the last failed run landed, for the S3 metric. */
+  const lastFailure = useRef<{ at: number; tutorShown: boolean } | null>(null);
+  /** The circuit version produced by applying code, for the S2 metric. */
+  const codeVersion = useRef<number | null>(null);
 
   useEffect(() => { hydrate(); }, [hydrate]);
 
@@ -98,8 +108,20 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
     setCircuit(startingCircuit());
     setBeat("brief");
     setAttempts(0);
+    lastFailure.current = null;
+    codeVersion.current = null;
     // A fresh node starts clean: no carried-over verdict from the last one.
   }, [node.id, setCircuit, startingCircuit]);
+
+  // After applying code, the store bumps its version once. Capture that
+  // version so a later canvas edit can be told apart from the code's result.
+  const awaitingCodeVersion = useRef(false);
+  useEffect(() => {
+    if (awaitingCodeVersion.current) {
+      codeVersion.current = version;
+      awaitingCodeVersion.current = false;
+    }
+  }, [version]);
 
   /* -- Target --------------------------------------------------------------- */
 
@@ -137,7 +159,36 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
     if (run.finding?.misconception) {
       recordMisconception(run.finding.misconception, run.finding.ruleId, node.id);
     }
+
+    if (!run.grade.passed) {
+      const tutorShown = Boolean(run.finding);
+      if (tutorShown && caps.proactiveTutor) {
+        track("tutor_invoked", { trigger: "proactive", source: "rule", latency_ms: 0 });
+      }
+      lastFailure.current = { at: Date.now(), tutorShown };
+    }
+
     if (run.grade.passed) {
+      // PRD §8, S3: how long from a failed run to a corrected one.
+      if (lastFailure.current) {
+        track("corrected_after_failure", {
+          node_id: node.id,
+          seconds_since_failure: Math.round((Date.now() - lastFailure.current.at) / 1000),
+          tutor_shown: lastFailure.current.tutorShown,
+        });
+        lastFailure.current = null;
+      }
+      // PRD §8, S2 — the headline metric: a correct circuit written as code.
+      if (codeVersion.current !== null && codeVersion.current === version && !hasEvent("code_mode_first_correct", { node_id: node.id })) {
+        const firstCanvasPass = NODES
+          .map((n) => progress[n.id]?.passedAt ?? null)
+          .filter((t): t is number => t !== null)
+          .sort((a, b) => a - b)[0];
+        track("code_mode_first_correct", {
+          node_id: node.id,
+          days_since_first_canvas_node: firstCanvasPass ? Math.floor((Date.now() - firstCanvasPass) / 86_400_000) : null,
+        });
+      }
       if (consolidating) recordConsolidation(node.id);
       setBeat("pass");
     }
@@ -230,7 +281,10 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
           targetMap={targetMap}
           phaseMatters={phaseMatters}
           consolidating={consolidating}
-          onStart={() => setBeat("build")}
+          onStart={() => {
+            track("node_started", { node_id: node.id, unit_id: node.unitId });
+            setBeat("build");
+          }}
         />
       )}
 
@@ -293,7 +347,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
               </div>
 
               <div style={{ marginTop: "var(--s-3)" }}>
-                <TrayHint held={held?.type ?? null} pending={Boolean(pendingControl)} />
+                <TrayHint held={held?.type ?? null} pending={pendingControl} />
               </div>
 
               {error && (
@@ -333,7 +387,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                         variant="secondary"
                         size="sm"
                         onClick={() => {
-                          applyFix(run.finding!.fix!);
+                          applyFix(run.finding!.fix!, run.finding!.misconception);
                           clearRun();
                         }}
                       >
@@ -383,7 +437,19 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                   <div className={s.viewBody}>
                     {view === "bloch" && qubitStates && <BlochRow states={qubitStates} size={122} />}
                     {view === "table" && <StateTable result={run.result} />}
-                    {view === "code" && <CodePanel circuit={circuit} sdk={sdk} onSdk={setSdk} />}
+                    {view === "code" && (
+                      <CodePanel
+                        circuit={circuit}
+                        sdk={sdk}
+                        onSdk={setSdk}
+                        allowedGates={node.allowedGates}
+                        requiredQubits={node.qubits}
+                        onApply={(c) => {
+                          awaitingCodeVersion.current = true;
+                          replaceCircuit({ ...c, metadata: { ...c.metadata, name: node.title } });
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               )}
@@ -400,11 +466,15 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
           targetMap={targetMap}
           shots={run.shots}
           fidelity={run.grade?.fidelity ?? 1}
-          advisory={run.finding?.severity === "advisory" ? run.finding.message : null}
+          advice={run.advice}
           qubitStates={qubitStates ?? []}
           nextId={nextId}
           onReview={() => {
             setCircuit(startingCircuit());
+            setBeat("build");
+          }}
+          onTryShorter={(c) => {
+            setCircuit({ ...c, metadata: { ...c.metadata, name: node.title } });
             setBeat("build");
           }}
         />
@@ -471,10 +541,11 @@ function Pass({
   targetMap,
   shots,
   fidelity,
-  advisory,
+  advice,
   qubitStates,
   nextId,
   onReview,
+  onTryShorter,
 }: {
   node: LessonNode;
   circuit: Circuit;
@@ -482,10 +553,12 @@ function Pass({
   targetMap: Record<string, number>;
   shots: number;
   fidelity: number;
-  advisory: string | null;
+  /** A shorter equivalent (E7-S6) or an advisory lint. Offered, never pressed on. */
+  advice: Finding | null;
   qubitStates: ReturnType<typeof allQubitStates>;
   nextId: string | null;
   onReview(): void;
+  onTryShorter(c: Circuit): void;
 }) {
   const used = gateCount(circuit);
 
@@ -517,7 +590,22 @@ function Pass({
       </h2>
       <p className="prose">{node.passNote}</p>
 
-      {advisory && <MarginNote label="Also worth knowing">{advisory}</MarginNote>}
+      {advice && (
+        <MarginNote label={advice.ruleId === "O01_shorter_equivalent" ? "A shorter way" : "Also worth knowing"}>
+          {advice.message}
+          {advice.fix?.kind === "replace_circuit" && (
+            <span style={{ display: "block", marginTop: "var(--s-2)" }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => advice.fix?.kind === "replace_circuit" && onTryShorter(advice.fix.circuit)}
+              >
+                Build the shorter one →
+              </Button>
+            </span>
+          )}
+        </MarginNote>
+      )}
 
       {/* Instruction is a disclosure, and it comes AFTER the attempt. */}
       <Disclosure label="Why that worked">
@@ -554,54 +642,3 @@ function Pass({
   );
 }
 
-/* -- The code panel ------------------------------------------------------------
-   Rendered locally from the IR. Switching SDK makes no network call, because
-   rendering is string generation and the SDK is only needed to execute.
-   ------------------------------------------------------------------------- */
-
-export function CodePanel({
-  circuit,
-  sdk,
-  onSdk,
-}: {
-  circuit: Circuit;
-  sdk: Sdk;
-  onSdk?(s: Sdk): void;
-}) {
-  const code = useMemo(() => render(circuit, sdk), [circuit, sdk]);
-
-  return (
-    <div>
-      {onSdk && (
-        <div style={{ marginBottom: "var(--s-3)" }}>
-          <Segmented<Sdk>
-            ariaLabel="SDK"
-            value={sdk}
-            onChange={onSdk}
-            options={(["qiskit", "cirq", "pennylane"] as Sdk[]).map((k) => ({
-              value: k,
-              label: SDK_LABELS[k],
-            }))}
-          />
-        </div>
-      )}
-      <pre
-        style={{
-          margin: 0,
-          padding: "var(--s-4)",
-          background: "var(--paper-inset)",
-          border: "1px solid var(--rule)",
-          borderRadius: "var(--r-gate)",
-          fontFamily: "var(--font-mono)",
-          fontSize: "var(--t-micro)",
-          lineHeight: 1.65,
-          color: "var(--ink-2)",
-          overflowX: "auto",
-          whiteSpace: "pre",
-        }}
-      >
-        {code}
-      </pre>
-    </div>
-  );
-}

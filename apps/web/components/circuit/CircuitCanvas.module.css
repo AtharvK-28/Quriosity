@@ -200,6 +200,54 @@
   height: 14px;
 }
 
+/* A mid-circuit read is marked in words as well as in position (PRD E2-S5):
+   what follows it on the wire acts on a collapsed state. */
+.gate[data-mid="true"] {
+  border-color: var(--flag);
+}
+
+.midTag {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 13px;
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--flag);
+  background: var(--paper);
+  pointer-events: none;
+}
+
+/* A barrier: a dashed rule across its span. Wide enough to grab. */
+.barrier {
+  position: absolute;
+  width: 14px;
+  margin-left: -7px;
+  cursor: grab;
+  background: linear-gradient(90deg, transparent 6px, var(--rule-3) 6px, var(--rule-3) 8px, transparent 8px);
+  background-size: 14px 8px;
+  background-repeat: repeat-y;
+  mask-image: repeating-linear-gradient(180deg, #000 0 6px, transparent 6px 10px);
+}
+
+.barrier[data-selected="true"] {
+  background: linear-gradient(90deg, transparent 6px, var(--measure) 6px, var(--measure) 8px, transparent 8px);
+}
+
+/* Pairwise entanglement: a bracket in the phase colour joining two wires. */
+.pairBracket {
+  position: absolute;
+  width: 8px;
+  border: 2px solid var(--phase);
+  border-left: none;
+  border-radius: 0 var(--r-gate) var(--r-gate) 0;
+  pointer-events: auto;
+}
+
 /* -- Multi-qubit gates -------------------------------------------------------- */
 
 .connector {
@@ -281,6 +329,25 @@
   border-top: 1px dashed var(--measure);
   border-bottom: 1px dashed var(--measure);
   cursor: pointer;
+}
+
+/* A barrier ends on the wire it started on, so that wire stays pickable, but
+   quieter than the rest. */
+.pendingWire[data-picked="true"] {
+  background: transparent;
+  border-color: var(--rule-3);
+}
+
+/* The wires already chosen for a gate that is still being placed. */
+.pickedMark {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  margin: -6.5px 0 0 -6.5px;
+  border-radius: var(--r-full);
+  background: var(--measure);
+  box-shadow: 0 0 0 3px var(--measure-wash);
+  pointer-events: none;
 }
 
 .pendingHint {

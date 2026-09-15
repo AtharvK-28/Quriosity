@@ -171,7 +171,10 @@ await check("the bench switches SDK with no network call", async () => {
   await page.waitForTimeout(400);
 
   await page.getByRole("tab", { name: "Code" }).click();
-  await page.waitForSelector("text=/from qiskit import/");
+  // Qiskit is editable on the bench, so it is a field rather than a <pre>.
+  const qiskit = page.getByLabel(/Qiskit code — editable/);
+  await qiskit.waitFor();
+  assert.match(await qiskit.inputValue(), /from qiskit import/);
 
   // Count network requests while switching. Rendering is string generation;
   // the SDK is only needed to execute, so this must be zero.
@@ -183,9 +186,15 @@ await check("the bench switches SDK with no network call", async () => {
   await page.waitForSelector("text=/cirq.LineQubit.range/");
   await page.getByRole("tab", { name: "PennyLane" }).click();
   await page.waitForSelector("text=/qml.device/");
+  // PRD E3-S2 names four SDKs; Q# and OpenQASM are both offered.
+  await page.getByRole("tab", { name: "Q#" }).click();
+  await page.waitForSelector("text=/operation Run/");
+  await page.getByRole("tab", { name: "QASM" }).click();
+  assert.match(await page.getByLabel(/OpenQASM 3 code — editable/).inputValue(), /cx q\[0\], q\[1\];/);
 
   page.off("request", onReq);
   assert.equal(requests, 0, `switching SDK made ${requests} network requests`);
+  await page.getByRole("tab", { name: "Qiskit" }).click();
 })();
 
 /* -- 5. Physical correctness on screen --------------------------------------- */
@@ -362,10 +371,11 @@ await check("a lesson does not inherit the bench's circuit", async () => {
 
 await check("the wire stepper stops at the tier cap", async () => {
   // PRD E4-S4 wants the cap enforced before a run is enqueued, not reported
-  // after one fails. The stepper simply refuses to go past it.
+  // after one fails. The stepper simply refuses to go past it. This runs in
+  // Workbench mode (set above), whose cap is the simulator's own: 16.
   await freshBench();
 
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 20; i++) {
     const add = page.getByRole("button", { name: "Add a qubit" });
     if (await add.isDisabled()) break;
     await add.click();
@@ -373,7 +383,8 @@ await check("the wire stepper stops at the tier cap", async () => {
   await page.waitForTimeout(200);
 
   const controls = await page.getByText("Wires", { exact: true }).locator("..").innerText();
-  assert.match(controls, /12 QUBITS/i, `stepper did not stop at the cap: ${controls}`);
+  assert.match(controls, /16 QUBITS/i, `stepper did not stop at the cap: ${controls}`);
+  assert.match(controls, /ceiling/i, "the cap is not explained where it bites");
   assert.ok(
     await page.getByRole("button", { name: "Add a qubit" }).isDisabled(),
     "the add-qubit control was still enabled at the cap",
@@ -551,6 +562,257 @@ await check("the playground collapses on measurement and counts fresh copies", a
   const text = await page.locator("main").innerText();
   const m = /(\d+) measurements/i.exec(text);
   assert.ok(m && Number(m[1]) === 101, `expected 101 measurements in the tally, got ${m?.[1]}`);
+})();
+
+/* -- 13. The frontend completion pass ----------------------------------------- */
+
+/** Builds H on q0 then CNOT 0→1 on a fresh bench. */
+async function bellOnBench() {
+  await freshBench();
+  await page.getByRole("button", { name: /^Hadamard ·/ }).click();
+  await page.getByRole("button", { name: "qubit 0, column 0, empty" }).click();
+  await page.getByRole("button", { name: /^CNOT ·/ }).click();
+  await page.getByRole("button", { name: "qubit 0, column 1, empty" }).click();
+  await page.getByRole("button", { name: /target of this CNOT on qubit 1/ }).click();
+}
+
+const summary = () => page.locator('[role="application"]').getAttribute("aria-label");
+
+await check("a Toffoli takes two controls and a target", async () => {
+  await freshBench();
+  await page.getByRole("button", { name: "Add a qubit" }).click();
+  await page.getByRole("button", { name: /^Toffoli ·/ }).click();
+  await page.getByRole("button", { name: "qubit 0, column 0, empty" }).click();
+  await page.getByRole("button", { name: /second control of this Toffoli on qubit 1/ }).click();
+  await page.getByRole("button", { name: /target of this Toffoli on qubit 2/ }).click();
+  assert.match(await summary(), /Toffoli, control on qubit 0 and 1, target on qubit 2/);
+})();
+
+await check("a barrier spans the wires it is dragged across, from the keyboard", async () => {
+  await freshBench();
+  const canvas = page.locator('[role="application"]');
+  await canvas.focus();
+  await page.keyboard.press("b");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  assert.match(await summary(), /Barrier across qubits 0 to 1/);
+})();
+
+await check("the keyboard places rotations and controlled-Z", async () => {
+  await freshBench();
+  const canvas = page.locator('[role="application"]');
+  await canvas.focus();
+  await page.keyboard.press("r");
+  await page.keyboard.press("y");
+  await page.waitForSelector('[role="dialog"]');
+  await page.keyboard.press("Escape");
+  await canvas.focus();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Shift+C");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  const label = await summary();
+  assert.match(label, /Y rotation on qubit 0/);
+  assert.match(label, /Controlled-Z, control on qubit 0, target on qubit 1/);
+})();
+
+await check("removing a wire with gates on it asks first", async () => {
+  await bellOnBench();
+  await page.getByRole("button", { name: "Remove a qubit" }).click();
+  await page.waitForSelector("text=/q1 has 1 gate on it/");
+  await page.getByRole("button", { name: "Keep it" }).click();
+  assert.match(await summary(), /2 qubits/);
+  await page.getByRole("button", { name: "Remove a qubit" }).click();
+  await page.getByRole("button", { name: "Remove q1" }).click();
+  assert.match(await summary(), /1 qubit,/);
+})();
+
+await check("edited Qiskit applies to the canvas, and a bad edit leaves it alone", async () => {
+  await freshBench();
+  await page.getByRole("tab", { name: "Code" }).click();
+  const field = page.getByLabel(/Qiskit code — editable/);
+  await field.fill("from qiskit import QuantumCircuit\nqc = QuantumCircuit(3, 3)\nqc.h(0)\nqc.cx(0, 1)\nqc.cx(1, 2)");
+  await page.waitForSelector("text=/You've edited the code/");
+  await page.getByRole("button", { name: "Apply to canvas" }).click();
+  await page.waitForTimeout(150);
+  assert.match(await summary(), /3 qubits, 3 gates/);
+
+  await field.fill("qc = QuantumCircuit(2)\nfor q in range(2):\n    qc.h(q)");
+  await page.getByRole("button", { name: "Apply to canvas" }).click();
+  await page.waitForSelector("text=/needs the code to run/");
+  assert.match(await page.locator("#code-error").innerText(), /line 2/i);
+  assert.match(await summary(), /3 qubits, 3 gates/, "a failed parse changed the canvas");
+  await page.getByRole("button", { name: "Discard" }).click();
+})();
+
+await check("OpenQASM imports through the dialog, and undo takes it back", async () => {
+  await freshBench();
+  await page.getByRole("button", { name: /^More/ }).click();
+  await page.getByRole("menuitem", { name: /Import OpenQASM/ }).click();
+  await page.getByLabel("Program to import").fill('OPENQASM 3.0;\ninclude "stdgates.inc";\nqubit[3] q;\nh q;\nccx q[0], q[1], q[2];');
+  await page.waitForSelector("text=/3 qubits · 4 gates/i");
+  await page.getByRole("button", { name: "Replace the bench circuit" }).click();
+  assert.match(await summary(), /3 qubits, 4 gates/);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  assert.match(await summary(), /0 gates/);
+})();
+
+await check("a share link opens the exact circuit read-only, and forks", async () => {
+  await bellOnBench();
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "Share" }).click();
+  await page.waitForSelector("text=/Link copied|Copy this link/");
+  const link = await page.evaluate(async () => {
+    try { return await navigator.clipboard.readText(); } catch { return document.body.innerText.match(/https?:\/\/\S+\/build\/\S+/)?.[0] ?? ""; }
+  });
+  assert.match(link, /\/build\/[A-Za-z0-9_-]+$/, `not a share link: ${link}`);
+
+  await page.evaluate(() => window.localStorage.removeItem("quriosity.bench.draft.v1"));
+  await page.goto(link, { waitUntil: "networkidle" });
+  await page.waitForSelector("text=/Shared circuit · read-only/i");
+  assert.equal(await page.getByRole("button", { name: "qubit 0, column 0, empty" }).count(), 0, "the shared canvas accepts edits");
+  assert.match(await summary(), /2 gates/);
+
+  await page.getByRole("button", { name: "Fork into my bench" }).click();
+  await page.waitForSelector("text=/Forked from a shared link/i");
+  assert.match(await summary(), /Hadamard on qubit 0.*CNOT, control on qubit 0, target on qubit 1/);
+})();
+
+await check("a damaged share link says so instead of crashing", async () => {
+  await page.goto(`${BASE}/build/not-a-circuit`, { waitUntil: "networkidle" });
+  await page.waitForSelector("text=/doesn't open a circuit/");
+})();
+
+await check("the density view and pair links read a Bell pair correctly", async () => {
+  await bellOnBench();
+  await page.getByRole("button", { name: /^Run/ }).click();
+  await page.getByRole("tab", { name: "Density" }).click();
+  await page.waitForSelector("text=/purity/i");
+  assert.match(await page.locator("aside").first().innerText(), /1\.000/);
+  await page.getByLabel("Subsystem").selectOption("q0");
+  await page.waitForSelector("text=/Maximally mixed/");
+
+  await page.getByRole("tab", { name: "Bloch" }).click();
+  await page.waitForSelector("text=/entangled with each other/");
+})();
+
+await check("a passing run offers a shorter equivalent only when asked", async () => {
+  await freshBench();
+  for (const col of [0, 1, 2]) {
+    await page.getByRole("button", { name: col === 2 ? /^Pauli-X ·/ : /^Hadamard ·/ }).click();
+    await page.getByRole("button", { name: `qubit 0, column ${col}, empty` }).click();
+  }
+  await page.getByRole("button", { name: /^Run/ }).click();
+  await page.waitForTimeout(300);
+  assert.doesNotMatch(await page.locator("body").innerText(), /same state takes/, "advice appeared unprompted");
+  await page.getByRole("button", { name: "Diagnosis" }).click();
+  await page.waitForSelector("text=/works in 3 gates; the same state takes 1/");
+  await page.getByRole("button", { name: /Use the 1-gate version/ }).click();
+  assert.match(await summary(), /1 gate,/);
+})();
+
+await check("a circuit saves, reopens and renames in the library", async () => {
+  await bellOnBench();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByLabel("Circuit name").fill("Bell for the e2e");
+  await page.getByRole("button", { name: "Save", exact: true }).last().click();
+  await page.waitForSelector("text=/Saved “Bell for the e2e”/");
+
+  await page.getByRole("button", { name: "Clear" }).click();
+  await page.getByRole("button", { name: /^More/ }).click();
+  await page.getByRole("menuitem", { name: /Saved circuits/ }).click();
+  await page.getByRole("button", { name: "Bell for the e2e" }).first().click();
+  assert.match(await summary(), /2 gates/);
+
+  await page.getByRole("button", { name: /^More/ }).click();
+  await page.getByRole("menuitem", { name: /Saved circuits/ }).click();
+  const region = page.getByRole("region", { name: "Saved circuits" });
+  await region.getByRole("button", { name: "Rename" }).first().click();
+  await region.getByLabel("New name").fill("Renamed Bell");
+  await region.getByRole("button", { name: "Rename" }).first().click();
+  await region.getByRole("button", { name: "Renamed Bell" }).waitFor();
+})();
+
+await check("? opens the keyboard sheet", async () => {
+  await page.locator("h1").first().click();
+  await page.keyboard.press("?");
+  await page.waitForSelector('[role="dialog"] >> text=/Begin a Toffoli/');
+  await page.keyboard.press("Escape");
+})();
+
+await check("settings change the mode and export the data", async () => {
+  await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
+  await page.getByRole("radio", { name: /Guided/ }).check({ force: true });
+  await page.waitForSelector("text=/Switched to Guided/");
+  // Nav links are uppercased in CSS, which innerText reflects.
+  const nav = await page.locator("header").first().innerText();
+  assert.match(nav, /\bpath\b/i, "guided navigation did not return");
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download my data" }).click(),
+  ]);
+  assert.match(download.suggestedFilename(), /^quriosity-data-.*\.json$/);
+})();
+
+await check("a finished track issues a record that verifies, and a forged one does not", async () => {
+  await seedThrough("u3");
+  await page.evaluate(() => {
+    const raw = JSON.parse(localStorage.getItem("quriosity.session.v1"));
+    for (const id of ["c.third", "g.bell", "c.ghz"]) {
+      raw.challenges[id] = { solved: true, attempts: 1, bestGates: 2, solvedAt: Date.now() };
+    }
+    localStorage.setItem("quriosity.session.v1", JSON.stringify(raw));
+  });
+  await page.goto(`${BASE}/tracks/optimisation`, { waitUntil: "networkidle" });
+  await page.waitForSelector("text=/QAOA writes the cost function into phase/");
+  await page.getByPlaceholder("As your manager knows you").fill("Ravi");
+  await page.getByRole("button", { name: "Issue the record" }).click();
+  const href = await page.getByRole("status").getByRole("link").first().getAttribute("href");
+  assert.match(href, /^\/record\//);
+
+  await page.goto(`${BASE}${href}`, { waitUntil: "networkidle" });
+  await page.waitForSelector("text=/nothing on it has been edited/");
+  assert.match(await page.locator("main").innerText(), /Ravi/);
+
+  const [body, sum] = href.replace("/record/", "").split(".");
+  await page.goto(`${BASE}/record/${body.slice(0, -2)}AA.${sum}`, { waitUntil: "networkidle" });
+  await page.waitForSelector("text=/isn't a readable record|does not match its checksum/");
+})();
+
+await check("the path recommends what to do next and says why", async () => {
+  await seedThrough("u2.n2");
+  await page.goto(`${BASE}/path`, { waitUntil: "networkidle" });
+  const card = page.getByRole("region", { name: "Recommended next" });
+  await card.waitFor();
+  assert.match(await card.innerText(), /builds directly on|opens a new unit|last two weeks|right first time/i);
+})();
+
+await check("an instructor can author a challenge from a reference circuit", async () => {
+  await page.goto(`${BASE}/teach/author`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /^Hadamard ·/ }).click();
+  await page.getByRole("button", { name: "qubit 0, column 0, empty" }).click();
+  await page.getByRole("button", { name: /^CNOT ·/ }).click();
+  await page.getByRole("button", { name: "qubit 0, column 1, empty" }).click();
+  await page.getByRole("button", { name: /target of this CNOT on qubit 1/ }).click();
+  await page.getByPlaceholder("Three that disagree").fill("E2E pair");
+  await page.getByPlaceholder("Never all three the same.").fill("Two wires that always agree.");
+  await page.getByRole("button", { name: "Save the challenge" }).click();
+  await page.getByRole("link", { name: /Try it as a learner/ }).click();
+  await page.waitForSelector("text=/authored here/i");
+  await page.getByRole("button", { name: /^Hadamard ·/ }).click();
+  await page.getByRole("button", { name: "qubit 0, column 0, empty" }).click();
+  await page.getByRole("button", { name: /^CNOT ·/ }).click();
+  await page.getByRole("button", { name: "qubit 0, column 1, empty" }).click();
+  await page.getByRole("button", { name: /target of this CNOT on qubit 1/ }).click();
+  await page.getByRole("button", { name: /^Run/ }).click();
+  await page.waitForSelector("text=/other circuits that also would/");
+})();
+
+await check("docs render the schema and the keyboard grammar", async () => {
+  await page.goto(`${BASE}/docs`, { waitUntil: "networkidle" });
+  const text = await page.locator("main").innerText();
+  assert.match(text, /schema_version/);
+  assert.match(text, /Begin a Toffoli/);
 })();
 
 await browser.close();

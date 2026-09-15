@@ -1,0 +1,83 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.file {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file:focus-within span { outline: 2px solid var(--measure); outline-offset: 2px; }
+.file:hover span { color: var(--ink); }
+
+.source {
+  width: 100%;
+  padding: var(--s-3);
+  background: var(--paper-inset);
+  border: 1px solid var(--rule-3);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  line-height: 1.6;
+  color: var(--ink);
+  resize: vertical;
+  white-space: pre;
+}
+
+.source:focus-visible { outline: 2px solid var(--measure); outline-offset: 1px; }
+
+.error {
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--s-3);
+  background: var(--measure-wash);
+  border: 1px solid var(--measure);
+  border-radius: var(--r-gate);
+  font-size: var(--t-body);
+  color: var(--ink);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.note { color: var(--ink-muted); }
+
+.scope {
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}

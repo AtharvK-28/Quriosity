@@ -29,6 +29,24 @@ export function GateMark({ spec, sub }: { spec: GateSpec; sub?: string }) {
     );
   }
 
+  // Controlled rotations need room for their label, so they get a taller mark
+  // with the box big enough to read at tray size.
+  if (spec.type === "crx" || spec.type === "cry" || spec.type === "crz") {
+    return (
+      <svg width="28" height="32" viewBox="0 0 28 32" aria-hidden style={{ color: "currentColor" }}>
+        <line x1="14" y1="5" x2="14" y2="15" stroke="currentColor" strokeWidth="1.6" />
+        <circle cx="14" cy="5" r="2.6" fill="currentColor" />
+        <rect x="1.5" y="15" width="25" height="15.5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        <text
+          x="14" y="26.5" textAnchor="middle"
+          fontFamily="var(--font-mono)" fontSize="10" fontWeight="500" fill="currentColor"
+        >
+          {sub ?? spec.glyph}
+        </text>
+      </svg>
+    );
+  }
+
   // The miniature of what the gate actually places: a control dot joined to its
   // target. That is the notation itself, so it needs no legend.
   return (

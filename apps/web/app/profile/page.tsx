@@ -16,6 +16,7 @@
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/chrome/TopBar";
+import { NextUp } from "@/components/learning/NextUp";
 import { Button, Chip, Readout } from "@/components/ui/primitives";
 import { MISCONCEPTIONS, type MisconceptionId } from "@/lib/tutor/rules";
 import { CHALLENGES_BY_ID } from "@/lib/curriculum/challenges";
@@ -133,6 +134,8 @@ export default function ProfilePage() {
           </div>
         ) : (
           <>
+            <NextUp compact />
+
             {/* -- Units --------------------------------------------------------- */}
             <div className={s.units}>
               {UNITS.map((u) => {

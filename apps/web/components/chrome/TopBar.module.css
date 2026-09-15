@@ -43,13 +43,18 @@
   letter-spacing: -0.01em;
 }
 
+/* On a narrow screen the run of links scrolls sideways inside its own lane
+   rather than spilling over the controls on the right. */
 .nav {
   display: flex;
   align-items: center;
   gap: var(--s-2);
   flex: 1;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.nav::-webkit-scrollbar { display: none; }
 
 .link {
   padding: 7px 11px;
@@ -77,8 +82,11 @@
   border-right: 1px solid var(--rule-2);
 }
 
+.narrowOnly { display: none; }
+
 @media (max-width: 900px) {
   .secondary { display: none; }
+  .narrowOnly { display: inline-block; }
 }
 
 .right {
@@ -121,4 +129,9 @@
 @media (max-width: 720px) {
   .wordmark { display: none; }
   .link { padding: 7px 8px; }
+  .bar { gap: var(--s-3); }
+  .right { gap: var(--s-2); }
+  /* XP and streak live on the path and progress pages too; the bar keeps
+     only what is needed to move around. */
+  .stat { display: none; }
 }

@@ -18,7 +18,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/chrome/TopBar";
-import { Button, Chip, Readout, Registration } from "@/components/ui/primitives";
+import { NextUp } from "@/components/learning/NextUp";
+import { Button, Readout, Registration } from "@/components/ui/primitives";
 import {
   MASTERY_THRESHOLD, MODE, NODES_BY_ID, UNITS, currentNodeId, dueForReview,
   masteryRate, needsConsolidation, nodesInUnit, unitMastery, unitProgress, useSession,
@@ -97,22 +98,9 @@ export default function PathPage() {
           <WarmUp node={due[0]} onAnswer={(ok) => recordReview(due[0].id, ok)} />
         )}
 
-        {currentNode && (
-          <div className={s.upNext}>
-            <Registration />
-            <div className={s.upNextText}>
-              <span className="label label--measure">Up next</span>
-              <h2 className={s.upNextTitle}>{currentNode.title}</h2>
-              <p style={{ color: "var(--ink-3)", fontSize: "var(--t-body)" }}>{currentNode.hook}</p>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)", alignItems: "flex-start" }}>
-              <Chip>{currentNode.estMinutes} min</Chip>
-              <Button variant="primary" onClick={() => router.push(`/lesson/${currentNode.id}`)}>
-                Open
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* What to do next, and the evidence for it (E7-S7). The warm-up
+            above already handles a due recall, so this card does not repeat it. */}
+        {(currentNode || passedCount > 0) && <NextUp skipReview />}
 
         {UNITS.map((unit) => {
           const nodes = nodesInUnit(unit.id);

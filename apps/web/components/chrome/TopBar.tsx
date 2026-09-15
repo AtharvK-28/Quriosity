@@ -24,14 +24,16 @@ const NAV: Record<string, Array<{ href: string; label: string }>> = {
     { href: "/review", label: "Review" },
     { href: "/profile", label: "Progress" },
   ],
-  // A researcher gets the bench and the reference. No path, no challenges, no
+  // A researcher gets the bench and the docs (PRD §4: "Workbench mode surfaces
+  // Build, Docs, and nothing else by default"). No path, no challenges, no
   // progress — none of it is why they opened the tab.
   workbench: [
     { href: "/build", label: "Bench" },
-    { href: "/reference", label: "Gates" },
+    { href: "/docs", label: "Docs" },
   ],
+  // PRD §4: "Track mode surfaces Tracks, Build, Challenges."
   track: [
-    { href: "/path", label: "Track" },
+    { href: "/tracks", label: "Tracks" },
     { href: "/challenges", label: "Challenges" },
     { href: "/build", label: "Bench" },
     { href: "/review", label: "Review" },
@@ -43,7 +45,8 @@ const NAV: Record<string, Array<{ href: string; label: string }>> = {
 const SECONDARY = [
   { href: "/playground", label: "Playground" },
   { href: "/teach", label: "Teach" },
-  { href: "/reference", label: "Gates" },
+  { href: "/docs", label: "Docs" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export function TopBar() {
@@ -80,6 +83,18 @@ export function TopBar() {
             href={l.href}
             className={s.link}
             data-active={pathname === l.href || pathname.startsWith(`${l.href}/`)}
+          >
+            {l.label}
+          </Link>
+        ))}
+        {/* Below 900px the secondary group is hidden, so its links join the
+            end of the scrolling run instead of becoming unreachable. */}
+        {SECONDARY.filter((l) => !links.some((m) => m.href === l.href)).map((l) => (
+          <Link
+            key={`narrow-${l.href}`}
+            href={l.href}
+            className={`${s.link} ${s.narrowOnly}`}
+            data-active={pathname.startsWith(l.href)}
           >
             {l.label}
           </Link>

@@ -23,6 +23,7 @@ import {
 } from "@/lib/curriculum/challenges";
 import { NODES_BY_ID, challengeOpen, useSession } from "@/stores/sessionStore";
 import { targetProbabilities } from "@/lib/grade/fidelity";
+import { toChallenge, useAuthored } from "@/stores/authoredStore";
 import s from "./challenges.module.css";
 
 const ORDER: ChallengeKind[] = ["reach", "golf", "bughunt"];
@@ -30,8 +31,11 @@ const ORDER: ChallengeKind[] = ["reach", "golf", "bughunt"];
 export default function ChallengesPage() {
   const router = useRouter();
   const { progress, challenges, hydrate, hydrated } = useSession();
+  const authored = useAuthored((st) => st.items);
 
-  useEffect(() => { hydrate(); }, [hydrate]);
+  useEffect(() => { hydrate(); useAuthored.getState().hydrate(); }, [hydrate]);
+
+  const authoredChallenges = useMemo(() => authored.map(toChallenge), [authored]);
 
   const solved = useMemo(
     () => CHALLENGES.filter((c) => challenges[c.id]?.solved).length,
@@ -98,6 +102,29 @@ export default function ChallengesPage() {
             </section>
           );
         })}
+
+        {authoredChallenges.length > 0 && (
+          <section className={s.section}>
+            <div className={s.sectionHead}>
+              <h2 className={s.sectionTitle}>Authored here</h2>
+              <span className={s.sectionBlurb}>
+                Written on the instructor console in this browser. Graded the same way; not counted on your record.
+              </span>
+            </div>
+            <div className={s.grid}>
+              {authoredChallenges.map((c) => (
+                <ChallengeCard
+                  key={c.id}
+                  challenge={c}
+                  locked={false}
+                  solvedGates={null}
+                  attempts={0}
+                  onOpen={() => router.push(`/challenges/authored?id=${encodeURIComponent(c.id)}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

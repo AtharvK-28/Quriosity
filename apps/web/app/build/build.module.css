@@ -245,3 +245,145 @@
   cursor: pointer;
 }
 .restoredDismiss:hover { color: var(--ink); }
+
+/* -- Status, save, library ---------------------------------------------------------
+   One line each, under the header, gone when done. None of them is a modal:
+   the circuit stays in reach while a name is typed or a list is read.
+   ------------------------------------------------------------------------- */
+
+.status {
+  margin-bottom: var(--s-4);
+  font-size: var(--t-body);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.saveForm {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+}
+
+.saveLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: min(100%, 280px);
+}
+
+.saveNote {
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+}
+
+.library {
+  margin-bottom: var(--s-4);
+  padding: var(--s-4);
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+}
+
+.libraryHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.libraryList {
+  display: flex;
+  flex-direction: column;
+}
+
+.libraryRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--s-3);
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.libraryRow:last-child { border-bottom: none; }
+.libraryRow[data-current="true"] .libraryName { color: var(--measure); }
+
+@media (max-width: 720px) {
+  .libraryRow { grid-template-columns: 1fr; }
+}
+
+.libraryName {
+  text-align: left;
+  font-size: var(--t-body);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.libraryName:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.libraryMeta {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.libraryActions { display: flex; gap: 2px; }
+
+.renameForm {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+/* -- Wires -------------------------------------------------------------------------- */
+
+.capNote {
+  font-size: var(--t-micro);
+  font-family: var(--font-mono);
+  letter-spacing: var(--ls-micro);
+  color: var(--ink-muted);
+  max-width: 22ch;
+  line-height: 1.4;
+}
+
+.confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  background: var(--error-wash);
+  border: 1px solid var(--error);
+  border-radius: var(--r-panel);
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+
+.confirmActions { display: flex; gap: var(--s-2); }
+
+.diagnosisActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* Advice is not a warning, so it does not wear the warning's colour. */
+.diagnosis[data-tone="calm"] {
+  background: var(--paper);
+  border-color: var(--rule-3);
+}

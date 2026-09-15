@@ -15,6 +15,8 @@
  *
  * Keyboard operation is a full alternative to the mouse, not a shortcut layer
  * over it: every node in the curriculum can be completed without a pointer.
+ * The grammar is Design Doc §11.2, and `KEYBOARD_GRAMMAR` below is the one
+ * source the shortcut sheet and the docs page print from.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,6 +30,30 @@ const WIRE_LABEL = 44;
 const WIRE_GAP = 56;
 const COL_PITCH = 64;
 const TOP_PAD = 28;
+/** Horizontal room per entangled-pair bracket at the end of the circuit. */
+const PAIR_PITCH = 22;
+
+/** Every key the canvas understands, for the shortcut sheet and /docs. */
+export const KEYBOARD_GRAMMAR: Array<{ keys: string; action: string }> = [
+  { keys: "← → ↑ ↓", action: "Move the placement cursor across columns and wires" },
+  { keys: "H X Y Z S T", action: "Place that gate at the cursor" },
+  { keys: "⇧S  ⇧T", action: "Place S† or T†" },
+  { keys: "P", action: "Place a phase gate; the angle field opens" },
+  { keys: "R then X / Y / Z", action: "Place a rotation; the angle field opens" },
+  { keys: "I", action: "Place an identity (idle time)" },
+  { keys: "M", action: "Measure the wire at the cursor" },
+  { keys: "0", action: "Reset the wire at the cursor to |0⟩" },
+  { keys: "C", action: "Begin a CNOT: control here, then arrows and Enter for the target" },
+  { keys: "⇧C", action: "Begin a controlled-Z the same way" },
+  { keys: "K", action: "Begin a Toffoli: two controls, then the target" },
+  { keys: "W", action: "Begin a SWAP: this wire, then the other" },
+  { keys: "B", action: "Begin a barrier: first wire here, Enter on the last" },
+  { keys: "Enter", action: "Confirm the next wire of a gate being placed" },
+  { keys: "Space", action: "Select the gate at the cursor (opens its angle, if it has one)" },
+  { keys: "Alt + arrows", action: "Move the gate at the cursor" },
+  { keys: "Delete / Backspace", action: "Remove the gate at the cursor" },
+  { keys: "Esc", action: "Cancel a placement, or deselect" },
+];
 
 export interface CircuitCanvasProps {
   circuit: Circuit;
@@ -37,12 +63,17 @@ export interface CircuitCanvasProps {
   highlighted?: string[];
   /** Per-wire state, used only for the entanglement indicator on the wire. */
   qubitStates?: QubitState[];
+  /**
+   * Wire pairs entangled with each other and nothing else (PRD E5-S6). Drawn
+   * as brackets past the last column, where the state they describe exists.
+   */
+  pairs?: Array<[number, number]>;
   /** Column the time cursor sits at. null means "the end of the circuit". */
   scrubColumn?: number | null;
   /** A gate picked up from the tray, awaiting a slot. */
   held?: { type: GateType; params: number[] } | null;
-  /** A two-qubit gate with its control placed, awaiting a target wire. */
-  pendingControl?: { type: GateType; control: number; column: number } | null;
+  /** A multi-wire gate with some wires chosen, awaiting the rest. */
+  pendingControl?: { type: GateType; control: number; column: number; picked?: number[]; need?: number } | null;
 
   readOnly?: boolean;
 
@@ -62,6 +93,7 @@ export function CircuitCanvas({
   selectedGateId = null,
   highlighted = [],
   qubitStates,
+  pairs = [],
   scrubColumn = null,
   held = null,
   pendingControl = null,
@@ -79,9 +111,12 @@ export function CircuitCanvas({
 
   const [cursor, setCursor] = useState<{ q: number; c: number } | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  /** `R` waits for an axis. */
+  const [prefix, setPrefix] = useState<"r" | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const width = WIRE_LABEL + columns * COL_PITCH;
+  const pairColumns = pairs.length;
+  const width = WIRE_LABEL + columns * COL_PITCH + (pairColumns > 0 ? pairColumns * PAIR_PITCH + 12 : 0);
   const height = TOP_PAD * 2 + circuit.qubits * WIRE_GAP;
 
   const x = (col: number) => WIRE_LABEL + col * COL_PITCH + COL_PITCH / 2;
@@ -95,10 +130,10 @@ export function CircuitCanvas({
 
   /** The selected gate, when it has an angle to set. */
   const editingGate = useMemo(() => {
-    if (!onParams || !selectedGateId) return null;
+    if (!onParams || !selectedGateId || readOnly) return null;
     const g = circuit.gates.find((x) => x.id === selectedGateId);
     return g && GATES[g.type].paramArity > 0 ? g : null;
-  }, [onParams, selectedGateId, circuit.gates]);
+  }, [onParams, selectedGateId, circuit.gates, readOnly]);
 
   /** The earliest column holding a gate that could correlate two wires. */
   const entanglingColumn = useMemo(() => {
@@ -107,6 +142,26 @@ export function CircuitCanvas({
       .map((g) => g.column);
     return cols.length > 0 ? Math.min(...cols) : null;
   }, [circuit.gates]);
+
+  /**
+   * Measurements followed by coherent work on the same wire. PRD E2-S5: mid-
+   * circuit measurement is allowed AND marked, because it changes what the
+   * rest of the wire does (M7).
+   */
+  const midCircuit = useMemo(() => {
+    const mid = new Set<string>();
+    for (const g of circuit.gates) {
+      if (g.type !== "measure") continue;
+      const wire = g.targets[0];
+      const later = circuit.gates.some(
+        (o) => o.column > g.column && o.type !== "barrier" && o.type !== "measure" && gateQubits(o).includes(wire),
+      );
+      if (later) mid.add(g.id);
+    }
+    return mid;
+  }, [circuit.gates]);
+
+  const picked = pendingControl?.picked ?? (pendingControl ? [pendingControl.control] : []);
 
   /* -- Placement ------------------------------------------------------------ */
 
@@ -129,22 +184,34 @@ export function CircuitCanvas({
 
   /* -- Keyboard grammar ----------------------------------------------------- */
 
-  const keyGates: Record<string, GateType> = useMemo(
-    () => ({ h: "h", x: "x", y: "y", z: "z", s: "s", t: "t", m: "measure", i: "i" }),
-    [],
-  );
-
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (!interactive) return;
+      if (e.metaKey || e.ctrlKey) return; // ⌘Z, ⌘↵ and friends belong to the page
 
       if (e.key === "Escape") {
+        setPrefix(null);
         onCancelPending?.();
         onSelect?.(null);
         return;
       }
 
       const cur = cursor ?? { q: 0, c: 0 };
+      const at = gateAtSlot(circuit, cur.q, cur.c);
+
+      // Alt + arrows move the gate under the cursor, and the cursor with it.
+      if (e.altKey && e.key.startsWith("Arrow")) {
+        e.preventDefault();
+        if (!at) return;
+        const dq = e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0;
+        const dc = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+        const lowest = Math.min(...gateQubits(at));
+        const nq = lowest + dq;
+        const nc = Math.max(0, at.column + dc);
+        onMove?.(at.id, nq, nc);
+        setCursor({ q: Math.max(0, Math.min(circuit.qubits - 1, cur.q + dq)), c: nc });
+        return;
+      }
 
       switch (e.key) {
         case "ArrowUp":
@@ -165,38 +232,55 @@ export function CircuitCanvas({
           return;
         case "Enter":
           e.preventDefault();
-          // Confirms the target wire of a half-placed controlled gate.
+          // Confirms the next wire of a half-placed multi-wire gate.
           if (pendingControl) onCompleteControlled?.(cur.q);
+          return;
+        case " ":
+          e.preventDefault();
+          if (at) onSelect?.(at.id);
           return;
         case "Backspace":
         case "Delete": {
           e.preventDefault();
-          const g = gateAtSlot(circuit, cur.q, cur.c);
-          if (g) onRemove?.(g.id);
+          if (at) onRemove?.(at.id);
           else if (selectedGateId) onRemove?.(selectedGateId);
           return;
         }
       }
 
       const key = e.key.toLowerCase();
+      const shift = e.shiftKey;
 
-      // C begins a controlled gate: control at the cursor, then arrow to the
-      // target and Enter to confirm.
-      if (key === "c") {
+      const placeHere = (type: GateType, advance = true) => {
         e.preventDefault();
-        onPlace?.("cx", cur.q, cur.c);
+        onPlace?.(type, cur.q, cur.c);
+        if (advance) setCursor({ q: cur.q, c: Math.min(columns - 1, cur.c + 1) });
+      };
+
+      if (prefix === "r") {
+        setPrefix(null);
+        if (key === "x" || key === "y" || key === "z") placeHere(`r${key}` as GateType, false);
         return;
       }
 
-      if (keyGates[key]) {
-        e.preventDefault();
-        onPlace?.(keyGates[key], cur.q, cur.c);
-        setCursor({ q: cur.q, c: Math.min(columns - 1, cur.c + 1) });
-      }
+      // Multi-wire gates start here; arrows and Enter pick the remaining wires.
+      if (key === "c") return placeHere(shift ? "cz" : "cx", false);
+      if (key === "k") return placeHere("ccx", false);
+      if (key === "w") return placeHere("swap", false);
+      if (key === "b") return placeHere("barrier", false);
+
+      if (key === "r") { e.preventDefault(); setPrefix("r"); return; }
+      if (key === "p") return placeHere("p", false);
+      if (key === "0") return placeHere("reset");
+      if (key === "s") return placeHere(shift ? "sdg" : "s");
+      if (key === "t") return placeHere(shift ? "tdg" : "t");
+
+      const single: Record<string, GateType> = { h: "h", x: "x", y: "y", z: "z", m: "measure", i: "i" };
+      if (single[key]) placeHere(single[key]);
     },
     [
-      interactive, cursor, circuit, columns, keyGates, pendingControl, selectedGateId,
-      onCancelPending, onSelect, onCompleteControlled, onRemove, onPlace,
+      interactive, cursor, circuit, columns, pendingControl, selectedGateId, prefix,
+      onCancelPending, onSelect, onCompleteControlled, onRemove, onPlace, onMove,
     ],
   );
 
@@ -258,6 +342,7 @@ export function CircuitCanvas({
 
   const cursorColumn = scrubColumn;
   const showCursor = cursorColumn !== null && cursorColumn >= 0;
+  const pairsLeft = WIRE_LABEL + columns * COL_PITCH + 6;
 
   return (
     <div className={styles.wrap}>
@@ -267,6 +352,7 @@ export function CircuitCanvas({
         style={{ width, height }}
         role="application"
         aria-label={circuitSummary(circuit)}
+        aria-roledescription="circuit editor"
         tabIndex={interactive ? 0 : -1}
         onKeyDown={onKeyDown}
       >
@@ -324,29 +410,44 @@ export function CircuitCanvas({
             )),
           )}
 
-        {/* Wires eligible to receive a half-placed controlled gate */}
+        {/* Wires eligible to receive the next wire of a half-placed gate */}
         {pendingControl &&
-          Array.from({ length: circuit.qubits }, (_, q) =>
-            q === pendingControl.control ? null : (
+          Array.from({ length: circuit.qubits }, (_, q) => {
+            const isBarrier = pendingControl.type === "barrier";
+            if (!isBarrier && picked.includes(q)) return null;
+            return (
               <div
                 key={`p${q}`}
                 className={styles.pendingWire}
+                data-picked={picked.includes(q)}
                 style={{ top: y(q) }}
                 onClick={() => onCompleteControlled?.(q)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === "Enter" && onCompleteControlled?.(q)}
-                aria-label={`Put the target of this ${GATES[pendingControl.type].name} on qubit ${q}`}
+                aria-label={pendingLabel(pendingControl, picked, q)}
               />
-            ),
-          )}
+            );
+          })}
 
-        {pendingControl && (
+        {/* The wires already chosen, marked where the gate will go. */}
+        {pendingControl &&
+          picked.map((q, i) => (
+            <span
+              key={`pk${q}-${i}`}
+              className={styles.pickedMark}
+              style={{ top: y(q), left: x(pendingControl.column) }}
+              aria-hidden
+            />
+          ))}
+
+        {(pendingControl || prefix) && (
           <span
             className={styles.pendingHint}
             style={{ top: y(circuit.qubits - 1) + 30, left: WIRE_LABEL }}
+            role="status"
           >
-            Pick a target wire · Esc cancels
+            {prefix === "r" ? "Rotation · press X, Y or Z" : pendingHint(pendingControl!, picked)}
           </span>
         )}
 
@@ -361,10 +462,32 @@ export function CircuitCanvas({
             highlighted={highlightSet.has(g.id)}
             dragging={dragging === g.id}
             interactive={interactive}
+            midCircuit={midCircuit.has(g.id)}
             onSelect={() => onSelect?.(g.id)}
             onDragStart={() => setDragging(g.id)}
           />
         ))}
+
+        {/* Pairwise entanglement — E5-S6. One bracket per pair, past the end
+            of the circuit, because that is where the state it describes is. */}
+        {pairs.map(([a, b], i) => (
+          <span
+            key={`pair${a}-${b}`}
+            className={styles.pairBracket}
+            style={{
+              left: pairsLeft + i * PAIR_PITCH,
+              top: y(Math.min(a, b)),
+              height: Math.abs(b - a) * WIRE_GAP,
+            }}
+            title={`q${a} and q${b} are entangled with each other`}
+            aria-hidden
+          />
+        ))}
+        {pairs.length > 0 && (
+          <p className="sr-only">
+            {pairs.map(([a, b]) => `q${a} and q${b} are entangled with each other.`).join(" ")}
+          </p>
+        )}
 
         {/* The time cursor */}
         {showCursor && (
@@ -374,7 +497,7 @@ export function CircuitCanvas({
         )}
 
         {/* Empty state — the wires are already there, because the qubits are. */}
-        {circuit.gates.length === 0 && interactive && (
+        {circuit.gates.length === 0 && interactive && !pendingControl && (
           <span className={styles.emptyHint} style={{ top: y(0) - 34, left: x(0) - 22 }}>
             Drag a gate here, or press H
           </span>
@@ -389,7 +512,12 @@ export function CircuitCanvas({
           x={anchor.x}
           y={anchor.y}
           onChange={(params) => onParams(editingGate.id, params)}
-          onClose={() => onSelect?.(null)}
+          onClose={() => {
+            onSelect?.(null);
+            // Hand focus back to the grid, so a keyboard user carries on
+            // building from where they were.
+            rootRef.current?.focus();
+          }}
         />
       )}
 
@@ -397,6 +525,28 @@ export function CircuitCanvas({
       <p className="sr-only">{circuitSummary(circuit)}</p>
     </div>
   );
+}
+
+/* -- Placement copy ---------------------------------------------------------- */
+
+/** Which wire the next pick is for, in the gate's own terms. */
+function nextRole(type: GateType, picked: number[]): string {
+  const spec = GATES[type];
+  if (type === "barrier") return "last wire";
+  if (type === "swap") return "other wire";
+  if (picked.length < spec.controlArity) return picked.length === 1 ? "second control" : "control";
+  return "target";
+}
+
+function pendingLabel(p: { type: GateType }, picked: number[], q: number): string {
+  const role = nextRole(p.type, picked);
+  if (p.type === "barrier") return `End this barrier on qubit ${q}`;
+  return `Put the ${role} of this ${GATES[p.type].name} on qubit ${q}`;
+}
+
+function pendingHint(p: { type: GateType }, picked: number[]): string {
+  const role = nextRole(p.type, picked);
+  return `Pick the ${role} · Esc cancels`;
 }
 
 /* -- Gate rendering ---------------------------------------------------------- */
@@ -409,6 +559,7 @@ function GateGlyph({
   highlighted,
   dragging,
   interactive,
+  midCircuit,
   onSelect,
   onDragStart,
 }: {
@@ -419,6 +570,7 @@ function GateGlyph({
   highlighted: boolean;
   dragging: boolean;
   interactive: boolean;
+  midCircuit: boolean;
   onSelect(): void;
   onDragStart(): void;
 }) {
@@ -444,15 +596,17 @@ function GateGlyph({
   if (gate.type === "barrier") {
     return (
       <div
-        className={styles.connector}
+        className={styles.barrier}
         style={{
           left: cx,
           top: y(top) - 24,
           height: (bottom - top) * WIRE_GAP + 48,
-          background: "none",
-          borderLeft: "2px dashed var(--rule-3)",
         }}
-        aria-hidden
+        data-selected={selected}
+        {...common}
+        role="button"
+        tabIndex={-1}
+        aria-label={describeGate(gate)}
       />
     );
   }
@@ -501,9 +655,10 @@ function GateGlyph({
           style={{ left: cx, top: y(gate.targets[0]) }}
           {...common}
           data-selected={selected}
+          data-mid={midCircuit}
           role="button"
           tabIndex={interactive ? 0 : -1}
-          aria-label={describeGate(gate)}
+          aria-label={describeGate(gate) + (midCircuit ? ", mid-circuit" : "")}
         >
           {gate.type === "measure" ? (
             <MeterGlyph />
@@ -516,6 +671,7 @@ function GateGlyph({
           {gate.params.length > 0 && (
             <span className={styles.gateParam}>{formatParam(gate.params[0])}</span>
           )}
+          {midCircuit && <span className={styles.midTag} aria-hidden>mid</span>}
         </div>
       )}
     </>
@@ -538,6 +694,11 @@ function MeterGlyph() {
 export function describeGate(g: Gate): string {
   const spec = GATES[g.type];
   const param = g.params.length > 0 ? `, angle ${formatParam(g.params[0])}` : "";
+  if (g.type === "barrier") {
+    return g.targets.length > 1
+      ? `Barrier across qubits ${Math.min(...g.targets)} to ${Math.max(...g.targets)}, column ${g.column}`
+      : `Barrier on qubit ${g.targets[0]}, column ${g.column}`;
+  }
   if (g.controls.length > 0) {
     return `${spec.name}, control on qubit ${g.controls.join(" and ")}, target on qubit ${g.targets.join(" and ")}, column ${g.column}${param}`;
   }
@@ -554,5 +715,9 @@ export function circuitSummary(c: Circuit): string {
 }
 
 function gateAtSlot(c: Circuit, q: number, col: number): Gate | undefined {
-  return c.gates.find((g) => g.column === col && gateQubits(g).includes(q));
+  return c.gates.find((g) => {
+    if (g.column !== col) return false;
+    if (g.type === "barrier") return q >= Math.min(...g.targets) && q <= Math.max(...g.targets);
+    return gateQubits(g).includes(q);
+  });
 }

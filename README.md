@@ -9,7 +9,7 @@ what to do about it.
 ```bash
 npm install
 npm run dev          # http://localhost:3000
-npm test             # 191 tests: physics, tutor, curriculum, challenges, mastery, errors
+npm test             # 375 tests: physics, tutor, curriculum, import/export, optimiser, density, placement
 ```
 
 No Docker, no database. The simulator, the grader and the tutor's rule engine
@@ -37,26 +37,34 @@ a function over the IR.
 | Lesson player, six beats, 19 nodes | `/lesson/[nodeId]` | Built |
 | **Challenges** — 14 puzzles across reach, golf and bug hunt | `/challenges` | Built |
 | **Challenge runner** — hints on ask, solutions after three misses | `/challenges/[id]` | Built |
-| Workbench | `/build` | Built |
+| Workbench — five state views, editable Qiskit and OpenQASM, import, export, save, share | `/build` | Built |
+| **Shared circuit** — read-only, run on arrival, fork into your bench | `/build/[circuitId]` | Built |
 | **Tutor chat** — docked beside the circuit on the bench, lessons and challenges | ⌘/ or "Ask the tutor" | Built |
 | **Qubit playground** — θ and φ, six gates, measure and collapse, a hundred fresh copies | `/playground` | Built |
-| **Instructor console** — misconception heatmap, cohort completion | `/teach` | Built |
-| **Progress** — units, beliefs held and resolved, challenge record | `/profile` | Built |
+| **Instructor console** — misconception heatmap, cohort completion, CSV export | `/teach` | Built |
+| **Challenge authoring** — build the answer, the target is derived from it | `/teach/author` | Built |
+| **Tracks** — Optimisation, Cryptography, Simulation: framing, hours, capstones | `/tracks`, `/tracks/[trackId]` | Built |
+| **Completion record** — shows whether it was edited, and says what it can't prove | `/record/[code]` | Built |
+| **Progress** — units, beliefs held and resolved, challenge record, what next and why | `/profile` | Built |
 | Review bench (retention decay + SM-2) | `/review` | Built |
+| **Settings** — mode, name, theme, usage log on/off, export and delete your data | `/settings` | Built |
+| **Docs** — IR schema, conventions, formats, keyboard, limits | `/docs` | Built |
 | Gate reference | `/reference` | Built |
 
 ### The engine
 
 | Module | What it does |
 |---|---|
-| `lib/ir/` | The frozen IR schema (TRD §4), gate registry with unitaries, the ten validation invariants, canonical hash |
-| `lib/sim/` | State-vector simulator, reduced density matrices, Bloch vectors, purity, separability, shot sampling, a noise model |
-| `components/viz/` | Bloch sphere in WebGL (three.js) with an SVG peer view, probability histogram, state-vector table |
+| `lib/ir/` | The frozen IR schema (TRD §4), gate registry with unitaries, the ten validation invariants, canonical hash, as-soon-as-possible column layout |
+| `lib/sim/` | State-vector simulator, reduced density matrices for any subset of wires, Bloch vectors, purity, von Neumann entropy, pairwise links, separability, shot sampling, a noise model |
+| `components/viz/` | Bloch sphere in WebGL (three.js) with an SVG peer view, probability histogram, state-vector table, density-matrix heatmap, pair links |
 | `lib/grade/` | Fidelity grading — global-phase invariant, state-based, never structural |
-| `lib/tutor/` | The deterministic rule engine, L01–L13, mapped to misconceptions M1–M14 — and the chat around it: corpus, BM25 retrieval, server-built circuit context, sentence-level output guard, built-in guide |
+| `lib/tutor/` | The deterministic rule engine, L01–L13, mapped to misconceptions M1–M14; the shorter-equivalent optimiser; and the chat around it: corpus, BM25 retrieval, server-built circuit context, sentence-level output guard, built-in guide |
 | `app/api/tutor/` | Streams the tutor as NDJSON — Claude when a key is set, the built-in guide otherwise |
-| `lib/render/` | Qiskit, Cirq, PennyLane, Q# and OpenQASM 3 renderers — pure `IR → str`, zero network |
-| `lib/curriculum/` | U0–U3 as data: 19 nodes, each with hook, task, target, instruction, pass note and a retrieval prompt |
+| `lib/render/` | Qiskit, Cirq, PennyLane, Q# and OpenQASM 3 renderers — pure `IR → str`, zero network; mid-circuit reads stay where they happen |
+| `lib/io/` | OpenQASM 2/3 and Qiskit readers (no `eval`, located errors), Jupyter export, circuit-in-the-URL share links |
+| `lib/curriculum/` | U0–U3 as data: 19 nodes, each with hook, task, target, instruction, pass note and a retrieval prompt; tracks, completion records, and the what-next recommender |
+| `lib/analytics.ts` | PRD §8's event taxonomy, typed, logged pseudonymously to this browser |
 
 ### What is genuinely correct, not approximated
 
@@ -245,22 +253,58 @@ kets, readouts, axis ticks.
 
 | | Guided | Workbench | Track |
 |---|---|---|---|
-| Lands on | `/path` | `/build` | `/path` |
+| Lands on | `/path` | `/build`, code lane open | `/tracks` |
+| Nav | Path, Challenges, Bench, Review, Progress | Bench, Docs | Tracks, Challenges, Bench, Review, Progress |
 | XP, badges | Visible | **Hidden** | Hidden |
 | Streak | Visible | **Hidden** | Visible |
 | Tutor | Proactive on failure | **Only when invoked** | Curriculum-linked |
 | Locked gates | Per node | No | Per track |
+| Qubit cap | 12 | 16 | 12 |
 
 Workbench mode producing any proactive tutor output is a P1 defect, not a
-preference — it is asserted in the E2E suite.
+preference — it is asserted in the E2E suite. A shorter-equivalent suggestion
+is never proactive in any mode: it waits behind "Diagnosis" on the bench and
+appears on the lesson's pass screen, after the work is done.
+
+The PRD asks for 20 qubits in Workbench. Assumption A1's fallback applies: the
+browser simulator keeps the state after every column for the scrubber, and
+2²⁰ amplitudes per column does not fit, so the cap is 16 and the bench says so
+where the stepper stops.
+
+---
+
+## Code in, code out
+
+The code panel edits **Qiskit** and **OpenQASM**; Cirq, PennyLane and Q# are
+rendered. Applying an edit replaces the canvas as one undoable change. An edit
+is never overwritten by a canvas change (E3-S6) — the notice holds both until
+you pick one.
+
+Reading code does not run it. The Qiskit reader accepts straight-line
+construction: one `QuantumCircuit(n, m)`, one gate call per statement, angles
+as numbers, π expressions or names bound to them. Loops, functions, registers,
+`compose`, custom gates, modifiers and classical control are refused with the
+line, the column and the construct named, because a skipped line is a
+different circuit. Arbitrary Python still needs the sandbox in TRD §8.
+
+Text has no columns, so imports are laid out as early as each gate can go.
+Round-tripping any circuit through QASM or Qiskit gives back the same IR with
+its gaps closed — asserted over every fixture and every challenge answer in
+`tests/io.test.ts`. Rendering keeps mid-circuit measurements where they happen
+in all five dialects; previously they were gathered at the end, which changes
+the physics.
+
+**Share** copies `/build/<circuit>`: the path segment is the circuit, encoded.
+Nothing is uploaded, the link is validated like any other input, and the page
+it opens is read-only with a fork button.
 
 ---
 
 ## Testing
 
 ```bash
-npm test                            # 191 unit tests, blocking
-node tests/e2e/demo.spec.mjs        # 28 browser checks (needs a running server)
+npm test                            # 375 unit tests, blocking
+node tests/e2e/demo.spec.mjs        # 45 browser checks (needs a running server)
 node tests/e2e/shots.mjs            # screenshots of every surface
 ```
 
@@ -268,115 +312,112 @@ node tests/e2e/shots.mjs            # screenshots of every surface
 hand-verified circuits asserted to 1e-9, plus endianness, grading and Bloch
 correctness. If it fails, the product is showing wrong physics.
 
+`tests/optimise.test.ts` checks every suggested rewrite against random input
+states, not only |0…0⟩, because a rewrite that only agrees on |0⟩ is not an
+identity.
+
 ---
 
 ## What is left
 
-Audited against the PRD epics, not from memory. **M** = MVP-blocking in the PRD's
-own MoSCoW, **S** = v1.
+Audited against the PRD epics. **M** = MVP-blocking in the PRD's own MoSCoW,
+**S** = v1.
 
-### Blocking the loop (M)
-
-| # | Gap | Why it matters |
-|---|---|---|
-| E1 | **No accounts.** Everything is anonymous and local. | Needed before progress can follow a learner across devices. Requires the backend. |
-| E3-S3 | **Code → IR.** The editor renders but does not parse. | The researcher's entry path. TRD §5 requires executing in a sandbox and introspecting the SDK object, so it belongs with the backend. |
-
-### The backend (M, and everything downstream of it)
+### Needs the backend
 
 Nothing below can be honest without a server: FastAPI gateway, Postgres, Redis,
-Celery, and the Docker sandbox (TRD §8). These carry auth, persistence,
-multi-SDK *execution* (as opposed to rendering, which is done), the execution
-cache, and rate limits.
+Celery, and the Docker sandbox (TRD §8).
 
-### Closed in this pass
+| # | Gap | Where the frontend stands |
+|---|---|---|
+| E1 (M) | **Accounts**, progress across devices | Everything is local to one browser, and Settings says so |
+| E3-S3 (M) | **Arbitrary Python** → IR | Straight-line Qiskit is read in the browser; anything needing execution is refused by name |
+| E4-S1, S2, S6, S7 (M/S) | Queued, sandboxed execution on Aer/Cirq/PennyLane, result cache | Runs in the browser simulator |
+| E9 (M) | **Arena** — matchmaking, Elo, server-decided winner | Not started; cannot be faked |
+| E10-S1, S4, S5 | Roster import, assignments, a student's submission | Heatmap, completion and CSV export run on a seeded cohort, labelled as seeded |
+| E8-S5, E8-S6, E11 | Signed records, publishing authored challenges, circuits across devices | Records are tamper-evident but unsigned; authored challenges and saved circuits stay in the browser that made them |
+| SEC5 | Rate limits | Only the tutor's in-memory limiter |
+
+### Not done, and not blocked
+
+- **Internationalisation** (PRD §7.7). UI strings are still written in the
+  components. Externalising them is a mechanical sweep across every screen and
+  was left for its own pass.
+- **Units U4–U8.** Content, not code, and decision D9 chose U0–U3 deep.
+- **Grover rule L06** exists but cannot fire yet: there is no Grover content
+  and no multi-controlled Z.
+- **`tutor_feedback`** is in the event taxonomy but the dock has no
+  helpful/not-helpful control.
+- Design Doc keys **⌘K** (command palette), **[ ]** (collapse lanes) and
+  **Space** (play the scrubber); the optional **placement check** at onboarding.
+- The density-matrix grid draws up to four wires; wider registers offer single
+  wires and pairs.
+
+### Closed in the frontend completion pass
+
+- **Code → canvas** (E3-S3 in the browser, E3-S6): editable Qiskit and
+  OpenQASM, located parse errors, apply/discard, restricted to the node's gates
+  in lessons and challenges.
+- **Q# and OpenQASM in the SDK toggle** (E3-S2). Both renderers existed; neither
+  was offered.
+- **OpenQASM import and Jupyter export** (E3-S4, E3-S5).
+- **Toffoli placement.** The bench collected one control and produced a CCX
+  that failed validation. Multi-wire placement now collects every wire, which
+  also gives **barriers a span** (E2-S7).
+- **Keyboard grammar** (E2-S8): rotations, S†/T†, phase, reset, CZ, Toffoli,
+  SWAP, barrier, select, move, and a `?` shortcut sheet.
+- **Removing a wire asks first** (E2-S4); the qubit cap follows the mode.
+- **Density matrix view** with purity and entropy on any subsystem (E5-S5), and
+  **pairwise entanglement** as brackets on the canvas and a pair list (E5-S6).
+- **Shorter equivalents** (E7-S6): cancellations, phase merges, rotation merges
+  and H·X·H, each verified by simulation; offered after a pass, applied as one
+  undoable edit.
+- **What next, and why** (E7-S7) on the path and progress pages, from mastery
+  gates, recurring misconceptions and retention.
+- **Tracks and completion records** (E6-S6, E8-S5), **challenge authoring**
+  (E8-S6), **cohort CSV export** with formula injection neutralised (E10-S6,
+  SEC9).
+- **Saved circuits and share links** (E11-S1, E11-S2).
+- **Settings and Docs** routes; mode change (E1-S3), data export and deletion
+  (§7.4).
+- **Analytics** (§8): the typed taxonomy, including the S2, S3 and S4 events
+  the PRD says to instrument first, logged locally and switchable off.
+- Mid-circuit **measurements are marked** on the canvas (E2-S5); locked gates
+  name the node that unlocks them (E2-S9); the top bar no longer overlaps
+  itself on a phone.
+
+### Closed in earlier passes
 
 **The team palette.** Night (violet and gold, from the teammate's prototype) is
-now the default theme and the paper is Day. The colours were adopted; the
+the default theme and the paper is Day. The colours were adopted; the
 prototype's failing contrast values were not — see the design system above.
 
-**The tutor chat** (E7-S3, E7-S6). Claude phrasing over the rule engine,
-grounded in a server-side re-simulation of the learner's circuit and in the
-platform's own curriculum, with a built-in guide that answers when there is no
-key or no service. Covered by `tests/tutor-chat.test.ts`, by
-`tests/tutor-claude.test.ts` — the Claude path against a scripted SDK: the
-request shape, refusals, and failures before and after the first sentence —
-and by two browser checks. The live API itself is exercised only when a key is
-set.
+**The tutor chat** (E7-S3). Claude phrasing over the rule engine, grounded in a
+server-side re-simulation of the learner's circuit and in the platform's own
+curriculum, with a built-in guide that answers when there is no key or no
+service. Covered by `tests/tutor-chat.test.ts` and `tests/tutor-claude.test.ts`.
 
-**The qubit playground** (`/playground`), ported from the prototype with three
-changes: the real 3D sphere, the registry's own gate matrices, and repeatable
-measurement — a collapsed state stays collapsed when measured again, and a
-hundred fresh copies turn the probability into counts.
+**The qubit playground** (`/playground`), ported from the prototype with the
+real 3D sphere, the registry's own gate matrices, and repeatable measurement.
+Not ported: the prototype's sign-in forms, which could only pretend to create
+an account.
 
-Not ported: the prototype's sign-in and sign-up forms. With no backend they
-could only pretend to create an account, and E1 is waiting on a real one.
-
-### Closed in the previous pass
-
-**Challenges** (E8). Fourteen puzzles in three kinds — reach anything that gets
-there, golf for the fewest gates, bug hunt on a circuit handed to you broken.
-Cards preview the target shape so you pick one by recognition. A hint is
-offered only after a miss and only when asked; a full answer opens after three,
-per PRD §11.2. Every challenge carries a reference solution, which is what
-`tests/solvable.test.ts` asserts against — brute forcing a five-gate answer out
-of a hundred-move palette is a hang, not a test.
+**Challenges** (E8). Fourteen puzzles in three kinds. A hint is offered only
+after a miss and only when asked; a full answer opens after three. Every
+challenge carries a reference solution that `tests/solvable.test.ts` asserts.
 
 **Instructor console** (E10). The heatmap leads, ranked by students affected,
-because an instructor has ninety seconds before class and the top row has to be
-the thing that changes the lecture. Rule ids and misconception ids are the real
-ones the engine emits, so swapping the seeded source for a query over
-`misconception_events` keeps the shape. Labelled as seeded in the header rather
-than when asked.
+with the real rule and misconception ids, labelled as seeded in the header.
 
-**Progress** (`/profile`). Unit rings carry completion on the arc and
-first-attempt accuracy in the middle. The interesting half is the belief
-record: every rule the tutor fired on your circuits, and whether the node it
-fired on has since been passed — "worked out" versus "still open".
+**Progress** (`/profile`). Unit rings, and the belief record: every rule the
+tutor fired on your circuits, and whether you have since worked it out.
 
-### v1 surfaces (S)
+**The bench survives a refresh** (E11-S3); **mastery is enforced** (E6-S3) with
+a consolidation door for anyone below 80%; **run failures each name a cause and
+a fix** (E4-S4), checked before the run wherever possible.
 
-| Epic | Surface | Note |
-|---|---|---|
-| E9 | **Arena** — matchmaking, Elo, server-authoritative resolution | Needs a server to be authoritative. Cannot be faked. |
-| E10 | Instructor console against **real** cohort data | The screen is built; it reads a seeded cohort until there is a database to query. |
-| E11-S1/S2 | Saved circuits, permalinks, fork | |
-| E5-S4/S6 | Density matrix view, per-pair entanglement indicator on the canvas | The wire-level indicator exists; the pairwise one does not. |
-| E3-S4/S5 | QASM import, Jupyter export | QASM *export* is written; import is not. |
-| — | **Units U4–U8** | The spine is authored as data; adding a unit is content, not code. |
-| E7-S7 | Optimisation suggestions | LLM phrasing and grounding are built (the tutor chat). The rule engine stays the diagnostic; the model phrases over it. |
-
-### Closed since the first pass
-
-**The bench survives a refresh** (E11-S3). The working circuit, shot count and
-noise level persist; a lesson deliberately does not restore, because a node has
-to open on its own starting circuit. Clear means cleared, across reloads.
-
-**Mastery is enforced** (E6-S3). A unit opens the next one at 80% first-attempt
-accuracy — or, below that, once the missed nodes have been re-derived. The
-second door matters: first-attempt accuracy is a fixed historical fact, so a
-gate that only accepted the first would be permanently unwinnable for anyone who
-had a bad night. Consolidation is labelled, is not scored again, and awards no
-second XP. Fixing this exposed a bypass — the Up Next card was offering locked
-nodes, because `currentNodeId` fell back to "the first unpassed node" regardless
-of state. Lessons now refuse a locked node outright rather than trusting the
-route.
-
-**Run failures each name a cause and a fix** (E4-S4). A typed taxonomy —
-`invalid`, `qubit_cap`, `gate_limit`, `too_large`, `timeout` — checked *before*
-the run wherever it can be, so an oversized circuit is blocked rather than
-freezing the tab and then reporting a timeout of our own making. No message ever
-contains a stack trace, and a failed run never costs the circuit. An empty
-circuit still runs, because |00…0⟩ at 100% is correct.
-
-### Fixed earlier
-
-- **Rotation gates had no parameter control at all.** `tests/solvable.test.ts`
-  proved three nodes — u0.n2, u1.n5, u1.n6 — had no reachable answer, so a
-  learner stalled at node 2 of 19. The dial and π-expression field now exist and
-  every node is verified solvable with the dial alone.
-- CNOT and CZ rendered as bare "X" and "Z" in the tray, indistinguishable from
-  the Pauli gates beside them.
+- Rotation gates had no parameter control, which left three nodes unsolvable.
+- CNOT and CZ rendered as bare "X" and "Z" in the tray.
 - The bench dropped CNOT entirely in Guided mode.
 - The entanglement indicator dashed the whole wire, including before the gate
   that caused it.

@@ -26,8 +26,10 @@ import { GATES } from "@/lib/ir/gates";
 import { firstFreeColumn, slotIsFree, validate } from "@/lib/ir/validate";
 import { simulate, type SimResult } from "@/lib/sim/statevector";
 import { grade, type GradeResult, type Target } from "@/lib/grade/fidelity";
-import { primaryDiagnosis, type Finding, type SuggestedFix } from "@/lib/tutor/rules";
+import { diagnose, primaryDiagnosis, type Finding, type SuggestedFix } from "@/lib/tutor/rules";
+import { optimisationFinding } from "@/lib/tutor/optimise";
 import { sampleCounts, applyGateNoise, scaleNoise, type Counts } from "@/lib/sim/sample";
+import { track } from "@/lib/analytics";
 import { MODE, useSession } from "./sessionStore";
 
 const UNDO_DEPTH = 60;
@@ -54,9 +56,31 @@ export interface RunOutput {
   counts: Counts;
   grade: GradeResult | null;
   finding: Finding | null;
+  /**
+   * Something worth knowing that is not a failure: a shorter equivalent
+   * circuit (E7-S6), or an advisory lint. Null whenever there is a blocking
+   * finding — one correction at a time. Shown after a pass, or on request;
+   * never proactively in Workbench mode.
+   */
+  advice: Finding | null;
   shots: number;
   noiseLevel: number;
   at: number;
+}
+
+/**
+ * A multi-wire gate waiting for its remaining wires. `picked` holds the wires
+ * chosen so far in placement order — controls first, then targets — and
+ * `need` is how many it takes. A Toffoli needs three; a barrier needs its
+ * first and last wire.
+ */
+export interface PendingPlacement {
+  type: GateType;
+  /** The first wire picked. Kept by name because it is what the canvas reads. */
+  control: number;
+  column: number;
+  picked: number[];
+  need: number;
 }
 
 interface CircuitState {
@@ -69,8 +93,8 @@ interface CircuitState {
 
   /** The gate the learner has picked up but not yet placed. */
   held: { type: GateType; params: number[] } | null;
-  /** A two-qubit placement waiting for its second wire. */
-  pendingControl: { type: GateType; control: number; column: number } | null;
+  /** A multi-wire placement waiting for its remaining wires. */
+  pendingControl: PendingPlacement | null;
   selectedGateId: string | null;
   /** Gate ids the tutor is pointing at. Highlighted on the canvas. */
   highlighted: string[];
@@ -87,6 +111,10 @@ interface CircuitState {
 
   // -- actions
   setCircuit(c: Circuit): void;
+  /** Swap in a whole circuit as one undoable edit — imports, code, the optimiser. */
+  replaceCircuit(c: Circuit): void;
+  /** Names the circuit. Not an undoable edit: it changes no physics. */
+  setName(name: string | undefined): void;
   reset(qubits?: number): void;
 
   hold(type: GateType, params?: number[]): void;
@@ -104,6 +132,8 @@ interface CircuitState {
 
   addQubit(): void;
   removeQubit(): void;
+  /** Removes one wire and every gate on it; wires below move up. */
+  removeQubitAt(qubit: number): void;
 
   select(id: string | null): void;
   highlight(ids: string[]): void;
@@ -116,7 +146,8 @@ interface CircuitState {
   redo(): void;
 
   execute(target?: Target): void;
-  applyFix(fix: SuggestedFix): void;
+  /** Applies a tutor suggestion. `misconceptionId` is only for the S4 metric. */
+  applyFix(fix: SuggestedFix, misconceptionId?: string | null): void;
   clearRun(): void;
 
   /** Persist the bench's working circuit so a refresh does not cost it. */
@@ -174,6 +205,24 @@ export const useCircuit = create<CircuitState>((set, get) => {
       });
     },
 
+    replaceCircuit(c) {
+      mutate((d) => {
+        const next = cloneCircuit(c);
+        d.qubits = next.qubits;
+        d.clbits = next.clbits;
+        d.gates = next.gates;
+        // A name the incoming circuit does not carry keeps the one the bench had.
+        d.metadata = { ...d.metadata, ...next.metadata, name: next.metadata.name ?? d.metadata.name };
+      });
+      set({ scrubColumn: null, highlighted: [], selectedGateId: null, pendingControl: null, held: null });
+    },
+
+    setName(name) {
+      const { circuit, version } = get();
+      const clean = name?.replace(/\s+/g, " ").trim().slice(0, 80) || undefined;
+      set({ circuit: { ...circuit, metadata: { ...circuit.metadata, name: clean } }, version: version + 1 });
+    },
+
     reset(qubits) {
       const n = qubits ?? get().circuit.qubits;
       get().setCircuit(emptyCircuit(n));
@@ -189,12 +238,10 @@ export const useCircuit = create<CircuitState>((set, get) => {
 
     place(type, qubit, column, params) {
       const spec = GATES[type];
-      // A controlled gate cannot be placed in one action: it needs a second wire.
-      if (spec.controlArity > 0) {
-        get().beginControlled(type, qubit, column);
-        return null;
-      }
-      if (spec.targetArity > 1) {
+      // A multi-wire gate cannot be placed in one action: it needs its other
+      // wires. A barrier is placed the same way, by its first and last wire.
+      if (spec.controlArity > 0 || spec.targetArity > 1 || type === "barrier") {
+        if (qubit < 0 || qubit >= get().circuit.qubits) return null;
         get().beginControlled(type, qubit, column);
         return null;
       }
@@ -223,17 +270,46 @@ export const useCircuit = create<CircuitState>((set, get) => {
     },
 
     beginControlled(type, control, column) {
-      set({ pendingControl: { type, control, column }, held: { type, params: defaultParams(type) } });
+      const spec = GATES[type];
+      const need = type === "barrier" ? 2 : spec.controlArity + spec.targetArity;
+      set({
+        pendingControl: { type, control, column, picked: [control], need },
+        held: { type, params: defaultParams(type) },
+      });
     },
 
-    completeControlled(target) {
+    completeControlled(wire) {
       const pending = get().pendingControl;
       if (!pending) return null;
-      if (target === pending.control) return null;
-
       const c = get().circuit;
+      if (wire < 0 || wire >= c.qubits) return null;
+
       const spec = GATES[pending.type];
-      const wires = [pending.control, target];
+      const isBarrier = pending.type === "barrier";
+
+      // A barrier may start and end on the same wire; nothing else may use a
+      // wire twice.
+      if (!isBarrier && pending.picked.includes(wire)) return null;
+
+      const picked = [...pending.picked, wire];
+      if (picked.length < pending.need) {
+        set({ pendingControl: { ...pending, picked } });
+        return null;
+      }
+
+      let targets: number[];
+      let controls: number[];
+      if (isBarrier) {
+        const lo = Math.min(...picked);
+        const hi = Math.max(...picked);
+        targets = Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
+        controls = [];
+      } else {
+        controls = picked.slice(0, spec.controlArity);
+        targets = picked.slice(spec.controlArity);
+      }
+
+      const wires = [...controls, ...targets];
       const col = slotIsFree(c, pending.column, wires)
         ? pending.column
         : firstFreeColumn(c, wires, pending.column);
@@ -243,9 +319,8 @@ export const useCircuit = create<CircuitState>((set, get) => {
         d.gates.push({
           id,
           type: pending.type,
-          // SWAP has two targets and no control; everything else is control→target.
-          targets: spec.controlArity === 0 ? [pending.control, target] : [target],
-          controls: spec.controlArity === 0 ? [] : [pending.control],
+          targets,
+          controls,
           params: defaultParams(pending.type),
           column: col,
         });
@@ -307,7 +382,8 @@ export const useCircuit = create<CircuitState>((set, get) => {
 
     addQubit() {
       const c = get().circuit;
-      if (c.qubits >= 12) return;
+      // The tier cap is the mode's, not a constant (PRD §6.3).
+      if (c.qubits >= MODE[useSession.getState().mode].maxQubits) return;
       mutate((d) => {
         d.qubits += 1;
         d.clbits += 1;
@@ -315,14 +391,35 @@ export const useCircuit = create<CircuitState>((set, get) => {
     },
 
     removeQubit() {
+      get().removeQubitAt(get().circuit.qubits - 1);
+    },
+
+    removeQubitAt(doomed) {
       const c = get().circuit;
-      if (c.qubits <= 1) return;
-      const doomed = c.qubits - 1;
+      if (c.qubits <= 1 || doomed < 0 || doomed >= c.qubits) return;
+      const shift = (q: number) => (q > doomed ? q - 1 : q);
+
       mutate((d) => {
-        d.gates = d.gates.filter((g) => !gateQubits(g).includes(doomed));
+        d.gates = d.gates
+          .map((g) => {
+            if (g.type === "barrier") {
+              const kept = g.targets.filter((q) => q !== doomed).map(shift);
+              return kept.length > 0 ? { ...g, targets: kept } : null;
+            }
+            if (gateQubits(g).includes(doomed)) return null;
+            const moved = { ...g, targets: g.targets.map(shift), controls: g.controls.map(shift) };
+            if (g.type === "measure" && g.clbit !== undefined) {
+              // Bits follow their wires down. A read into the removed wire's
+              // bit from another wire moves to that wire's own bit.
+              moved.clbit = g.clbit === doomed ? moved.targets[0] : shift(g.clbit);
+            }
+            return moved;
+          })
+          .filter((g): g is Gate => g !== null);
         d.qubits -= 1;
-        d.clbits -= 1;
+        d.clbits = Math.max(d.qubits, d.clbits - 1);
       });
+      set({ selectedGateId: null, highlighted: [] });
     },
 
     select(id) {
@@ -378,6 +475,7 @@ export const useCircuit = create<CircuitState>((set, get) => {
       // and then reporting a timeout it caused itself.
       const problem = precheck(circuit);
       if (problem) {
+        track("run_failed", { error_type: problem.code });
         set({ error: problem, running: false, highlighted: problem.gateId ? [problem.gateId] : [] });
         return;
       }
@@ -407,6 +505,7 @@ export const useCircuit = create<CircuitState>((set, get) => {
 
         // The circuit is preserved either way — a failed run never costs work.
         if (performance.now() - started > EXEC_TIMEOUT_MS) {
+          track("run_failed", { error_type: "timeout" });
           set({
             running: false,
             error: {
@@ -419,17 +518,38 @@ export const useCircuit = create<CircuitState>((set, get) => {
         }
 
         const graded = target ? grade(result, target) : null;
-        const finding = target
-          ? primaryDiagnosis({ circuit, result, target, grade: graded!, noiseLevel })
-          : primaryDiagnosis({ circuit, result, noiseLevel });
+        const ctx = target
+          ? { circuit, result, target, grade: graded!, noiseLevel }
+          : { circuit, result, noiseLevel };
+        const finding = primaryDiagnosis(ctx);
+
+        // Advice only when nothing is wrong, and only where it is cheap: the
+        // optimiser re-simulates, and a wide register is not where a learner
+        // is golfing gate counts.
+        const advice =
+          finding || circuit.qubits > 10 || (graded && !graded.passed)
+            ? null
+            : optimisationFinding(circuit) ?? diagnose(ctx).find((f) => f.severity === "advisory") ?? null;
+
+        const durationMs = Math.round(performance.now() - started);
+        track("circuit_run", {
+          qubits: circuit.qubits,
+          gate_count: circuit.gates.filter((g) => g.type !== "barrier").length,
+          backend: "browser",
+          shots,
+          noise: noiseLevel,
+          cached: false,
+          duration_ms: durationMs,
+        });
 
         set({
-          run: { result, counts, grade: graded, finding, shots, noiseLevel, at: Date.now() },
+          run: { result, counts, grade: graded, finding, advice, shots, noiseLevel, at: Date.now() },
           running: false,
           highlighted: finding?.gateIds ?? [],
           scrubColumn: null,
         });
       } catch (e) {
+        track("run_failed", { error_type: "too_large" });
         set({
           running: false,
           error: {
@@ -443,8 +563,13 @@ export const useCircuit = create<CircuitState>((set, get) => {
       }
     },
 
-    applyFix(fix) {
+    applyFix(fix, misconceptionId = null) {
+      // PRD §8, metric S4 — "the real signal": did the learner take the advice.
+      track("tutor_suggestion_applied", { misconception_id: misconceptionId, applied: true });
       switch (fix.kind) {
+        case "replace_circuit":
+          get().replaceCircuit(fix.circuit);
+          break;
         case "add_gate": {
           const c = get().circuit;
           const wires = [...fix.controls, ...fix.targets];
@@ -581,9 +706,11 @@ function precheck(circuit: Circuit): RunError | null {
   // 3 — the work this would actually cost. Every column is captured for the
   // scrubber, so cost is 2^n amplitudes times depth, and blocking here is what
   // prevents a frozen tab followed by a timeout of our own making.
+  // 10M amplitudes is ~160MB of snapshots. At the Workbench cap of 16 qubits
+  // that still allows a depth of 150, which is past anything built by hand.
   const depth = circuitDepth(circuit) + 1;
   const amplitudes = 2 ** circuit.qubits;
-  if (amplitudes * Math.max(1, depth) > 40_000_000) {
+  if (amplitudes * Math.max(1, depth) > 10_000_000) {
     return {
       code: "too_large",
       message:

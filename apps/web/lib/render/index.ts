@@ -58,7 +58,9 @@ function pyParam(theta: number, piSymbol: string): string {
       return d === 1 ? `${sign}${num}` : `${sign}${num} / ${d}`;
     }
   }
-  return theta.toFixed(6);
+  // Ten places: enough that importing this code back reproduces the circuit
+  // exactly (the canonical hash rounds to nine), with trailing zeros trimmed.
+  return String(Number(theta.toFixed(10)));
 }
 
 function hasParams(c: Circuit): boolean {
@@ -69,10 +71,42 @@ function ops(c: Circuit): Gate[] {
   return inExecutionOrder(c.gates).filter((g) => g.type !== "barrier");
 }
 
+/** Every gate in time order, barriers included, for SDKs that can draw them. */
+function withBarriers(c: Circuit): Gate[] {
+  return inExecutionOrder(c.gates);
+}
+
 function measured(c: Circuit): Gate[] {
   return ops(c)
     .filter((g) => g.type === "measure")
     .sort((a, b) => (a.clbit ?? 0) - (b.clbit ?? 0));
+}
+
+/**
+ * Measurements that something coherent happens after, on the same wire.
+ *
+ * These cannot be gathered into one read at the end: moving them changes the
+ * physics (misconception M7 is exactly this). Terminal reads can, and are,
+ * because that is how people write them. The rule matches the simulator's.
+ */
+function midCircuit(c: Circuit): Set<string> {
+  const ordered = ops(c);
+  const mid = new Set<string>();
+  for (const g of ordered) {
+    if (g.type !== "measure") continue;
+    const wire = g.targets[0];
+    if (ordered.some((o) => o.column > g.column && o.type !== "measure" && gateQubits(o).includes(wire))) {
+      mid.add(g.id);
+    }
+  }
+  return mid;
+}
+
+/** Barriers spell their span out wire by wire. */
+function barrierWires(g: Gate): number[] {
+  const lo = Math.min(...g.targets);
+  const hi = Math.max(...g.targets);
+  return g.targets.length > 1 ? Array.from({ length: hi - lo + 1 }, (_, i) => lo + i) : g.targets;
 }
 
 /* -- Qiskit ------------------------------------------------------------------ */
@@ -87,8 +121,14 @@ export function renderQiskit(c: Circuit): string {
   lines.push(`qc = QuantumCircuit(${c.qubits}, ${c.clbits})`);
 
   const measures: Gate[] = [];
-  for (const g of ops(c)) {
-    if (g.type === "measure") { measures.push(g); continue; }
+  const mid = midCircuit(c);
+  for (const g of withBarriers(c)) {
+    if (g.type === "barrier") { lines.push(`qc.barrier(${barrierWires(g).join(", ")})`); continue; }
+    if (g.type === "measure") {
+      if (mid.has(g.id)) lines.push(`qc.measure(${g.targets[0]}, ${g.clbit ?? 0})`);
+      else measures.push(g);
+      continue;
+    }
     const name = GATES[g.type].sdk.qiskit;
     const args: string[] = g.params.map((p) => pyParam(p, "np.pi"));
     // Qiskit takes controls first, then targets.
@@ -122,8 +162,14 @@ export function renderCirq(c: Circuit): string {
   lines.push("circuit = cirq.Circuit([");
 
   const measures: Gate[] = [];
+  const mid = midCircuit(c);
   for (const g of ops(c)) {
-    if (g.type === "measure") { measures.push(g); continue; }
+    if (g.type === "measure") {
+      // A mid-circuit read keeps its place, under its own key.
+      if (mid.has(g.id)) lines.push(`    cirq.measure(q[${g.targets[0]}], key='c${g.clbit ?? 0}'),`);
+      else measures.push(g);
+      continue;
+    }
     lines.push(`    ${cirqOp(g)},`);
   }
   if (measures.length > 0) {
@@ -175,14 +221,21 @@ export function renderPennyLane(c: Circuit): string {
   lines.push("def circuit():");
 
   let body = 0;
-  for (const g of ops(c)) {
-    if (g.type === "measure") continue; // PennyLane declares reads in the return
+  const mid = midCircuit(c);
+  for (const g of withBarriers(c)) {
+    if (g.type === "barrier") { lines.push(`    qml.Barrier(wires=[${barrierWires(g).join(", ")}])`); continue; }
+    if (g.type === "measure") {
+      // Terminal reads are declared in the return. A mid-circuit one is a
+      // real operation in PennyLane and has to stay where it is.
+      if (mid.has(g.id)) { lines.push(`    qml.measure(${g.targets[0]})`); body += 1; }
+      continue;
+    }
     lines.push(`    ${pennylaneOp(g)}`);
     body += 1;
   }
   if (body === 0) lines.push("    qml.Identity(wires=0)");
 
-  const reads = measured(c).map((g) => g.targets[0]);
+  const reads = measured(c).filter((g) => !mid.has(g.id)).map((g) => g.targets[0]);
   const wires = reads.length > 0 ? reads : [...Array(c.qubits).keys()];
   lines.push(`    return qml.probs(wires=[${wires.join(", ")}])`);
   lines.push("");
@@ -223,8 +276,13 @@ export function renderQSharp(c: Circuit): string {
   lines.push("    operation Run() : Result[] {");
   lines.push(`        use q = Qubit[${c.qubits}];`);
 
+  const mid = midCircuit(c);
   for (const g of ops(c)) {
-    if (g.type === "measure") continue; // handled by the trailing ForEach
+    if (g.type === "measure") {
+      // Terminal reads are the trailing ForEach. A mid-circuit read happens here.
+      if (mid.has(g.id)) lines.push(`        let c${g.clbit ?? 0} = M(q[${g.targets[0]}]);`);
+      continue;
+    }
     lines.push(`        ${qsharpOp(g)}`);
   }
 
@@ -269,8 +327,17 @@ export function renderQasm(c: Circuit): string {
   lines.push("");
 
   const measures: Gate[] = [];
-  for (const g of ops(c)) {
-    if (g.type === "measure") { measures.push(g); continue; }
+  const mid = midCircuit(c);
+  for (const g of withBarriers(c)) {
+    if (g.type === "barrier") {
+      lines.push(`barrier ${barrierWires(g).map((i) => `q[${i}]`).join(", ")};`);
+      continue;
+    }
+    if (g.type === "measure") {
+      if (mid.has(g.id)) lines.push(`c[${g.clbit ?? 0}] = measure q[${g.targets[0]}];`);
+      else measures.push(g);
+      continue;
+    }
     const name = GATES[g.type].sdk.qasm;
     const wires = gateQubits(g).map((i) => `q[${i}]`).join(", ");
     const p = g.params.length > 0 ? `(${g.params.map((v) => pyParam(v, "pi")).join(", ")})` : "";

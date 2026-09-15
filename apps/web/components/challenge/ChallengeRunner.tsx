@@ -23,14 +23,15 @@ import { GateTray, TrayHint } from "@/components/circuit/GateTray";
 import { Histogram, probabilityMap, toFractions } from "@/components/viz/Histogram";
 import { BlochRow } from "@/components/viz/BlochSphere";
 import { StateTable } from "@/components/viz/StateTable";
-import { CodePanel } from "@/components/lesson/LessonPlayer";
+import { CodePanel } from "@/components/code/CodePanel";
 import {
-  Button, Chip, Disclosure, Readout, Registration, Segmented,
+  Button, Chip, Disclosure, MarginNote, Readout, Registration, Segmented,
 } from "@/components/ui/primitives";
 import { emptyCircuit, gateCount, nextGateId, type Circuit } from "@/lib/ir/types";
 import { allQubitStates } from "@/lib/sim/analysis";
 import { targetProbabilities } from "@/lib/grade/fidelity";
 import type { Sdk } from "@/lib/render";
+import { track } from "@/lib/analytics";
 import { useCircuit } from "@/stores/circuitStore";
 import { useSession } from "@/stores/sessionStore";
 import {
@@ -45,7 +46,16 @@ const VIEWS: Array<{ value: View; label: string }> = [
   { value: "code", label: "Code" },
 ];
 
-export function ChallengeRunner({ challenge }: { challenge: Challenge }) {
+export function ChallengeRunner({
+  challenge,
+  backHref = "/challenges",
+  authored = false,
+}: {
+  challenge: Challenge;
+  backHref?: string;
+  /** Written by an instructor in this browser (E8-S6). Not part of the record. */
+  authored?: boolean;
+}) {
   const { challenges, recordChallenge, recordMisconception, hydrate } = useSession();
   const {
     circuit, setCircuit, held, pendingControl, selectedGateId, highlighted,
@@ -100,7 +110,13 @@ export function ChallengeRunner({ challenge }: { challenge: Challenge }) {
 
   useEffect(() => {
     if (!run?.grade) return;
-    recordChallenge(challenge.id, run.grade.passed, gateCount(circuit));
+    track("challenge_submitted", {
+      challenge_id: challenge.id,
+      fidelity: Number(run.grade.fidelity.toFixed(4)),
+      passed: run.grade.passed,
+      gate_count: gateCount(circuit),
+    });
+    if (!authored) recordChallenge(challenge.id, run.grade.passed, gateCount(circuit));
     if (run.finding?.misconception) {
       recordMisconception(run.finding.misconception, run.finding.ruleId, null);
     }
@@ -155,8 +171,9 @@ export function ChallengeRunner({ challenge }: { challenge: Challenge }) {
   return (
     <div className={s.shell}>
       <nav className={s.crumb}>
-        <Link href="/challenges" className={`label ${s.back}`}>← Challenges</Link>
+        <Link href={backHref} className={`label ${s.back}`}>← Challenges</Link>
         <span style={{ display: "flex", gap: "var(--s-3)", alignItems: "center" }}>
+          {authored && <Chip tone="phase">authored here</Chip>}
           <Chip>{KIND_COPY[challenge.kind].label}</Chip>
           <Chip>{DIFFICULTY_COPY[challenge.difficulty]}</Chip>
           {record?.solved && <Chip tone="measure" dot>solved</Chip>}
@@ -223,7 +240,7 @@ export function ChallengeRunner({ challenge }: { challenge: Challenge }) {
           </div>
 
           <div style={{ marginTop: "var(--s-3)" }}>
-            <TrayHint held={held?.type ?? null} pending={Boolean(pendingControl)} />
+            <TrayHint held={held?.type ?? null} pending={pendingControl} />
           </div>
 
           {error && (
@@ -252,7 +269,7 @@ export function ChallengeRunner({ challenge }: { challenge: Challenge }) {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => { applyFix(run.finding!.fix!); clearRun(); }}
+                    onClick={() => { applyFix(run.finding!.fix!, run.finding!.misconception); clearRun(); }}
                   >
                     {run.finding.fix.label}
                   </Button>
@@ -314,12 +331,29 @@ export function ChallengeRunner({ challenge }: { challenge: Challenge }) {
                 />
               </div>
 
+              {run!.advice && (
+                <MarginNote label={run!.advice.ruleId === "O01_shorter_equivalent" ? "A shorter way" : "Also worth knowing"}>
+                  {run!.advice.message}
+                </MarginNote>
+              )}
+
+              {/* PRD §9: a correct golf answer over par is offered the shorter
+                  solution after submission, not before. */}
+              {challenge.kind === "golf" && used > challenge.par && !run!.advice && (
+                <MarginNote label="Par">
+                  There is a {challenge.par}-gate route to this state.{" "}
+                  <button type="button" className="label" style={{ color: "var(--ink)" }} onClick={loadSolution}>
+                    Show it →
+                  </button>
+                </MarginNote>
+              )}
+
               <Disclosure label="See it in code">
                 <CodePanel circuit={circuit} sdk="qiskit" />
               </Disclosure>
 
               <div className={s.verdictActions}>
-                <Button variant="primary" onClick={() => (window.location.href = "/challenges")}>
+                <Button variant="primary" onClick={() => (window.location.href = backHref)}>
                   Back to challenges
                 </Button>
                 <Button
@@ -383,7 +417,16 @@ export function ChallengeRunner({ challenge }: { challenge: Challenge }) {
               </div>
               {view === "bloch" && qubitStates && <BlochRow states={qubitStates} size={124} />}
               {view === "table" && <StateTable result={run.result} />}
-              {view === "code" && <CodePanel circuit={circuit} sdk={sdk} onSdk={setSdk} />}
+              {view === "code" && (
+                <CodePanel
+                  circuit={circuit}
+                  sdk={sdk}
+                  onSdk={setSdk}
+                  allowedGates={challenge.allowedGates}
+                  requiredQubits={challenge.qubits}
+                  onApply={(c) => useCircuit.getState().replaceCircuit({ ...c, metadata: { ...c.metadata, name: challenge.title } })}
+                />
+              )}
             </div>
           )}
 

@@ -14,15 +14,33 @@
  * shape — `misconception_events` is already indexed for exactly this query.
  */
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useMemo } from "react";
 import { TopBar } from "@/components/chrome/TopBar";
-import { Button, Chip, Disclosure, Readout, Registration } from "@/components/ui/primitives";
+import { Button, Disclosure, Readout, Registration } from "@/components/ui/primitives";
 import {
-  cohortSummary, misconceptionRows, nodeColumns, seedCohort,
+  cohortSummary, misconceptionRows, nodeColumns, seedCohort, type Cohort,
 } from "@/lib/curriculum/cohort";
 import { UNITS } from "@/lib/curriculum/nodes";
+import { csv, downloadText } from "@/lib/download";
 import { NODES } from "@/stores/sessionStore";
 import s from "./teach.module.css";
+
+/**
+ * PRD E10-S6: cohort results as CSV. Names go through `csv`, which neutralises
+ * formula injection (SEC9) — a roster is exactly where "=HYPERLINK(…)" turns up.
+ */
+function exportCohort(cohort: Cohort) {
+  const header = ["student", ...NODES.map((n) => n.id), "nodes_passed", "first_attempt_correct", "last_seen_days"];
+  const rows = cohort.students.map((st) => [
+    st.name,
+    ...NODES.map((n) => st.progress[n.id] ?? "locked"),
+    Object.values(st.progress).filter((v) => v === "passed").length,
+    st.firstTime.size,
+    st.lastSeenDays,
+  ]);
+  downloadText("cohort-results-seeded.csv", csv([header, ...rows]), "text/csv");
+}
 
 /** Beliefs are stored lowercase so they read inside a sentence. */
 function sentence(text: string): string {
@@ -35,7 +53,6 @@ export default function TeachPage() {
   const columns = useMemo(() => nodeColumns(cohort), [cohort]);
   const summary = useMemo(() => cohortSummary(cohort), [cohort]);
 
-  const [showRoster, setShowRoster] = useState(false);
   const top = rows[0];
   const topPct = top ? Math.round((top.students / cohort.students.length) * 100) : 0;
 
@@ -61,6 +78,11 @@ export default function TeachPage() {
             <Readout value={`${summary.median}/${NODES.length}`} label="median node" />
           </div>
         </header>
+
+        <div style={{ display: "flex", gap: "var(--s-3)", flexWrap: "wrap", marginBottom: "var(--s-5)" }}>
+          <Link href="/teach/author" className="label">Author a challenge →</Link>
+          <Button variant="ghost" size="sm" onClick={() => exportCohort(cohort)}>Export results as CSV</Button>
+        </div>
 
         {/* The lead. One sentence an instructor can act on before the bell. */}
         {top && (

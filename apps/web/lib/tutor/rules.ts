@@ -29,7 +29,9 @@ export type SuggestedFix =
   | { kind: "add_gate"; type: GateType; targets: number[]; controls: number[]; params: number[]; column: number; label: string }
   | { kind: "remove_gate"; gateId: string; label: string }
   | { kind: "swap_control_target"; gateId: string; label: string }
-  | { kind: "replace_gate"; gateId: string; type: GateType; label: string };
+  | { kind: "replace_gate"; gateId: string; type: GateType; label: string }
+  /** A whole equivalent circuit — the optimiser's shorter version. */
+  | { kind: "replace_circuit"; circuit: Circuit; label: string };
 
 export interface Finding {
   ruleId: string;

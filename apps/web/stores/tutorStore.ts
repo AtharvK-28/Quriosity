@@ -15,6 +15,7 @@ import {
   type TutorTurn,
   type TutorWhere,
 } from "@/lib/tutor/protocol";
+import { track } from "@/lib/analytics";
 import { useCircuit } from "./circuitStore";
 
 export interface TutorMessage {
@@ -90,8 +91,16 @@ export const useTutor = create<TutorState>((set, get) => ({
     const patch = (fn: (m: TutorMessage) => TutorMessage) =>
       set((s) => ({ messages: s.messages.map((m) => (m.id === reply.id ? fn(m) : m)) }));
 
+    const started = Date.now();
     const apply = (e: TutorEvent) => {
-      if (e.t === "meta") patch((m) => ({ ...m, mode: e.mode, sources: e.sources }));
+      if (e.t === "meta") {
+        track("tutor_invoked", {
+          trigger: "explicit",
+          source: e.mode === "claude" ? "llm" : "guide",
+          latency_ms: Date.now() - started,
+        });
+        patch((m) => ({ ...m, mode: e.mode, sources: e.sources }));
+      }
       else if (e.t === "text") patch((m) => ({ ...m, text: m.text + e.v }));
       else if (e.t === "note") patch((m) => ({ ...m, note: e.v }));
       else if (e.t === "error") patch((m) => ({ ...m, text: m.text || e.v, failed: !m.text }));

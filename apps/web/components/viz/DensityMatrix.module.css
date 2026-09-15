@@ -1,0 +1,86 @@
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.select {
+  padding: 6px 8px;
+  background: var(--paper);
+  border: 1px solid var(--rule-3);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink);
+}
+
+.gridWrap {
+  overflow-x: auto;
+}
+
+.grid {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-variant-numeric: tabular-nums;
+}
+
+.axis {
+  padding: 0 4px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  text-align: center;
+}
+
+.cell {
+  min-width: 42px;
+  height: 30px;
+  text-align: center;
+  color: var(--ink);
+  background: var(--paper-inset);
+  border-radius: 1px;
+}
+
+.grid[data-dense="true"] .cell {
+  min-width: 14px;
+  height: 14px;
+}
+
+.grid[data-dense="true"] .axis {
+  font-size: 9px;
+}
+
+.readouts {
+  display: flex;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+}
+
+.reading {
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 52ch;
+}
+
+.legend {
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
