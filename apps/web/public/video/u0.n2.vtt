@@ -1,0 +1,49 @@
+WEBVTT
+
+00:00.000 --> 00:17.000
+Let's just jump right in. A lean, not an answer. So we know the H gate gives us an even lean, right? But honestly, an even lean is really just one single setting on a dial that can point anywhere. And the gate that actually turns that dial is the RY gate.
+
+00:17.000 --> 00:20.000
+Section 1: The RY Gate.
+
+00:20.000 --> 00:43.000
+Okay, so think of RY as taking an angle, theta, to physically rotate your qubit away from the zero state and towards the one state. It literally acts like a dial. If you leave theta at zero, you're getting zero with absolute certainty. Crank theta all the way to pi, you get one with absolute certainty. And everything in between those two extremes is just a lean that you get to choose.
+
+00:43.000 --> 01:00.000
+And that brings us to this incredibly plain formula: the probability of actually reading a one comes out exactly as sine squared of theta over two. It's just the straight mathematical translation of the physical angle you set on that dial into the real-world outcome you're gonna measure.
+
+01:00.000 --> 01:05.000
+Section 2: Amplitudes versus Probabilities.
+
+01:05.000 --> 01:27.000
+Now here is the step almost everyone skips exactly once, usually right before their whole circuit stops making any sense. The state is not stored as probabilities. It is stored as amplitudes. The probability is just the amplitude squared. And listen, that squaring is not just some bookkeeping trick for our convenience. It is the fundamental, underlying mathematical relationship that defines the entire system.
+
+01:27.000 --> 01:48.000
+So let's break down that even lean for a second. To get a 50-50 probability, 0.5 for zero and 0.5 for one, the two actual amplitudes inside the system are not 0.5. They are 0.707. That is 1 over root 2. When you follow the math and square that 0.707, that is what actually gives you your 0.5 probability.
+
+01:48.000 --> 01:53.000
+Section 3: The 85% Case.
+
+01:53.000 --> 02:20.000
+Let's look at a very specific case to see how this totally dictates how we build circuits. If you want a one to come up 85% of the time, you do not, you literally cannot, set a probability directly. You have to choose an angle where the sine squared of half of it equals 0.85. The amplitude that specific angle spits out is about 0.92, simply because 0.92 squared is what gets you to your target probability of 0.85.
+
+02:20.000 --> 02:38.000
+Just take a second and really think about those two numbers together. The amplitude is 0.92, but the probability is 0.85. You know, if you're moving fast, they are just close enough to look like the exact same number. But trust me, they are far enough apart to completely break your circuit if you confuse them.
+
+02:38.000 --> 03:00.000
+To really drive this point home, let's look at a much starker mathematical example. An amplitude of 0.6 does not mean 60%. It means 36%. 36! If you start conflating amplitude with probability, you're just gonna get the wrong answer when you run your algorithms. Like I said, it's a trap you really only fall into once.
+
+03:00.000 --> 03:20.000
+And this is exactly why we've gotta be super careful with the tools we use to read our states. A histogram is only ever going to show you the squared version, the probabilities. But the amplitude table shows you the real numbers under the hood. If those two things ever disagree in your mind, always remember that the amplitude table is showing you what the gates actually see and operate on.
+
+03:20.000 --> 03:23.000
+Section 4: The Quantum Gap.
+
+03:23.000 --> 03:46.000
+This fundamental mathematical distinction is the entire basis for why quantum computers can do things classical ones just can't. Remember, amplitudes are what the gates are actually operating on. And amplitudes? They can be negative. They can be complex. Probabilities can never, ever be those things. Probabilities can only pile up. But amplitudes can cancel.
+
+03:46.000 --> 04:00.000
+Every single quantum algorithm that manages to beat a classical one lives exactly in that gap. And none of it is visible. Literally none of that immense power is accessible to you if you mistakenly think the quantum state is just holding probabilities.
+
+04:00.000 --> 04:13.000
+You know, ultimately, you set a probability by choosing an angle. Every single quantum algorithm is just that exact move repeated. Arrange the amplitudes so the answer you want is the one that survives squaring.

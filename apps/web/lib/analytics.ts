@@ -38,6 +38,11 @@ export interface EventProps {
   match_ended: { mode: string; rating_before: number; rating_after: number; result: string; duration: number };
   streak_extended: { length: number };
   session_end: { duration: number; nodes_touched: number };
+  /**
+   * Post-PRD. Lesson videos are opt-in on the pass screen, so the open rate is
+   * the only evidence that they earn the page weight they cost.
+   */
+  lesson_video_opened: { node_id: string; video_id: string };
 }
 
 export type EventName = keyof EventProps;

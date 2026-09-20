@@ -9,8 +9,20 @@ what to do about it.
 ```bash
 npm install
 npm run dev          # http://localhost:3000
-npm test             # 375 tests: physics, tutor, curriculum, import/export, optimiser, density, placement
+npm test             # 421 tests: physics, tutor, curriculum, import/export, optimiser, density, placement, media, offline
 ```
+
+**Demo from a production build, not from `npm run dev`:**
+
+```bash
+npm run build && npm start
+```
+
+Two reasons. The offline shell only registers there — a service worker in front
+of `next dev` fights hot reload and serves chunks that no longer exist. And dev
+mode double-invokes every effect under Strict Mode, which has already produced
+one visible bug (the fork banner announced itself as an ordinary draft restore,
+because the effect consumed its own one-shot flag on the first pass).
 
 No Docker, no database. The simulator, the grader and the tutor's rule engine
 all run in the browser. An API key is optional — it switches the tutor chat
@@ -101,6 +113,44 @@ the network down.
 `node tests/e2e/demo.spec.mjs` drives that whole flow in a real browser,
 including the SDK toggle making zero network requests and Workbench mode
 producing zero proactive tutor output.
+
+---
+
+## Offline
+
+"Safe to give with the network down" used to mean only that nothing on the demo
+path makes a network call. Now it means the app survives the network being gone:
+`public/sw.js` precaches the shell and all nineteen lesson routes on install, so
+a reload — or a first visit to a node nobody opened — works with the wifi off.
+
+It installs, too. `app/manifest.ts` declares it, and the claim is honest rather
+than decorative:
+
+- there is no backend; execution, grading and the tutor's rule engine are all
+  on the device
+- `next/font` self-hosts the three typefaces at build time
+- nothing in `app/`, `components/` or `lib/` requests anything off-origin
+
+Two things are deliberately never cached. **`/api/*`**, because the tutor streams
+NDJSON and a replayed stream is a wrong answer with a confident face. And
+**`/video/*`**, because the lesson videos are ~20MB each — offline, a video
+fails and the player falls back to its committed transcript, which is the same
+content by another route.
+
+Losing the network puts a chip in the top bar reading *offline · still works*.
+It is measurement green, not error red, because nothing here has failed.
+
+```
+pull the wifi → reload → keep teaching
+```
+
+Verified by driving a real browser with the network cut: reload, an unvisited
+lesson, a circuit built and run, and an uncached route producing a page that
+names the cause instead of a browser error. `tests/offline.test.ts` holds the
+precache list to the curriculum, so a twentieth node cannot quietly go missing.
+
+Icons are generated, not drawn: `node scripts/make-icons.mjs` renders a Bloch
+sphere and its state vector from the same tokens the app uses.
 
 ---
 
@@ -303,8 +353,8 @@ it opens is read-only with a fork button.
 ## Testing
 
 ```bash
-npm test                            # 375 unit tests, blocking
-node tests/e2e/demo.spec.mjs        # 45 browser checks (needs a running server)
+npm test                            # 421 unit tests, blocking
+node tests/e2e/demo.spec.mjs        # 54 browser checks (needs a running server)
 node tests/e2e/shots.mjs            # screenshots of every surface
 ```
 

@@ -719,7 +719,11 @@ function distributionGap(ctx: DiagnosisContext): Finding {
     gateIds: [],
     qubits: [],
     columns: [],
-    message: `Fidelity ${fidelity.toFixed(3)}. The gap is on |${worst.bits}⟩ — the target wants ${tPct}% there and this circuit gives ${aPct}%, so there is ${direction} amplitude on that outcome.`,
+    // Says "weight", not "amplitude". This is the fallback every node falls
+    // back to, including u0.n1 — where amplitude has not been introduced, and
+    // where the number being described is a probability anyway. u0.n2 exists
+    // to stop learners conflating the two; the tutor must not do it first.
+    message: `Fidelity ${fidelity.toFixed(3)}. The gap is on |${worst.bits}⟩ — the target wants ${tPct}% there and this circuit gives ${aPct}%, so ${direction} of the weight is landing on that outcome.`,
   };
 }
 

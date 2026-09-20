@@ -15,8 +15,24 @@
  *     the gap between them is the visual, rather than two charts side by side.
  */
 
+import { useState } from "react";
 import { bitstring } from "@/lib/sim/statevector";
 import styles from "./Histogram.module.css";
+
+/**
+ * "q1=1 q0=0" for the bitstring "10".
+ *
+ * Spelling the assignment out is the point: misconception M10 is "bitstring
+ * order is obvious", and it survives precisely because a column labelled 10 is
+ * read left-to-right by everyone who has not been told otherwise.
+ */
+function wireBreakdown(bits: string): string {
+  const n = bits.length;
+  return bits
+    .split("")
+    .map((b, i) => `q${n - 1 - i}=${b}`)
+    .join(" ");
+}
 
 export interface HistogramSeries {
   /** Bitstring (q_{n-1}…q_0) → value in 0–1. */
@@ -74,6 +90,19 @@ export function Histogram({
   const flaggedSet = new Set(flagged);
   const hitSet = new Set(hit);
 
+  // Hovering previews an outcome; clicking pins it, so the readout is reachable
+  // by touch and by keyboard as well as by pointer.
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<string | null>(null);
+  const active = hovered ?? pinned;
+  const activeValue = active === null ? null : (actual[active] ?? 0);
+
+  function describe(bits: string): string {
+    const p = actual[bits] ?? 0;
+    const count = shots ? `, ${Math.round(p * shots)} of ${shots} shots` : "";
+    return `Outcome ${bits}: ${wireBreakdown(bits).replace(/=/g, " is ")}. ${(p * 100).toFixed(1)} percent${count}.`;
+  }
+
   return (
     <figure className={styles.root}>
       <div className={styles.plot} style={{ ["--plot-h" as string]: `${height}px` }}>
@@ -99,7 +128,19 @@ export function Histogram({
           const t = target?.[bits];
           const i = ideal?.[bits];
           return (
-            <div key={bits} className={styles.col}>
+            <button
+              key={bits}
+              type="button"
+              className={styles.col}
+              data-active={active === bits}
+              aria-label={describe(bits)}
+              aria-pressed={pinned === bits}
+              onPointerEnter={() => setHovered(bits)}
+              onPointerLeave={() => setHovered((h) => (h === bits ? null : h))}
+              onFocus={() => setHovered(bits)}
+              onBlur={() => setHovered((h) => (h === bits ? null : h))}
+              onClick={() => setPinned((p) => (p === bits ? null : bits))}
+            >
               {t !== undefined && (
                 <span
                   className={styles.bar}
@@ -130,7 +171,7 @@ export function Histogram({
                   </span>
                 )}
               </span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -143,10 +184,29 @@ export function Histogram({
         ))}
       </div>
 
-      <figcaption className={styles.caption}>
-        {/* One wire has no ordering to state, and "q0…q0" reads as a bug. */}
-        <span>{qubits > 1 ? `q${qubits - 1}…q0 · little-endian` : "q0"}</span>
-        <span>{shots ? `${shots} shots` : "exact"}</span>
+      {/* The caption doubles as the readout. Pointing at a bar replaces the
+          endianness note with that outcome's assignment spelled out wire by
+          wire — which is the same fact, stated about the column the learner is
+          actually looking at. A fixed line rather than a floating tooltip: it
+          cannot be clipped by the scroll container and it shifts no layout. */}
+      <figcaption className={styles.caption} data-reading={active !== null}>
+        {active !== null && activeValue !== null ? (
+          <>
+            <span>
+              |{active}⟩ · {wireBreakdown(active)}
+            </span>
+            <span>
+              {(activeValue * 100).toFixed(1)}%
+              {shots ? ` · ${Math.round(activeValue * shots)} of ${shots}` : ""}
+            </span>
+          </>
+        ) : (
+          <>
+            {/* One wire has no ordering to state, and "q0…q0" reads as a bug. */}
+            <span>{qubits > 1 ? `q${qubits - 1}…q0 · little-endian` : "q0"}</span>
+            <span>{shots ? `${shots} shots` : "exact"}</span>
+          </>
+        )}
       </figcaption>
 
       {(target || ideal) && (

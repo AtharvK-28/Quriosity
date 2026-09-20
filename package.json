@@ -9,7 +9,10 @@
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
     "start": "npm run start --workspace=apps/web",
-    "test": "npm run test --workspace=apps/web"
+    "test": "npm run test --workspace=apps/web && npm run test --workspace=apps/server",
+    "test:web": "npm run test --workspace=apps/web",
+    "test:server": "npm run test --workspace=apps/server",
+    "dev:server": "npm run dev --workspace=apps/server"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

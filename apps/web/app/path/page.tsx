@@ -25,6 +25,7 @@ import {
   masteryRate, needsConsolidation, nodesInUnit, unitMastery, unitProgress, useSession,
 } from "@/stores/sessionStore";
 import type { LessonNode } from "@/lib/curriculum/nodes";
+import { presentPrompt } from "@/lib/curriculum/study";
 import s from "./path.module.css";
 
 export default function PathPage() {
@@ -226,18 +227,20 @@ export default function PathPage() {
    ------------------------------------------------------------------------- */
 
 function WarmUp({ node, onAnswer }: { node: LessonNode; onAnswer(correct: boolean): void }) {
+  // Authored answer-first, rendered shuffled — see presentPrompt.
+  const prompt = useMemo(() => presentPrompt(node.retrieval), [node.retrieval]);
   const [picked, setPicked] = useState<number | null>(null);
   const answered = picked !== null;
-  const correct = picked === node.retrieval.answerIndex;
+  const correct = picked === prompt.answerIndex;
 
   return (
     <div className={s.warmup}>
       <Registration />
       <span className="label">Warm-up · from {node.title}</span>
-      <p className={s.warmupQ}>{node.retrieval.question}</p>
+      <p className={s.warmupQ}>{prompt.question}</p>
 
       <div className={s.options}>
-        {node.retrieval.options.map((opt, i) => (
+        {prompt.options.map((opt, i) => (
           <button
             key={opt}
             type="button"
@@ -246,7 +249,7 @@ function WarmUp({ node, onAnswer }: { node: LessonNode; onAnswer(correct: boolea
             data-state={
               !answered
                 ? undefined
-                : i === node.retrieval.answerIndex
+                : i === prompt.answerIndex
                   ? "right"
                   : i === picked
                     ? "wrong"
@@ -254,7 +257,7 @@ function WarmUp({ node, onAnswer }: { node: LessonNode; onAnswer(correct: boolea
             }
             onClick={() => {
               setPicked(i);
-              onAnswer(i === node.retrieval.answerIndex);
+              onAnswer(i === prompt.answerIndex);
             }}
           >
             {opt}
@@ -265,7 +268,7 @@ function WarmUp({ node, onAnswer }: { node: LessonNode; onAnswer(correct: boolea
       {answered && (
         <p className={s.because}>
           {correct ? "" : "Not that one. "}
-          {node.retrieval.because}
+          {prompt.because}
         </p>
       )}
     </div>

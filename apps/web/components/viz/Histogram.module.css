@@ -188,3 +188,27 @@
 
 .swatch[data-series="target"] { background: none; border: 2px dashed var(--ink-faint); }
 .swatch[data-series="ideal"] { background: none; border: 2px solid var(--ink-faint); }
+
+/* -- The bar readout ------------------------------------------------------------
+   Columns are buttons so the readout is reachable by keyboard and by touch, not
+   only by a pointer. The global reset already strips button chrome; these rules
+   restore the focus affordance and carry the hover highlight through to the
+   pinned and focused states.
+   ------------------------------------------------------------------------- */
+
+.col { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+
+.col[data-active="true"] .bar { background: var(--measure); }
+.col[data-active="true"] .value { color: var(--measure); }
+.col[data-active="true"] .value[data-inside="true"] { color: var(--paper); }
+
+.col:focus-visible {
+  outline: 2px solid var(--measure);
+  outline-offset: 2px;
+}
+
+/* Reading an outcome is a measurement, so the line takes the measurement
+   colour and the ink weight that goes with a value rather than a note. */
+.caption[data-reading="true"] {
+  color: var(--measure);
+}

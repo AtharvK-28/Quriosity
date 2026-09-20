@@ -185,3 +185,19 @@
   color: var(--ink-muted);
   max-width: 62ch;
 }
+
+/* -- Narrow ---------------------------------------------------------------------
+   The retention table asks for 190 + 74 + 84px of fixed columns plus a concept
+   name, which is wider than a phone. Nothing is dropped — every column still
+   carries its value; the curve just gets less room than the name does.
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 560px) {
+  .tableHead,
+  .row {
+    grid-template-columns: minmax(0, 1fr) 92px 44px 52px;
+    gap: var(--s-2);
+  }
+
+  .stats { gap: var(--s-4); flex-wrap: wrap; }
+}

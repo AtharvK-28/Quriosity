@@ -14,12 +14,14 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { MODE, useSession } from "@/stores/sessionStore";
 import { setTheme, useTheme } from "./useTheme";
+import { useOnline } from "./useOnline";
 import s from "./TopBar.module.css";
 
 const NAV: Record<string, Array<{ href: string; label: string }>> = {
   guided: [
     { href: "/path", label: "Path" },
     { href: "/challenges", label: "Challenges" },
+    { href: "/arena", label: "Arena" },
     { href: "/build", label: "Bench" },
     { href: "/review", label: "Review" },
     { href: "/profile", label: "Progress" },
@@ -35,6 +37,7 @@ const NAV: Record<string, Array<{ href: string; label: string }>> = {
   track: [
     { href: "/tracks", label: "Tracks" },
     { href: "/challenges", label: "Challenges" },
+    { href: "/arena", label: "Arena" },
     { href: "/build", label: "Bench" },
     { href: "/review", label: "Review" },
     { href: "/profile", label: "Progress" },
@@ -52,6 +55,7 @@ const SECONDARY = [
 export function TopBar() {
   const pathname = usePathname();
   const { mode, xp, streakDays, hydrate, hydrated, setMode } = useSession();
+  const online = useOnline();
   const caps = MODE[mode];
   const theme = useTheme();
   const other = theme === "night" ? "day" : "night";
@@ -115,6 +119,18 @@ export function TopBar() {
       </div>
 
       <div className={s.right}>
+        {/* Losing the network changes nothing here, so this reassures rather
+            than warns: it takes the measurement colour, not the error one, and
+            it names what still works. Nothing in the app is gated on it. */}
+        {!online && (
+          <span className={s.offline} role="status" title="The simulator, the grader and the tutor's rule engine all run on this device.">
+            <span className={s.offlineMark} aria-hidden>
+              ●
+            </span>
+            offline · still works
+          </span>
+        )}
+
         {/* Only rendered where the mode permits. Hidden UI is not a control on
             the server, but here the whole point is that it does not exist. */}
         {hydrated && caps.streak && streakDays > 0 && (

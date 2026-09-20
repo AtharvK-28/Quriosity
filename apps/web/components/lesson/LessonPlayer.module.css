@@ -94,7 +94,9 @@
 }
 
 @media (max-width: 1000px) {
-  .workspace { grid-template-columns: 1fr; }
+  /* minmax(0, 1fr), so the lane may be narrower than the circuit inside it.
+     A bare 1fr is floored at its content and widens the page instead. */
+  .workspace { grid-template-columns: minmax(0, 1fr); }
 }
 
 .taskStrip {
@@ -119,7 +121,8 @@
   position: relative;
 }
 
-.stageBody { padding: 0 var(--s-4); }
+/* The circuit scrolls inside its frame rather than widening the page. */
+.stageBody { padding: 0 var(--s-4); overflow-x: auto; }
 
 .stageFoot {
   display: flex;
@@ -268,4 +271,79 @@
 
 .viewBody {
   min-height: 120px;
+}
+
+/* -- Notes ----------------------------------------------------------------------
+   The instruction beat as statements, inside "Why that worked". A list rather
+   than prose because it is read on the way back to something, not on the way
+   into it — the eye needs to find one line, not re-read a paragraph.
+   ------------------------------------------------------------------------- */
+
+.notes {
+  margin: var(--s-4) 0 0;
+  padding-left: var(--s-4);
+  max-width: 62ch;
+  font-size: var(--t-body);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* No bullets: tokens.css strips list markers globally and that is deliberate,
+   so the indent is what separates a note from the paragraph above it. */
+.notes li {
+  margin-bottom: var(--s-2);
+}
+
+.notes li:last-child {
+  margin-bottom: 0;
+}
+
+/* -- The scrubber ---------------------------------------------------------------
+   Aligned with the circuit above it, and present only once there is a result to
+   step through. Same shape as the bench's, because it is the same instrument.
+   ------------------------------------------------------------------------- */
+
+.scrubber {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-top: 1px solid var(--rule-2);
+}
+
+.scrubTrack { flex: 1; }
+
+.scrubLabel {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  min-width: 92px;
+  text-align: right;
+}
+
+/* -- Getting unstuck ------------------------------------------------------------
+   Sits inside the diagnosis panel, below its actions. Offered on ask and never
+   volunteered — the struggle has to come first for productive failure to work,
+   but it has to end in instruction too, which is the half the lesson player was
+   missing on the way in.
+   ------------------------------------------------------------------------- */
+
+.stuckNote {
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--rule-2);
+  font-size: var(--t-body);
+  line-height: 1.6;
+  color: var(--ink);
+  max-width: 60ch;
+}
+
+.stuckNote[data-quiet] {
+  color: var(--ink-muted);
+  border-top: none;
+  padding-top: 0;
+  margin-top: var(--s-3);
 }

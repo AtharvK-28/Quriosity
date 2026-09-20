@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "@/styles/tokens.css";
 import { DEFAULT_THEME, THEME_BOOT } from "@/lib/theme";
+import { ServiceWorkerBoot } from "@/components/chrome/ServiceWorkerBoot";
 
 /**
  * Three faces, three jobs, no overlap.
@@ -36,6 +37,23 @@ export const metadata: Metadata = {
   title: "Quriosity — Build a quantum circuit, and find out why it's wrong",
   description:
     "A quantum circuit workbench that teaches. Drag a gate, watch the code write itself, run it, and get told which gate is wrong and on which wire.",
+  applicationName: "Quriosity",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  // A link pasted into a chat or a submission form should preview as the
+  // product rather than as a bare URL.
+  openGraph: {
+    type: "website",
+    siteName: "Quriosity",
+    title: "Quriosity — Build a quantum circuit, and find out why it's wrong",
+    description:
+      "Drag a gate, watch the Qiskit write itself, run it, and be told which gate on which wire is wrong. The simulator and the tutor run on your device.",
+    images: [{ url: "/icon-512.png", width: 512, height: 512, alt: "A Bloch sphere with a state vector on it" }],
+  },
+  appleWebApp: { capable: true, title: "Quriosity", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
@@ -60,7 +78,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorkerBoot />
+      </body>
     </html>
   );
 }

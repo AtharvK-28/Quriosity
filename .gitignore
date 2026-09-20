@@ -7,3 +7,10 @@ dist/
 *.log
 .DS_Store
 coverage/
+
+# Lesson videos — ~20MB each, fetched separately. See docs/05-Video-Production-Guide.md
+apps/web/public/video/*.mp4
+
+# Arena database — created at runtime by apps/server
+arena.db
+arena.db-*

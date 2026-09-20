@@ -18,7 +18,8 @@ import { TopBar } from "@/components/chrome/TopBar";
 import { Button, Chip, Readout, Registration } from "@/components/ui/primitives";
 import { NODES, NODES_BY_ID, dueForReview, retention, useSession } from "@/stores/sessionStore";
 import { UNITS } from "@/lib/curriculum/nodes";
-import type { LessonNode } from "@/lib/curriculum/nodes";
+import type { LessonNode, RetrievalPrompt } from "@/lib/curriculum/nodes";
+import { cardForReview, presentPrompt } from "@/lib/curriculum/study";
 import s from "./review.module.css";
 
 export default function ReviewPage() {
@@ -34,6 +35,21 @@ export default function ReviewPage() {
   );
   const due = useMemo(() => dueForReview(progress), [progress]);
   const active = due.find((n) => answered[n.id] === undefined) ?? null;
+
+  // Which question this node asks this time. Rotating means a returning learner
+  // recalls the concept rather than where the right answer sat last time; the
+  // index comes from the stored interval, so nothing new has to be persisted.
+  // Pinned to the interval as it was on arrival, so answering cannot swap the
+  // question out from under the learner mid-read.
+  const [pinnedInterval] = useState(() => new Map<string, number>());
+  if (active && !pinnedInterval.has(active.id)) {
+    pinnedInterval.set(active.id, progress[active.id]?.intervalDays ?? 1);
+  }
+  const activeCard = active
+    ? cardForReview(active.id, pinnedInterval.get(active.id) ?? 1)
+    : null;
+  // Authored answer-first, rendered shuffled — see presentPrompt.
+  const activePrompt = activeCard ? presentPrompt(activeCard) : null;
 
   if (!hydrated) {
     return <div className="sheet" style={{ minHeight: "100vh" }}><TopBar /></div>;
@@ -68,12 +84,13 @@ export default function ReviewPage() {
           </p>
         )}
 
-        {active && (
+        {active && activePrompt && (
           <ReviewTask
             node={active}
+            card={activePrompt}
             onAnswer={(index) => {
               setAnswered((a) => ({ ...a, [active.id]: index }));
-              recordReview(active.id, index === active.retrieval.answerIndex);
+              recordReview(active.id, index === activePrompt.answerIndex);
             }}
           />
         )}
@@ -205,7 +222,15 @@ function DecayCurve({
   );
 }
 
-function ReviewTask({ node, onAnswer }: { node: LessonNode; onAnswer(i: number): void }) {
+function ReviewTask({
+  node,
+  card,
+  onAnswer,
+}: {
+  node: LessonNode;
+  card: RetrievalPrompt;
+  onAnswer(i: number): void;
+}) {
   const [picked, setPicked] = useState<number | null>(null);
   const answered = picked !== null;
 
@@ -217,10 +242,10 @@ function ReviewTask({ node, onAnswer }: { node: LessonNode; onAnswer(i: number):
         <Chip tone="flag" dot>due</Chip>
       </div>
 
-      <p className={s.taskQ}>{node.retrieval.question}</p>
+      <p className={s.taskQ}>{card.question}</p>
 
       <div className={s.options}>
-        {node.retrieval.options.map((opt, i) => (
+        {card.options.map((opt, i) => (
           <button
             key={opt}
             type="button"
@@ -228,7 +253,7 @@ function ReviewTask({ node, onAnswer }: { node: LessonNode; onAnswer(i: number):
             disabled={answered}
             data-state={
               !answered ? undefined
-                : i === node.retrieval.answerIndex ? "right"
+                : i === card.answerIndex ? "right"
                 : i === picked ? "wrong" : undefined
             }
             onClick={() => { setPicked(i); onAnswer(i); }}
@@ -238,7 +263,7 @@ function ReviewTask({ node, onAnswer }: { node: LessonNode; onAnswer(i: number):
         ))}
       </div>
 
-      {answered && <p className={s.because}>{node.retrieval.because}</p>}
+      {answered && <p className={s.because}>{card.because}</p>}
     </div>
   );
 }

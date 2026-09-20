@@ -24,6 +24,9 @@
   display: flex;
   align-items: center;
   gap: var(--s-2);
+  /* Undo, Clear, Save, Share and More do not fit beside the name on a phone.
+     Without this the row pushes the page 147px wider than the screen. */
+  flex-wrap: wrap;
 }
 
 /* -- Two lanes, not four --------------------------------------------------------
@@ -41,7 +44,10 @@
 }
 
 @media (max-width: 1100px) {
-  .lanes { grid-template-columns: 1fr; }
+  /* minmax(0, 1fr) rather than 1fr: a bare 1fr track is floored at the widest
+     thing inside it, so the circuit was dragging the whole page wider than the
+     screen instead of scrolling in its own frame. */
+  .lanes { grid-template-columns: minmax(0, 1fr); }
 }
 
 .stage {
@@ -53,6 +59,10 @@
 
 .stageBody {
   padding: 0 var(--s-4);
+  /* A circuit is intrinsically wide — wire labels plus 64px per column. It
+     scrolls inside the frame; the page does not. The parameter popover is
+     already portalled to the body for exactly this reason. */
+  overflow-x: auto;
 }
 
 .stageFoot {

@@ -22,9 +22,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GATES, formatParam, isXTarget } from "@/lib/ir/gates";
 import { circuitDepth, gateQubits, type Circuit, type Gate, type GateType } from "@/lib/ir/types";
-import type { QubitState } from "@/lib/sim/analysis";
+import { wireProbabilityOne, type QubitState } from "@/lib/sim/analysis";
+import { simulate } from "@/lib/sim/statevector";
 import { ParameterPopover } from "./ParameterPopover";
 import styles from "./CircuitCanvas.module.css";
+
+/**
+ * Above this the live preview is switched off. Every drag frame re-simulates,
+ * and a lesson never exceeds three wires — this is the bench's ceiling, not the
+ * curriculum's.
+ */
+const PREVIEW_MAX_QUBITS = 12;
 
 const WIRE_LABEL = 44;
 const WIRE_GAP = 56;
@@ -134,6 +142,33 @@ export function CircuitCanvas({
     const g = circuit.gates.find((x) => x.id === selectedGateId);
     return g && GATES[g.type].paramArity > 0 ? g : null;
   }, [onParams, selectedGateId, circuit.gates, readOnly]);
+
+  /**
+   * What the wire under the open angle control actually reads, simulated.
+   *
+   * The popover used to print sin²(θ/2), which is the closed form for a
+   * rotation acting on |0⟩ and on nothing else. u1.n5 opens both H and RY, so a
+   * learner can put an H in front and be told 50% when the truth is 100%. This
+   * runs the real circuit instead, which also stays right for an entangled wire
+   * and for a mid-circuit ensemble.
+   *
+   * Recomputed on every drag frame, hence the qubit cap: past it the honest
+   * answer is that the odds depend on the rest of the circuit, and the popover
+   * says so rather than printing a number it cannot stand behind.
+   */
+  const previewProbabilityOne = useMemo(() => {
+    if (!editingGate || circuit.qubits > PREVIEW_MAX_QUBITS) return null;
+    const wire = editingGate.targets[0];
+    if (wire === undefined) return null;
+    try {
+      const result = simulate(circuit);
+      return wireProbabilityOne(result.branches, circuit.qubits, wire);
+    } catch {
+      // An invalid intermediate circuit is not worth a thrown error here; the
+      // grader and the run path report those properly.
+      return null;
+    }
+  }, [editingGate, circuit]);
 
   /** The earliest column holding a gate that could correlate two wires. */
   const entanglingColumn = useMemo(() => {
@@ -511,6 +546,7 @@ export function CircuitCanvas({
           gate={editingGate}
           x={anchor.x}
           y={anchor.y}
+          probabilityOne={previewProbabilityOne}
           onChange={(params) => onParams(editingGate.id, params)}
           onClose={() => {
             onSelect?.(null);

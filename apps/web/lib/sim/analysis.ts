@@ -67,6 +67,20 @@ export function reducedDensityMatrix(branches: Branch[], n: number, qubit: numbe
 }
 
 /** Everything the Bloch sphere and the entanglement indicator need for one wire. */
+/**
+ * Probability that one wire reads |1⟩, whatever the rest of the register is
+ * doing.
+ *
+ * This is the diagonal of the reduced density matrix, so it stays correct for
+ * an entangled wire — which has no state of its own but still has honest odds —
+ * and for a mid-circuit ensemble. The parameter popover uses it in place of the
+ * closed form sin²(θ/2), which only holds for a rotation acting on |0⟩ with
+ * nothing in front of it.
+ */
+export function wireProbabilityOne(branches: Branch[], n: number, qubit: number): number {
+  return reducedDensityMatrix(branches, n, qubit).rho11;
+}
+
 export function qubitState(branches: Branch[], n: number, qubit: number): QubitState {
   const { rho00, rho11, rho01re, rho01im } = reducedDensityMatrix(branches, n, qubit);
 

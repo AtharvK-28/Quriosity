@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/chrome/TopBar";
 import { Chip, Readout } from "@/components/ui/primitives";
@@ -21,7 +22,7 @@ import {
   CHALLENGES, DIFFICULTY_COPY, KIND_COPY, challengesByKind,
   type Challenge, type ChallengeKind,
 } from "@/lib/curriculum/challenges";
-import { NODES_BY_ID, challengeOpen, useSession } from "@/stores/sessionStore";
+import { NODES, NODES_BY_ID, challengeOpen, useSession } from "@/stores/sessionStore";
 import { targetProbabilities } from "@/lib/grade/fidelity";
 import { toChallenge, useAuthored } from "@/stores/authoredStore";
 import s from "./challenges.module.css";
@@ -45,6 +46,21 @@ export default function ChallengesPage() {
     () => CHALLENGES.filter((c) => challengeOpen(progress, c.unlockAfter)).length,
     [progress],
   );
+
+  /**
+   * The node that opens the first challenge.
+   *
+   * With nothing passed, every card on this page is locked and the screen
+   * offers no way off it — the one empty state in the app that did not name an
+   * action, which Design Doc §14 asks of all of them.
+   */
+  const firstUnlock = useMemo(() => {
+    const order = new Map(NODES.map((n, i) => [n.id, i]));
+    const next = CHALLENGES
+      .filter((c) => !challengeOpen(progress, c.unlockAfter))
+      .sort((a, b) => (order.get(a.unlockAfter) ?? 0) - (order.get(b.unlockAfter) ?? 0))[0];
+    return next ? NODES_BY_ID.get(next.unlockAfter) ?? null : null;
+  }, [progress]);
 
   if (!hydrated) {
     return <div className="sheet" style={{ minHeight: "100vh" }}><TopBar /></div>;
@@ -76,6 +92,15 @@ export default function ChallengesPage() {
           you used — so there is always more than one way through, and finding a
           second one is worth as much as finding the first.
         </p>
+
+        {open === 0 && firstUnlock && (
+          <p className={s.nothingOpen}>
+            Nothing is open yet — a challenge unlocks with the node that teaches
+            it. The first one opens after{" "}
+            <Link href={`/lesson/${firstUnlock.id}`}>“{firstUnlock.title}”</Link>,
+            which is about {firstUnlock.estMinutes} minutes.
+          </p>
+        )}
 
         {ORDER.map((kind) => {
           const list = challengesByKind(kind);

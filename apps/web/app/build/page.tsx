@@ -128,14 +128,24 @@ export default function BuildPage() {
   // Pick the bench back up where it was left. A lesson may have left its own
   // circuit in the shared store, so this runs on mount before anything else
   // can write. PRD E11-S3.
+  // The fork flag is a one-shot handoff from the shared-circuit page, and
+  // reading it destroys it. Strict Mode runs effects twice in development, so
+  // reading it inline consumed the flag on the first pass and left the second
+  // pass reporting an ordinary draft restore — a fork announced itself as
+  // "picked up where you left off". The ref holds the answer for the life of
+  // the component so both passes agree; production behaviour is unchanged.
+  const forkedFromShare = useRef<boolean | null>(null);
   useEffect(() => {
     const had = loadDraft();
-    let forked = false;
-    try {
-      forked = window.sessionStorage.getItem(FORK_FLAG) === "1";
-      window.sessionStorage.removeItem(FORK_FLAG);
-    } catch { /* no session storage */ }
-    setRestored(forked ? "fork" : had ? "draft" : null);
+    if (forkedFromShare.current === null) {
+      let forked = false;
+      try {
+        forked = window.sessionStorage.getItem(FORK_FLAG) === "1";
+        window.sessionStorage.removeItem(FORK_FLAG);
+      } catch { /* no session storage */ }
+      forkedFromShare.current = forked;
+    }
+    setRestored(forkedFromShare.current ? "fork" : had ? "draft" : null);
     setReady(true);
   }, [loadDraft]);
 

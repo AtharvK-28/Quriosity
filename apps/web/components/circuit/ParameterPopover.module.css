@@ -153,3 +153,25 @@
   text-transform: uppercase;
   color: var(--ink-faint);
 }
+
+/* -- The odds, as a picture -----------------------------------------------------
+   Fills to the simulated P(|1⟩) and winds with the dial. No transition: it must
+   track the drag exactly, and tweening a value the pointer is already setting
+   reads as lag rather than as motion.
+   ------------------------------------------------------------------------- */
+
+.meter {
+  display: block;
+  height: 6px;
+  margin-top: var(--s-2);
+  background: var(--paper-inset);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.meterFill {
+  display: block;
+  height: 100%;
+  background: var(--measure);
+}

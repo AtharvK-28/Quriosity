@@ -1,0 +1,40 @@
+WEBVTT
+
+00:00.000 --> 00:21.000
+Welcome to this explainer. Let's dive right in and talk about an honest fair coin. A fair coin is entirely unpredictable and yet, perfectly lawful at the exact same time. Now I know that might sound like a bit of a contradiction, but it's the absolute foundation of understanding probability. Unpredictable is definitely not the same thing as lawless.
+
+00:21.000 --> 00:47.000
+Think about a single coin flip. You're never going to call a single flip correctly on purpose. If you guess heads, you're just guessing, right? The outcome is completely unpredictable in that one isolated moment. But, if you take that exact same coin and flip it a thousand times... A strict mathematical law emerges. The ratio holds steady at half and half. The total chaos of a single event gives way to the absolute predictability of the aggregate.
+
+00:47.000 --> 01:14.000
+Alright, let's introduce the basic building block of our quantum circuit, the qubit. A qubit starts out in a completely definite state. We write it using Dirac notation. It's a vertical bar, a zero, and an angle bracket, and we just read it aloud as state zero. Now the word definite here is uncompromising. If you read this qubit right now you are going to get a zero, every single time. There's no probability involved. Absolutely no scatter, just 100% absolute certainty.
+
+01:14.000 --> 01:37.000
+But watch what happens when we introduce a quantum gate. We take that single wire, the one carrying our definite zero state, and we pass it through a Hadamard gate, which we just represent with an H. This little gate completely obliterates that absolute certainty. It takes our definite state and transforms it into what we call an even lean. So the output is now perfectly balanced right between the possibilities of zero and one.
+
+01:37.000 --> 01:59.000
+Lean is the absolute crucial word you need to hold onto here. After passing through that H gate, the qubit is not zero. And it's not one either. Instead, the state is mathematically described by two equal amplitudes, one for each possible outcome. The state itself is a lean. It's an equal physical disposition toward either outcome, right up until the moment we actually decide to measure it.
+
+01:59.000 --> 02:22.000
+But here's the challenge: you can't actually read a lean directly. When you place a measurement on the wire, the physical world basically demands a solid answer. A measurement always, always returns a single, classical bit. It'll give you a zero, or it'll give you a one. It is never gonna return half. The very act of measuring forces that beautifully equal disposition to collapse down into a single, definite reality.
+
+02:22.000 --> 02:49.000
+So, you're probably wondering: How do we ever know the lean was there in the first place? If every single measurement just snaps to a solid zero or one, a single reading tells us exactly nothing. To see the lean at all, you literally have to run the entire circuit over and over again and keep a tally. This is exactly why quantum platforms don't just run your circuit once. To give you any sort of meaningful data, they execute 1,024 shots by default, with a single shot just being one complete run and measurement.
+
+02:49.000 --> 03:10.000
+Because a single measurement is completely useless for reading an indefinite state, the histogram becomes your primary instrument. It is the only tool we have that allows us to observe a state that isn't definite. It takes that invisible quantum lean and pulls it into our classical world, by plotting the accumulated count of each outcome across all 1,024 runs.
+
+03:10.000 --> 03:40.000
+Check out the reality of the data we get here. In this histogram, you see two bars, both hovering right around 512. But importantly, they aren't exactly 512. A perfect 512 to 512 split out of 1024 shots would actually be super suspicious. Genuine sampling of an even lean is always gonna produce a bit of scatter. These bars sitting near the halfway mark display the exact kind of variance you'd naturally expect from flipping an honest coin a thousand times.
+
+03:40.000 --> 03:59.000
+Now, if you execute the exact same circuit for another batch of 1024 shots, it generates a new histogram. Look at the bars, they move! The exact heights are slightly different from our previous run. But notice what doesn't change: the underlying reality remains entirely stable. The ratio is still half and half.
+
+03:59.000 --> 04:29.000
+Okay, this illustrates a really vital distinction for understanding quantum systems. There is a massive, fundamental difference between the ratio, and the exact counts. The ratio—that perfect half-and-half lean—is a true, underlying property of the quantum state itself. The exact counts, though, are merely a statistical property of this one specific batch of 1024 runs. The quantum state dictates the ratio, while the messy, statistical scatter of reality dictates the exact counts.
+
+04:29.000 --> 04:51.000
+Let's step back for a sec and look at what we've established. Up to this point, this quantum system is behaving exactly like a coin. The state is unpredictable for reading, it's perfectly lawful in the aggregate, and its true nature is readable only by repetition. Honestly, if you stopped this explainer right here, you'd quite naturally conclude that a qubit is simply a really, really expensive digital coin that a computer flips for you.
+
+04:51.000 --> 05:07.000
+But that conclusion is wrong. And the reason it's wrong is the entire reason quantum computers are actually worth building in the first place. However, absolutely nothing you have seen so far rules it out. So hold the coin picture for now. It survives exactly two more gates.

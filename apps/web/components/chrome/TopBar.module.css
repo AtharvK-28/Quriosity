@@ -135,3 +135,43 @@
      only what is needed to move around. */
   .stat { display: none; }
 }
+
+/* -- Offline -------------------------------------------------------------------
+   Measurement green, not the error colour. Losing the network is not a failure
+   of this product — the simulator, the grader and the rule engine are all on
+   the device — so the chip reports a fact rather than raising an alarm.
+   ------------------------------------------------------------------------- */
+
+.offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--measure);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--measure);
+  white-space: nowrap;
+}
+
+.offlineMark { font-size: 8px; }
+
+/* The bar is tight on a phone; the dot alone still says it. */
+@media (max-width: 720px) {
+  .offline { font-size: 0; gap: 0; padding: 4px 6px; }
+  .offlineMark { font-size: 10px; }
+}
+
+/* Below 900px the secondary links join the scrolling run, which then reaches
+   past the edge with nothing to say so — the scrollbar is hidden by design.
+   The fade is the affordance: it shows there is more without adding a control
+   that would itself need room. */
+@media (max-width: 900px) {
+  .nav {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+  }
+}

@@ -31,11 +31,24 @@ export interface ParameterPopoverProps {
   /** Viewport position of the gate glyph's centre. */
   x: number;
   y: number;
+  /**
+   * What this wire actually reads, simulated against the whole circuit. null
+   * when the register is too large to re-simulate on every drag frame, in which
+   * case the readout says so rather than guessing.
+   */
+  probabilityOne?: number | null;
   onChange(params: number[]): void;
   onClose(): void;
 }
 
-export function ParameterPopover({ gate, x, y, onChange, onClose }: ParameterPopoverProps) {
+export function ParameterPopover({
+  gate,
+  x,
+  y,
+  probabilityOne = null,
+  onChange,
+  onClose,
+}: ParameterPopoverProps) {
   const spec = GATES[gate.type];
   const theta = gate.params[0] ?? 0;
 
@@ -98,7 +111,9 @@ export function ParameterPopover({ gate, x, y, onChange, onClose }: ParameterPop
 
   // What this angle actually does, in the terms the lesson asks about.
   const changesOdds = gate.type === "rx" || gate.type === "ry" || gate.type === "crx" || gate.type === "cry";
-  const p1 = Math.sin(theta / 2) ** 2;
+  // Simulated against the real circuit. sin²(θ/2) is only right for a rotation
+  // acting on |0⟩ with nothing in front of it, and u1.n5 opens H as well as RY.
+  const p1 = probabilityOne;
 
   const body = (
     <div
@@ -156,17 +171,32 @@ export function ParameterPopover({ gate, x, y, onChange, onClose }: ParameterPop
         <p className={s.note} data-tone="error">
           Not an angle I can read. Try <b>pi/4</b>, <b>90deg</b>, or a number.
         </p>
+      ) : changesOdds ? (
+        p1 === null ? (
+          <p className={s.note}>
+            Too many wires to read the odds live. Run to see them.
+          </p>
+        ) : (
+          <>
+            <p className={s.note}>
+              Reads |1⟩ <b>{(p1 * 100).toFixed(1)}%</b> of the time.
+            </p>
+            {/* The number, as a picture. Ideation §5 asks for both: a learner
+                dialling toward "85%" should see the bar approach it, not
+                arithmetic alone. It winds with the dial because it is the
+                simulated circuit, not a formula. */}
+            <span
+              className={s.meter}
+              role="img"
+              aria-label={`Reads one ${(p1 * 100).toFixed(0)} percent of the time`}
+            >
+              <span className={s.meterFill} style={{ width: `${p1 * 100}%` }} />
+            </span>
+          </>
+        )
       ) : (
         <p className={s.note}>
-          {changesOdds ? (
-            <>
-              Reads |1⟩ <b>{(p1 * 100).toFixed(1)}%</b> of the time.
-            </>
-          ) : (
-            <>
-              Turns the phase of |1⟩ by <b>{formatParam(theta)}</b>. The odds do not move.
-            </>
-          )}
+          Turns the phase of |1⟩ by <b>{formatParam(theta)}</b>. The odds do not move.
         </p>
       )}
 

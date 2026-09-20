@@ -1,0 +1,207 @@
+/* The arena.
+   Same instrument language as the bench — framed stage, one state view at a
+   time, no ornament. The clock is the only thing here that does not exist
+   elsewhere, and Design Doc §12 A11 permits it: match timers are the one timed
+   surface, and no learning content is ever timed. */
+
+.main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--s-6) clamp(16px, 3vw, 32px) var(--s-9);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  padding-bottom: var(--s-4);
+  border-bottom: 2px solid var(--frame);
+}
+
+.stats { display: flex; gap: var(--s-6); }
+
+.problem {
+  padding: var(--s-4);
+  background: var(--flag-wash);
+  border-left: 2px solid var(--flag);
+  border-radius: var(--r-panel);
+  font-size: var(--t-body);
+  color: var(--ink);
+  max-width: 64ch;
+}
+
+.quiet { font-size: var(--t-body); color: var(--ink-muted); }
+.good { font-size: var(--t-body); color: var(--measure); }
+.bad { font-size: var(--t-body); color: var(--ink-2); }
+
+/* -- Panels -------------------------------------------------------------------- */
+
+.panel {
+  position: relative;
+  background: var(--paper);
+  border: var(--frame-w) solid var(--frame);
+  border-radius: var(--r-panel);
+  padding: var(--s-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.panel[data-tone="win"] { border-color: var(--measure); background: var(--measure-wash); }
+.panel[data-tone="loss"] { border-color: var(--rule-3); }
+
+.panelTight {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.panelTitle {
+  font-family: var(--font-statement);
+  font-weight: 400;
+  font-size: 27px;
+  line-height: 1.15;
+  color: var(--ink);
+  max-width: 24ch;
+}
+
+.code {
+  font-family: var(--font-mono);
+  font-size: var(--t-body);
+  background: var(--paper-inset);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-panel);
+  padding: 12px 14px;
+  color: var(--ink);
+  overflow-x: auto;
+}
+
+.actions { display: flex; gap: var(--s-3); align-items: center; flex-wrap: wrap; }
+.sideLink { font-size: var(--t-body); color: var(--measure); }
+
+.resultStats { display: flex; gap: var(--s-6); flex-wrap: wrap; }
+
+/* -- The match ----------------------------------------------------------------- */
+
+.matchBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.vs { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.vsMark { font-family: var(--font-statement); font-size: 19px; color: var(--ink-muted); }
+
+.clock {
+  font-family: var(--font-mono);
+  font-size: 27px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* Counts, never the circuit. */
+.opponentBar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-3) var(--s-4);
+  background: var(--paper-inset);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-panel);
+}
+
+.opponentStat {
+  font-family: var(--font-mono);
+  font-size: var(--t-body);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.taskLine {
+  font-size: var(--t-body-lg);
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 62ch;
+}
+
+.arenaGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--s-5);
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  /* minmax(0, …) so the circuit scrolls in its frame rather than widening
+     the page — the same trap the bench and the lesson both fell into. */
+  .arenaGrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.stage {
+  position: relative;
+  background: var(--paper);
+  border: var(--frame-w) solid var(--frame);
+  border-radius: var(--r-panel);
+}
+
+.stageBody { padding: 0 var(--s-4); overflow-x: auto; }
+
+.stageFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-4);
+  border-top: 1px solid var(--rule-2);
+}
+
+.runRow { display: flex; gap: var(--s-3); align-items: center; }
+
+.side { display: flex; flex-direction: column; gap: var(--s-4); }
+
+/* -- The ladder ---------------------------------------------------------------- */
+
+.ladder { display: flex; flex-direction: column; gap: 2px; }
+
+.ladderRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 56px 40px;
+  gap: var(--s-3);
+  align-items: center;
+  padding: 7px 8px;
+  border-radius: var(--r-gate);
+  font-size: var(--t-body);
+  color: var(--ink-2);
+}
+
+.ladderRow[data-you="true"] { background: var(--measure-wash); color: var(--ink); }
+
+.rank {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ladderName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ladderRating {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

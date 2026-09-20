@@ -147,6 +147,81 @@ await check("the diagnosis offers a fix that actually fixes it", async () => {
   assert.doesNotMatch(body, /Correct!|Amazing|Great job|🎉/, "celebration copy leaked in");
 })();
 
+/* -- 3b. The time scrubber ---------------------------------------------------
+   TRD T12's acceptance test, verbatim: "Scrub across a Bell circuit; the q0
+   Bloch vector visibly rotates then collapses to the centre."
+   ------------------------------------------------------------------------- */
+
+await check("stepping through a Bell circuit shows the sphere running out", async () => {
+  await page.getByRole("button", { name: /Step through what you built/ }).click();
+  const slider = page.getByLabel("Step through what you built");
+  await slider.waitFor({ timeout: 5000 });
+
+  const panel = page.locator("[data-instrument=step-through]");
+
+  async function scrubTo(v) {
+    await slider.evaluate((el, val) => {
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, "value",
+      ).set;
+      setter.call(el, String(val));
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }, v);
+    await page.waitForTimeout(350);
+  }
+
+  // At the end, both qubits are entangled: neither has a state of its own, so
+  // the sphere says so rather than drawing a plausible arrow (misconception M4).
+  assert.match(await panel.innerText(), /no individual state/i, "the entangled qubit was drawn as a vector");
+
+  // After the H alone, q0 is a plain superposition and DOES have its own state,
+  // so the caption is absent and the vector is drawn on the surface instead.
+  await scrubTo(0);
+  const mid = await panel.innerText();
+  assert.doesNotMatch(mid, /no individual state/i, "q0 had no state before the CNOT ran");
+  assert.match(mid, /step 1 of 2/i, `position read: ${mid.replace(/\n/g, " | ")}`);
+
+  // Before anything runs, both wires are |0⟩ and still separable.
+  await scrubTo(-1);
+  const before = await panel.innerText();
+  assert.match(before, /before/i);
+  assert.doesNotMatch(before, /no individual state/i);
+
+  // Winding back to the end restores the entangled reading.
+  await scrubTo(1);
+  assert.match(await panel.innerText(), /no individual state/i);
+})();
+
+await check("pointing at a bar spells out which wire is which", async () => {
+  // Misconception M10 is "bitstring order is obvious". A column labelled 11 is
+  // unambiguous; 10 is not, and the readout is where that gets settled.
+  // 10 is the asymmetric column — the one where reading the string
+  // left-to-right gives the wrong wire, and the only one that proves the
+  // readout is not just echoing the label back.
+  const bar = page.getByRole("button", { name: /^Outcome 10:/ }).first();
+  assert.equal(await bar.count(), 1, "histogram bars are not reachable as controls");
+
+  // The accessible name carries the whole reading, so a screen reader gets it
+  // without hovering anything.
+  const label = await bar.getAttribute("aria-label");
+  assert.match(label, /q1 is 1/, `label read: ${label}`);
+  assert.match(label, /q0 is 0/, `label read: ${label}`);
+
+  // The caption is the endianness note until a bar is pointed at.
+  const caption = page.locator("figcaption").first();
+  assert.match(await caption.innerText(), /little-endian/i);
+
+  await bar.hover();
+  await page.waitForTimeout(200);
+  const reading = await caption.innerText();
+  assert.match(reading, /q1=1 q0=0/i, `caption read: ${reading}`);
+  assert.doesNotMatch(reading, /little-endian/i, "the readout did not replace the note");
+
+  // A Bell pair never lands on 10, and the readout says so rather than
+  // rounding an empty column up to something.
+  assert.match(reading, /0\.0%/, `caption read: ${reading}`);
+})();
+
 /* -- 4. Rosetta Stone -------------------------------------------------------- */
 
 await check("the same circuit renders as Qiskit, Cirq and PennyLane", async () => {
@@ -274,6 +349,174 @@ await check("a rotation gate's angle can be set, and it unblocks U0", async () =
   await page.waitForSelector("text=/amplitude is not the odds/i", { timeout: 5000 });
   const passBody = await page.locator("body").innerText();
   assert.match(passBody, /1[.]000|0[.]99\d/, "fidelity was not reported as a pass");
+})();
+
+/* -- 6c. The lesson video ------------------------------------------------------ */
+
+await check("the video is collapsed on the pass screen and costs nothing closed", async () => {
+  // Continues from the pass beat left on screen by the check above. u0.n2 is
+  // one of the four recorded nodes.
+  const watch = page.getByRole("button", { name: /Watch the explanation/ });
+  assert.equal(await watch.count(), 1, "no video disclosure on the pass screen");
+  assert.equal(await watch.getAttribute("aria-expanded"), "false", "video started open");
+
+  // The label carries the runtime, so the cost is known before opening. It is
+  // uppercased by the disclosure's own styling, hence the loose match.
+  assert.match(await watch.innerText(), /4 min/i);
+
+  // Nothing is mounted while closed — that is what keeps a 20MB file off the
+  // page for a learner who does not ask for it.
+  assert.equal(await page.locator("video").count(), 0, "a video element exists while collapsed");
+
+  await watch.click();
+  await page.waitForSelector("video");
+
+  // preload="none" means even an opened player fetches nothing until play.
+  const preload = await page.locator("video").getAttribute("preload");
+  assert.equal(preload, "none", `player preloads "${preload}"`);
+
+  const src = await page.locator("video source").getAttribute("src");
+  assert.equal(src, "/video/u0.n2.mp4");
+})();
+
+await check("the transcript loads on demand and reads as prose", async () => {
+  await page.getByRole("button", { name: "Read the transcript" }).click();
+  await page.waitForSelector("text=/probability is just the amplitude squared/i", { timeout: 5000 });
+
+  const text = await page.locator("body").innerText();
+  assert.ok(!text.includes("-->"), "cue timings leaked into the transcript");
+  assert.ok(!text.includes("WEBVTT"), "the VTT header leaked into the transcript");
+})();
+
+/* -- 6d. Notes and the optional check ----------------------------------------- */
+
+await check("the notes sit inside the instruction disclosure, not beside it", async () => {
+  // Notes are the same beat as `instruction`, so they must not earn their own
+  // row on the pass screen.
+  const rows = await page.getByRole("button", { name: /^(WHY THAT WORKED|THE NOTES)/i }).count();
+  assert.equal(rows, 1, "notes opened a second disclosure of their own");
+
+  await page.getByRole("button", { name: /Why that worked/ }).click();
+  await page.waitForSelector("text=/An even lean has amplitudes 0.707 and 0.707/i", { timeout: 5000 });
+  await page.getByRole("button", { name: /Why that worked/ }).click();
+})();
+
+await check("the check is optional, answers in place and gives a reason", async () => {
+  const quiz = page.getByRole("button", { name: /Check yourself/ });
+  assert.equal(await quiz.getAttribute("aria-expanded"), "false", "the quiz started open");
+  assert.match(await quiz.innerText(), /2 questions/i);
+
+  await quiz.click();
+  await page.waitForSelector("text=/To reach P/i");
+
+  const first = page.locator('[role="group"]').first().locator("button");
+  const labels = await first.allInnerTexts();
+
+  // Authored answer-first, rendered shuffled. u0.n2's first card answers pi/2,
+  // and it must not be sitting at the top of the list.
+  assert.notEqual(labels[0].trim(), "π/2", "the correct option was rendered first");
+
+  await first.nth(0).click();
+  // The reason shows whether the pick was right or wrong.
+  await page.waitForSelector("text=/sin²\\(θ\\/2\\)/", { timeout: 5000 });
+
+  // Answering does not advance or collapse anything — both questions stay up.
+  assert.equal(await page.locator('[role="group"]').count(), 2);
+})();
+
+await check("the angle readout simulates the circuit rather than assuming |0⟩", async () => {
+  // sin²(θ/2) is only right for a rotation acting on |0⟩ with nothing in front
+  // of it, and u1.n5 opens H as well as RY. With an H first the closed form
+  // says 50% where the truth is 100% — a reachable, 50-point error.
+  await seedThrough("u1.n5");
+  await page.goto(`${BASE}/lesson/u1.n5`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /^Build it/ }).click();
+  await page.waitForSelector('[role="application"]');
+
+  await page.getByRole("button", { name: /^Hadamard ·/ }).click();
+  await page.getByRole("button", { name: "qubit 0, column 0, empty" }).click();
+  await page.getByRole("button", { name: /^Y rotation ·/ }).click();
+  await page.getByRole("button", { name: "qubit 0, column 1, empty" }).click();
+  await page.waitForSelector('[role="dialog"]');
+
+  const field = page.getByLabel("Y rotation angle value");
+  const dialog = page.locator('[role="dialog"]');
+
+  await field.fill("pi/2");
+  await page.waitForTimeout(220);
+  let text = await dialog.innerText();
+  assert.match(text, /100\.0%/, `RY(pi/2) after H should read 100%: ${text}`);
+
+  // RY(0) leaves |+⟩ alone, which is an even lean — the closed form says 0%.
+  await field.fill("0");
+  await page.waitForTimeout(220);
+  text = await dialog.innerText();
+  assert.match(text, /50\.0%/, `RY(0) after H should read 50%: ${text}`);
+
+  // The number has a picture beside it, and it tracks the value.
+  const meter = dialog.getByRole("img", { name: /Reads one 50 percent/i });
+  assert.equal(await meter.count(), 1, "no meter beside the readout");
+
+  await page.keyboard.press("Escape");
+})();
+
+/* -- 6e. The learner can see their own result, and can get unstuck ----------- */
+
+await check("a failed run shows yours against the target, not just a number", async () => {
+  // The lesson used to offer Bloch, Table and Code — the target's histogram was
+  // on screen and the learner's own never was.
+  await page.goto(`${BASE}/lesson/u0.n1`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /^Build it/ }).click();
+  await page.waitForSelector('[role="application"]');
+  await page.getByRole("button", { name: /^X\b|Pauli-X/ }).first().click();
+  await page.getByRole("button", { name: "qubit 0, column 0, empty" }).click();
+  await page.getByRole("button", { name: /^Run/ }).click();
+  await page.waitForTimeout(800);
+
+  const tabs = page.getByRole("tab");
+  assert.equal(await tabs.filter({ hasText: "Plot" }).count(), 1, "no plot view in the lesson");
+  assert.equal(
+    await tabs.filter({ hasText: "Plot" }).getAttribute("aria-selected"),
+    "true",
+    "the lesson did not open on the plot",
+  );
+
+  // Both series are drawn in one figure, at one scale.
+  const side = await page.locator("aside").first().innerText();
+  assert.match(side, /yours/i, `no 'yours' series: ${side}`);
+  assert.match(side, /target/i, `no target ghost: ${side}`);
+
+  // And the diagnosis does not reach for a word the curriculum has not taught:
+  // u0.n2 is "the amplitude is not the odds", and this is u0.n1.
+  const body = await page.locator("body").innerText();
+  assert.doesNotMatch(body, /amplitude/i, "the node-one diagnosis said 'amplitude'");
+})();
+
+await check("help escalates only on ask, and only after a real attempt", async () => {
+  // Continues from the failed run above. Productive failure means the struggle
+  // comes first — and that it ends in instruction rather than going on forever.
+  const stuck = page.getByRole("button", { name: /I'm stuck/ });
+  assert.equal(await stuck.count(), 0, "help was offered on the first attempt");
+
+  await page.getByRole("button", { name: /^Run/ }).click();
+  await page.waitForTimeout(700);
+  assert.equal(await stuck.count(), 1, "no way to get unstuck after two failures");
+  assert.equal(
+    await page.getByRole("button", { name: /Explain the idea/ }).count(), 0,
+    "the explanation opened before it was earned",
+  );
+
+  await stuck.click();
+  await page.waitForTimeout(200);
+  let text = await page.locator("body").innerText();
+  assert.match(text, /One gate is enough/, "the nudge did not show the node's own note");
+
+  await page.getByRole("button", { name: /^Run/ }).click();
+  await page.waitForTimeout(700);
+  await page.getByRole("button", { name: /Explain the idea/ }).click();
+  await page.waitForTimeout(200);
+  text = await page.locator("body").innerText();
+  assert.match(text, /puts a definite qubit on the fence/i, "the idea was not explained");
 })();
 
 await check("bad angle input is rejected inline without clearing the field", async () => {

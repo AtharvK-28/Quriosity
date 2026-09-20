@@ -28,14 +28,18 @@ import { Histogram, probabilityMap, toFractions } from "@/components/viz/Histogr
 import { BlochRow } from "@/components/viz/BlochSphere";
 import { StateTable } from "@/components/viz/StateTable";
 import { CodePanel } from "@/components/code/CodePanel";
-import { Button, Chip, Disclosure, MarginNote, Readout, Registration, Segmented } from "@/components/ui/primitives";
-import { emptyCircuit, gateCount, nextGateId, type Circuit, type GateType } from "@/lib/ir/types";
-import { allQubitStates } from "@/lib/sim/analysis";
+import { VideoDisclosure } from "@/components/lesson/VideoDisclosure";
+import { StudyQuiz } from "@/components/lesson/StudyQuiz";
+import { StepThrough } from "@/components/lesson/StepThrough";
+import { notesFor, quizFor } from "@/lib/curriculum/study";
+import { Button, Chip, Disclosure, MarginNote, Readout, Registration, Segmented, Slider } from "@/components/ui/primitives";
+import { circuitDepth, emptyCircuit, gateCount, nextGateId, type Circuit, type GateType } from "@/lib/ir/types";
+import { allQubitStates, qubitState } from "@/lib/sim/analysis";
 import { targetProbabilities, targetNeedsPhase } from "@/lib/grade/fidelity";
 import type { Sdk } from "@/lib/render";
 import type { Finding } from "@/lib/tutor/rules";
 import { hasEvent, track } from "@/lib/analytics";
-import { useCircuit } from "@/stores/circuitStore";
+import { stateAtScrub, useCircuit, type RunOutput } from "@/stores/circuitStore";
 import { MODE, isNodeOpen, useSession } from "@/stores/sessionStore";
 import { NODES, NODES_BY_ID, nextNodeId, unitOf, type LessonNode } from "@/lib/curriculum/nodes";
 import s from "./LessonPlayer.module.css";
@@ -44,9 +48,22 @@ import s from "./LessonPlayer.module.css";
 export { CodePanel };
 
 type Beat = "brief" | "build" | "pass";
-type StateView = "bloch" | "table" | "code";
+type StateView = "plot" | "bloch" | "table" | "code";
 
+/**
+ * Plot first, and the default.
+ *
+ * The lesson used to offer Bloch, Table and Code — so a learner could see the
+ * target's histogram and never their own. The verdict was a fidelity number and
+ * a sentence, with the one comparison that matters missing from the screen.
+ * Design Doc §5 asks for "the two plots at identical scale, so the comparison
+ * is visual before it is numerical", and this is where that happens.
+ *
+ * Defaulting to Bloch was also wrong on the way in: the sphere is not taught
+ * until u1.n4, and node one opened with an unexplained one.
+ */
 const STATE_VIEWS: Array<{ value: StateView; label: string }> = [
+  { value: "plot", label: "Plot" },
   { value: "bloch", label: "Bloch" },
   { value: "table", label: "Table" },
   { value: "code", label: "Code" },
@@ -61,16 +78,19 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
 
   const {
     circuit, version, setCircuit, replaceCircuit, held, pendingControl, selectedGateId, highlighted,
-    run, running, error,
+    run, running, error, scrubColumn,
     hold, place, completeControlled, cancelPending, select, moveGate, removeGate, setParams,
-    execute, applyFix, undo, clearRun,
+    execute, applyFix, undo, clearRun, setScrub,
   } = useCircuit();
 
   const [beat, setBeat] = useState<Beat>("brief");
-  const [view, setView] = useState<StateView>("bloch");
+  const [view, setView] = useState<StateView>("plot");
   const [sdk, setSdk] = useState<Sdk>("qiskit");
   const [attempts, setAttempts] = useState(0);
   const [consolidating, setConsolidating] = useState(false);
+  /** Both on ask, both reset per node. Neither is ever volunteered. */
+  const [nudgeShown, setNudgeShown] = useState(false);
+  const [ideaShown, setIdeaShown] = useState(false);
 
   /** When the last failed run landed, for the S3 metric. */
   const lastFailure = useRef<{ at: number; tutorShown: boolean } | null>(null);
@@ -108,6 +128,8 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
     setCircuit(startingCircuit());
     setBeat("brief");
     setAttempts(0);
+    setNudgeShown(false);
+    setIdeaShown(false);
     lastFailure.current = null;
     codeVersion.current = null;
     // A fresh node starts clean: no carried-over verdict from the last one.
@@ -144,6 +166,9 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
   /* -- Run ------------------------------------------------------------------ */
 
   function onRun() {
+    // A cursor left in the middle of the previous circuit would silently show
+    // the wrong step against the new result.
+    setScrub(null);
     execute(node.target);
     setAttempts((a) => a + 1);
   }
@@ -196,10 +221,55 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run?.at]);
 
-  const qubitStates = useMemo(
-    () => (run ? allQubitStates(run.result) : undefined),
-    [run],
+  /* -- The scrubber ---------------------------------------------------------
+     Every state view winds with the cursor rather than showing only the end,
+     because the rotation IS the gate. u0.n3 is the node this exists for: the
+     final state of H·H is |0⟩, identical to where it started, and the only
+     place the lesson lives is the middle column. A static end-state view
+     cannot show it at all.
+     ------------------------------------------------------------------------- */
+
+  const depth = circuitDepth(circuit) + 1;
+
+  const branchesAtCursor = useMemo(
+    () => stateAtScrub(run, scrubColumn),
+    [run, scrubColumn],
   );
+
+  const qubitStates = useMemo(() => {
+    if (!run) return undefined;
+    if (!branchesAtCursor) return allQubitStates(run.result);
+    return Array.from({ length: run.result.qubits }, (_, q) =>
+      qubitState(branchesAtCursor, run.result.qubits, q),
+    );
+  }, [branchesAtCursor, run]);
+
+  /**
+   * Exact probabilities at the cursor, so the plot winds with the scrubber.
+   *
+   * Sampling only exists at the end of a circuit — there are no shots halfway
+   * through one — so a scrubbed plot shows the true distribution and drops the
+   * shot count rather than inventing counts for a moment that was never run.
+   */
+  const cursorProbabilities = useMemo(() => {
+    if (!branchesAtCursor || !run) return null;
+    const n = run.result.qubits;
+    const p = new Float64Array(2 ** n);
+    for (const b of branchesAtCursor) {
+      for (let k = 0; k < p.length; k++) {
+        p[k] += b.weight * (b.amps[2 * k] ** 2 + b.amps[2 * k + 1] ** 2);
+      }
+    }
+    return p;
+  }, [branchesAtCursor, run]);
+
+  /** The run as it stands at the cursor, so the amplitude table winds too. */
+  const cursorResult = useMemo(
+    () => (run && branchesAtCursor ? { ...run.result, branches: branchesAtCursor } : null),
+    [run, branchesAtCursor],
+  );
+
+  const scrubbing = scrubColumn !== null;
 
   const nextId = nextNodeId(node.id);
   const locked = hydrated && !isNodeOpen(progress, node.id);
@@ -312,6 +382,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                     selectedGateId={selectedGateId}
                     highlighted={highlighted}
                     qubitStates={qubitStates}
+                    scrubColumn={scrubColumn}
                     held={held}
                     pendingControl={pendingControl}
                     onPlace={place}
@@ -323,6 +394,33 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                   onParams={setParams}
                   />
                 </div>
+
+                {/* Aligned with the circuit above it. Dragging winds every
+                    state view backwards through the gates — the signature
+                    interaction from Design Doc §3, and the only way to see a
+                    state that the end of the circuit has already undone. */}
+                {run && depth > 1 && (
+                  <div className={s.scrubber}>
+                    <span className="label">Time</span>
+                    <span className={s.scrubTrack}>
+                      <Slider
+                        value={scrubColumn === null ? depth - 1 : scrubColumn}
+                        min={-1}
+                        max={depth - 1}
+                        step={1}
+                        ariaLabel="Step through the circuit"
+                        onChange={(v) => setScrub(v >= depth - 1 ? null : v)}
+                      />
+                    </span>
+                    <span className={s.scrubLabel}>
+                      {scrubColumn === null
+                        ? "end"
+                        : scrubColumn < 0
+                          ? "before"
+                          : `step ${scrubColumn + 1} of ${depth}`}
+                    </span>
+                  </div>
+                )}
 
                 <div className={s.stageFoot}>
                   <div className={s.trayRow}>
@@ -394,10 +492,45 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                         {run.finding.fix.label}
                       </Button>
                     )}
+                    {attempts >= 2 && !nudgeShown && (
+                      <Button variant="ghost" size="sm" onClick={() => setNudgeShown(true)}>
+                        I'm stuck
+                      </Button>
+                    )}
+                    {attempts >= 3 && nudgeShown && !ideaShown && (
+                      <Button variant="ghost" size="sm" onClick={() => setIdeaShown(true)}>
+                        Explain the idea
+                      </Button>
+                    )}
                     <Button variant="ghost" size="sm" onClick={clearRun}>
                       Keep editing
                     </Button>
                   </div>
+
+                  {/* Productive failure ends in instruction — it is not
+                      "struggle indefinitely". Kapur's sequence is attempt,
+                      then teach, and a learner on their fourth run has done
+                      the attempting. Both of these are on ask and neither is
+                      ever volunteered. */}
+                  {nudgeShown && (
+                    <p className={s.stuckNote}>
+                      {node.taskNote ?? `You have everything you need in the tray: ${node.allowedGates
+                        .filter((g) => g !== "measure")
+                        .map((g) => g.toUpperCase())
+                        .join(", ")}.`}
+                    </p>
+                  )}
+                  {ideaShown && (
+                    <p className={s.stuckNote}>
+                      <b>{node.instructionTitle}.</b> {node.instruction}
+                    </p>
+                  )}
+                  {attempts < 3 && nudgeShown && !ideaShown && (
+                    <p className={s.stuckNote} data-quiet>
+                      One more run and the explanation opens. Your first-attempt
+                      record is already written either way.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -426,7 +559,11 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
               {run && (
                 <div className="panel">
                   <div className={s.viewHead}>
-                    <span className="label">Your state</span>
+                    {/* Says which state is on screen. Without this a scrubbed
+                        view is indistinguishable from the final one. */}
+                    <span className="label">
+                      {scrubbing ? `Your state · step ${scrubColumn! + 1}` : "Your state"}
+                    </span>
                     <Segmented<StateView>
                       ariaLabel="State view"
                       value={view}
@@ -435,8 +572,27 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                     />
                   </div>
                   <div className={s.viewBody}>
+                    {/* Yours in solid, the target as the dashed ghost behind
+                        it. One plot, not two side by side — the gap between
+                        the bars IS the verdict, and it cannot be read across
+                        two charts at different scales. */}
+                    {view === "plot" && (
+                      <Histogram
+                        qubits={node.qubits}
+                        actual={
+                          scrubbing && cursorProbabilities
+                            ? probabilityMap(cursorProbabilities, node.qubits)
+                            : toFractions(run.counts.counts, run.shots)
+                        }
+                        target={scrubbing ? undefined : targetMap}
+                        shots={scrubbing ? undefined : run.shots}
+                        hit={run.grade?.passed ? Object.keys(targetMap) : undefined}
+                        height={150}
+                        dense
+                      />
+                    )}
                     {view === "bloch" && qubitStates && <BlochRow states={qubitStates} size={122} />}
-                    {view === "table" && <StateTable result={run.result} />}
+                    {view === "table" && cursorResult && <StateTable result={cursorResult} />}
                     {view === "code" && (
                       <CodePanel
                         circuit={circuit}
@@ -467,7 +623,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
           shots={run.shots}
           fidelity={run.grade?.fidelity ?? 1}
           advice={run.advice}
-          qubitStates={qubitStates ?? []}
+          run={run}
           nextId={nextId}
           onReview={() => {
             setCircuit(startingCircuit());
@@ -542,7 +698,7 @@ function Pass({
   shots,
   fidelity,
   advice,
-  qubitStates,
+  run,
   nextId,
   onReview,
   onTryShorter,
@@ -555,12 +711,14 @@ function Pass({
   fidelity: number;
   /** A shorter equivalent (E7-S6) or an advisory lint. Offered, never pressed on. */
   advice: Finding | null;
-  qubitStates: ReturnType<typeof allQubitStates>;
+  run: RunOutput;
   nextId: string | null;
   onReview(): void;
   onTryShorter(c: Circuit): void;
 }) {
   const used = gateCount(circuit);
+  const notes = notesFor(node.id);
+  const cards = quizFor(node.id);
 
   return (
     <div className={s.pass}>
@@ -607,10 +765,39 @@ function Pass({
         </MarginNote>
       )}
 
-      {/* Instruction is a disclosure, and it comes AFTER the attempt. */}
+      {/* Instruction is a disclosure, and it comes AFTER the attempt. The notes
+          are the same beat as statements rather than a second one, so they sit
+          inside it instead of earning a row of their own. */}
       <Disclosure label="Why that worked">
         <p className="prose">{node.instruction}</p>
+        {notes.length > 0 && (
+          <ul className={s.notes}>
+            {notes.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        )}
       </Disclosure>
+
+      {/* What you built, wound back through itself. Directly under "why that
+          worked" because for several nodes it IS why it worked — u0.n3's
+          middle column is the whole lesson, and the end state has erased it. */}
+      <Disclosure label="Step through what you built">
+        <StepThrough circuit={circuit} run={run} />
+      </Disclosure>
+
+      {/* The same instruction at length. Sits directly under the written one
+          because it is the same beat, not a new one — and stays collapsed, so
+          a lesson never opens with a video. */}
+      <VideoDisclosure nodeId={node.id} />
+
+      {/* Retrieval, offered and never pressed. Writes nothing to the review
+          scheduler — see StudyQuiz. */}
+      {cards.length > 0 && (
+        <Disclosure label={`Check yourself · ${cards.length} question${cards.length === 1 ? "" : "s"}`}>
+          <StudyQuiz cards={cards} />
+        </Disclosure>
+      )}
 
       <Disclosure label="See it in code">
         <CodePanel circuit={circuit} sdk="qiskit" />
