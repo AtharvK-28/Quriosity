@@ -6,10 +6,11 @@
  * disclosure on the pass screen and nowhere else. A learner who never opens one
  * has still been taught the concept, by building it.
  *
- * Files live in `public/video/`, named for the first node they cover. The MP4s
- * are gitignored (~20MB each) and fetched separately; the VTT transcripts are
- * small and committed, which is why a transcript stays readable on a checkout
- * with no video files at all.
+ * Files live in `public/video/`, named for the first node they cover, and are
+ * committed so they deploy with the site. The MP4s there are web copies (~4MB)
+ * made by `scripts/encode-videos.mjs` from masters in the gitignored
+ * `video-src/`. The VTT transcripts double as the fallback when a video cannot
+ * load, which is why a lesson never shows a broken player.
  *
  * Ten of the fourteen are not recorded yet. Everything here returns null for
  * those rather than rendering a placeholder — see docs/05-Video-Production-Guide.md.

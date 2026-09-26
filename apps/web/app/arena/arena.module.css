@@ -205,3 +205,59 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* -- Match types (PRD E9-S6) -------------------------------------------------- */
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+  margin: var(--s-4) 0;
+}
+
+.mode {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--s-4);
+  text-align: left;
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  color: var(--ink-2);
+}
+.mode:hover { border-color: var(--rule-3); }
+.mode[data-on] {
+  border: var(--frame-w) solid var(--cta);
+  padding: calc(var(--s-4) - 1px);
+  color: var(--ink);
+}
+
+.modeName {
+  font-family: var(--font-statement);
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.modeRule {
+  font-size: var(--t-body);
+  line-height: 1.4;
+}
+
+.golfLine {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.golfLine b { color: var(--measure); }
+
+.clock[data-low] { color: var(--flag); }
+
+@media (max-width: 720px) {
+  .modes { grid-template-columns: 1fr; }
+}

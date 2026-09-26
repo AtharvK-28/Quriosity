@@ -175,3 +175,102 @@
     mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
   }
 }
+
+/* -- Account ---------------------------------------------------------------- */
+
+.signIn {
+  padding: 5px 10px;
+  border-radius: var(--r-gate);
+  background: var(--cta);
+  color: var(--cta-ink);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.signIn:hover { filter: brightness(1.08); text-decoration: none; }
+
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 9px 3px 3px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-full);
+  color: var(--ink);
+  font-size: var(--t-label);
+  white-space: nowrap;
+}
+.account:hover { border-color: var(--rule-3); text-decoration: none; }
+
+.accountMark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-full);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.accountName {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 720px) {
+  .accountName { display: none; }
+  .account { padding: 3px; }
+}
+
+/* -- "More": the secondary run, folded ------------------------------------- */
+
+.more {
+  position: relative;
+  display: none;
+  flex: none;
+}
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--paper-raised);
+  border: 1px solid var(--frame);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-pop);
+}
+
+.moreItem {
+  padding: 8px 10px;
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.moreItem:hover,
+.moreItem[data-active="true"] { color: var(--ink); background: var(--paper); text-decoration: none; }
+
+@media (max-width: 1499px) and (min-width: 901px) {
+  .secondary { display: none; }
+  .more { display: block; }
+  .accountName { display: none; }
+  .account { padding: 3px; }
+}
+
+@media (max-width: 1280px) {
+  .themeName { display: none; }
+}

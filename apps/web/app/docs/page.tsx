@@ -91,7 +91,7 @@ export default function DocsPage() {
           <a href="#sharing">Links and records</a>
           <a href="#keyboard">Keyboard</a>
           <a href="#limits">Limits</a>
-          <Link href="/reference">Gate reference →</Link>
+          <Link href="/reference">Glossary →</Link>
         </nav>
 
         <section id="ir" className={p.section}>

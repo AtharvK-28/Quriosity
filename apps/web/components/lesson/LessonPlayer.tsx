@@ -41,7 +41,9 @@ import type { Finding } from "@/lib/tutor/rules";
 import { hasEvent, track } from "@/lib/analytics";
 import { stateAtScrub, useCircuit, type RunOutput } from "@/stores/circuitStore";
 import { MODE, isNodeOpen, useSession } from "@/stores/sessionStore";
-import { NODES, NODES_BY_ID, nextNodeId, unitOf, type LessonNode } from "@/lib/curriculum/nodes";
+import { NODES, NODES_BY_ID, nextNodeId, unitOf, unmetRequirement, type LessonNode } from "@/lib/curriculum/nodes";
+import { clearPop, dismissPop, popHint, popMissingStep, popNewWords, popWin } from "@/components/tutor/moments";
+import { logAttempt } from "@/lib/sync/attempts";
 import s from "./LessonPlayer.module.css";
 
 // Kept importable from here, where it used to live.
@@ -169,6 +171,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
     // A cursor left in the middle of the previous circuit would silently show
     // the wrong step against the new result.
     setScrub(null);
+    clearPop();
     execute(node.target);
     setAttempts((a) => a + 1);
   }
@@ -176,16 +179,22 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
   // Commit the result to progress once, when it lands.
   useEffect(() => {
     if (!run?.grade) return;
+    // The right state reached without the move the node teaches is not a pass.
+    const missing = run.grade.passed ? unmetRequirement(node, circuit) : null;
+    const passed = run.grade.passed && !missing;
     // A consolidation pass is re-derivation, not a fresh attempt: it must not
     // touch first-attempt accuracy or hand out XP a second time (E6-S5).
     if (!consolidating) {
-      recordAttempt(node.id, run.grade.passed, run.grade.fidelity, gateCount(circuit));
+      recordAttempt(node.id, passed, run.grade.fidelity, gateCount(circuit));
     }
     if (run.finding?.misconception) {
       recordMisconception(run.finding.misconception, run.finding.ruleId, node.id);
     }
 
-    if (!run.grade.passed) {
+    if (!passed) {
+      if (missing) popMissingStep(missing);
+      else popHint(run.finding, circuit, run.grade.fidelity);
+      logAttempt(`lesson:${node.id}`, circuit, run.grade.fidelity, run.finding);
       const tutorShown = Boolean(run.finding);
       if (tutorShown && caps.proactiveTutor) {
         track("tutor_invoked", { trigger: "proactive", source: "rule", latency_ms: 0 });
@@ -193,7 +202,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
       lastFailure.current = { at: Date.now(), tutorShown };
     }
 
-    if (run.grade.passed) {
+    if (passed) {
       // PRD §8, S3: how long from a failed run to a corrected one.
       if (lastFailure.current) {
         track("corrected_after_failure", {
@@ -215,6 +224,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
         });
       }
       if (consolidating) recordConsolidation(node.id);
+      popWin(attempts <= 1 ? "First try, too." : undefined);
       setBeat("pass");
     }
     // Only react to a genuinely new run.
@@ -271,8 +281,30 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
 
   const scrubbing = scrubColumn !== null;
 
+  /** The move this node teaches, when the run reached the state without it. */
+  const missingStep = useMemo(
+    () => (run?.grade?.passed ? unmetRequirement(node, circuit) : null),
+    // Judged against the circuit as it was run, not as it is being edited.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [run?.at, node],
+  );
+
   const nextId = nextNodeId(node.id);
   const locked = hydrated && !isNodeOpen(progress, node.id);
+
+  // The words this node introduces, the first time a learner opens it. Waits
+  // for the session, so the mode is known before the tutor decides to speak,
+  // and only while the brief is up: a learner who has already pressed Build
+  // is past the point where a vocabulary card helps.
+  const onBrief = beat === "brief";
+  useEffect(() => {
+    if (!hydrated || locked || !onBrief) return;
+    const t = setTimeout(() => popNewWords(node.id), 700);
+    return () => clearTimeout(t);
+  }, [node.id, hydrated, locked, onBrief]);
+
+  // Nothing the tutor said on one node applies on the next.
+  useEffect(() => dismissPop, [node.id]);
 
   /* -- Keyboard: ⌘↵ runs ---------------------------------------------------- */
 
@@ -457,17 +489,17 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                   </div>
                   <p className={s.diagnosisText}>{error.message}</p>
                   <p style={{ fontSize: "var(--t-body)", color: "var(--ink-3)" }}>
-                    Nothing was lost — your circuit is exactly as you left it.
+                    Your circuit is untouched.
                   </p>
                 </div>
               )}
 
               {/* The verdict, in place beneath the circuit. */}
-              {run && run.grade && !run.grade.passed && (
-                <div className={s.diagnosis}>
+              {run && run.grade && (!run.grade.passed || missingStep) && (
+                <div className={s.diagnosis} data-tone={missingStep ? "flag" : undefined}>
                   <div className={s.diagnosisHead}>
-                    <Chip tone="error" dot>
-                      fidelity {run.grade.fidelity.toFixed(3)}
+                    <Chip tone={missingStep ? "flag" : "error"} dot>
+                      {missingStep ? "right state · one step missing" : `fidelity ${run.grade.fidelity.toFixed(3)}`}
                     </Chip>
                     {run.finding?.misconception && (
                       <span className="label">{run.finding.misconception}</span>
@@ -475,7 +507,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                   </div>
 
                   <p className={s.diagnosisText}>
-                    {run.finding?.message ??
+                    {missingStep ?? run.finding?.message ??
                       `Fidelity ${run.grade.fidelity.toFixed(3)}. The state this circuit produces isn't the target one yet.`}
                   </p>
 
@@ -527,8 +559,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                   )}
                   {attempts < 3 && nudgeShown && !ideaShown && (
                     <p className={s.stuckNote} data-quiet>
-                      One more run and the explanation opens. Your first-attempt
-                      record is already written either way.
+                      One more run unlocks the explanation.
                     </p>
                   )}
                 </div>

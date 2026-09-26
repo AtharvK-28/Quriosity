@@ -12,26 +12,19 @@ const B = await ctxB.newPage();
 const errs = [];
 for (const [n, p] of [["A", A], ["B", B]]) p.on("pageerror", (e) => errs.push(n + ": " + e.message));
 
-// Seed the session directly rather than driving the settings form. The name
-// there only commits on submit, and this test is about the arena — coupling it
-// to another screen's markup just gives it a second way to fail.
-async function setName(ctx, name) {
-  await ctx.addInitScript((n) => {
-    try {
-      const key = "quriosity.session.v1";
-      const cur = JSON.parse(localStorage.getItem(key) || "{}");
-      cur.displayName = n;
-      localStorage.setItem(key, JSON.stringify(cur));
-    } catch { /* private mode; the match still runs, just unnamed */ }
-  }, name);
+// Ranked play needs an account, so each window signs up first — through the
+// real form, which is also what sets the session cookie in that context.
+async function signUp(page, name) {
+  await page.goto(`${BASE}/auth/signup?next=/arena`, { waitUntil: "networkidle" });
+  await page.getByLabel("Name").fill(name);
+  await page.getByLabel("Email").fill(`${name.toLowerCase()}-${Date.now()}@example.com`);
+  await page.getByLabel("Password").fill("correct horse");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await page.waitForURL(/\/arena/, { timeout: 15000 });
 }
 
-const stored = (page) =>
-  page.evaluate(() => JSON.parse(localStorage.getItem("quriosity.session.v1") || "{}").displayName);
-
-await setName(ctxA, "Ada");
-await setName(ctxB, "Bo");
-console.log("stored names:", await stored(A), "/", await stored(B));
+await signUp(A, "Ada");
+await signUp(B, "Bo");
 
 await A.goto(BASE + "/arena", { waitUntil: "networkidle" });
 await B.goto(BASE + "/arena", { waitUntil: "networkidle" });

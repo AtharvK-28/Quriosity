@@ -7,6 +7,11 @@
  * widgets. This carries one claim, one instrument and one action above the
  * fold, because the instrument makes the argument better than the copy does.
  *
+ * The claim is the curiosity hook, not the product pitch: a newcomer does not
+ * yet know what a circuit is, so "which gate is wrong" means nothing to them,
+ * while "a qubit is not a coin" is a puzzle they want solved. The pitch moves
+ * down to head the loop, where it is explained.
+ *
  * The hero widget is not a mockup: it builds a real IR, runs it through the
  * real simulator, and samples real shots. Dragging the phase moves a quantity
  * no measurement in the middle of the circuit could ever reveal, and the final
@@ -103,17 +108,16 @@ export default function LandingPage() {
         <div>
           <span className={s.eyebrow}>
             <span className={s.eyebrowDot} aria-hidden />
-            No stack traces. No “incorrect.”
+            Learn quantum by building it
           </span>
 
           <h1 className={`statement ${s.headline}`}>
-            A wrong circuit should tell you which gate is wrong.
+            A qubit is not a coin.
           </h1>
 
           <p className={`prose ${s.sub}`}>
-            Drag a gate and the Qiskit writes itself. Run it and you get a measured
-            plot, not a verdict. Get it wrong and you are told the gate, the wire
-            and the fix — in one sentence, in under a fifth of a second.
+            Ten minutes to find out why. Drag gates, run real physics, and get
+            told exactly what went wrong.
           </p>
 
           <div className={s.actions}>
@@ -192,9 +196,8 @@ export default function LandingPage() {
             className="label"
             style={{ marginTop: "var(--s-3)", color: "var(--ink-faint)", textTransform: "none", letterSpacing: 0 }}
           >
-            Measured between the two H gates it reads{" "}
-            {Math.round(midpointReading * 100)}/{Math.round((1 - midpointReading) * 100)} — at every
-            phase. The middle tells you nothing.
+            Measured halfway, it reads {Math.round(midpointReading * 100)}/
+            {Math.round((1 - midpointReading) * 100)} at every phase.
           </p>
         </div>
       </section>
@@ -204,32 +207,16 @@ export default function LandingPage() {
         <div className={s.sectionHead}>
           <span className="label">The loop</span>
           <h2 className="statement statement--s" style={{ marginTop: "var(--s-3)" }}>
-            Four beats, three to five minutes, nineteen times over.
+            A wrong circuit should tell you which gate is wrong.
           </h2>
         </div>
 
         <ol className={s.loop}>
           {[
-            {
-              n: "01",
-              t: "You are shown a target",
-              d: "A histogram, a state, a shape to hit. Never a paragraph — the instrument comes before the words.",
-            },
-            {
-              n: "02",
-              t: "You build, and it runs",
-              d: "Drag gates onto wires. The Qiskit writes itself beside you. Run it and 1024 shots come back.",
-            },
-            {
-              n: "03",
-              t: "A wrong circuit is diagnosed",
-              d: "Not an “incorrect”. The gate, the wire, the column, and the fix — from a rule engine reading your circuit.",
-            },
-            {
-              n: "04",
-              t: "Then, and only then, the explanation",
-              d: "Instruction lands after the attempt, because struggling first is what makes it stick.",
-            },
+            { n: "01", t: "See a target", d: "A shape to hit, not a paragraph." },
+            { n: "02", t: "Build and run", d: "Drag gates. The code writes itself." },
+            { n: "03", t: "Get diagnosed", d: "The gate, the wire and the fix." },
+            { n: "04", t: "Then the why", d: "Explained after you try — so it sticks." },
           ].map((b) => (
             <li key={b.n} className={s.loopStep}>
               <span className={s.loopNum}>{b.n}</span>
@@ -260,9 +247,7 @@ export default function LandingPage() {
           ))}
         </div>
         <p className={s.rosettaNote}>
-          Rendered from one canonical circuit object, in this browser, with no
-          server call. Adding Q# or OpenQASM is one more function over the same
-          object — which is the entire reason the schema is frozen.
+          One circuit, rendered in your browser. Q# and OpenQASM too.
         </p>
       </section>
 
@@ -321,21 +306,21 @@ export default function LandingPage() {
             {
               out: "Guided",
               to: "Drag, run, get told why",
-              why: "The path, the challenges, the streak. Gates unlock as you meet them, and the tutor speaks the moment a run fails.",
+              why: "A path, challenges and a tutor that helps the moment a run fails.",
               href: "/path",
               cta: "Open the path",
             },
             {
               out: "Workbench",
               to: "Straight to the bench",
-              why: "No XP, no streak, no leaderboard, and no tutor unless you ask for it. Twelve wires, four dialects, noise on a slider.",
+              why: "No XP, no streaks, no tutor unless asked. Twelve wires and noise.",
               href: "/build",
               cta: "Open the bench",
             },
             {
               out: "Teaching",
               to: "See where the class is stuck",
-              why: "Every rule the engine fires is an event. Aggregated across a cohort, that is a ranked list of what your class actually believes.",
+              why: "A ranked list of what your class actually misunderstands.",
               href: "/teach",
               cta: "See the heatmap",
             },
@@ -355,12 +340,9 @@ export default function LandingPage() {
       <section className={s.close}>
         <span className="label">Start anywhere</span>
         <h2 className="statement statement--s" style={{ maxWidth: "20ch" }}>
-          A qubit is not a coin. Ten minutes to find out why.
+          Unit 0 takes ten minutes.
         </h2>
-        <p className="prose">
-          Unit 0 is three nodes. Nothing is installed, nothing is uploaded, and
-          the whole simulator runs in this tab.
-        </p>
+        <p className="prose">Nothing to install. It all runs in this tab.</p>
         <div style={{ display: "flex", gap: "var(--s-3)", flexWrap: "wrap" }}>
           <Button variant="primary" size="lg" onClick={() => (window.location.href = "/start")}>
             Start with Unit 0

@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/chrome/TopBar";
 import { NextUp } from "@/components/learning/NextUp";
+import { Assigned } from "@/components/learning/Assigned";
 import { Button, Readout, Registration } from "@/components/ui/primitives";
 import {
   MASTERY_THRESHOLD, MODE, NODES_BY_ID, UNITS, currentNodeId, dueForReview,
@@ -101,6 +102,7 @@ export default function PathPage() {
 
         {/* What to do next, and the evidence for it (E7-S7). The warm-up
             above already handles a due recall, so this card does not repeat it. */}
+        <Assigned />
         {(currentNode || passedCount > 0) && <NextUp skipReview />}
 
         {UNITS.map((unit) => {

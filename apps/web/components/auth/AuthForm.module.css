@@ -1,0 +1,79 @@
+.main {
+  display: grid;
+  place-items: start center;
+  padding: clamp(32px, 8vh, 96px) 16px var(--s-9);
+}
+
+.card {
+  position: relative;
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-6);
+  background: var(--paper);
+  border: var(--frame-w) solid var(--frame);
+  border-radius: var(--r-panel);
+}
+
+.title {
+  margin: -6px 0 var(--s-2);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hint {
+  font-size: var(--t-label);
+  color: var(--ink-muted);
+}
+
+.teach {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--rule);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-body);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.error {
+  padding: var(--s-3);
+  background: var(--error-wash);
+  border: 1px solid var(--error);
+  border-radius: var(--r-panel);
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+
+.switch {
+  font-size: var(--t-body);
+  color: var(--ink-3);
+  text-align: center;
+}
+.switch a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.note {
+  font-size: var(--t-label);
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .card { padding: var(--s-5); }
+}

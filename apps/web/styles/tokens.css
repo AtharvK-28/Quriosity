@@ -271,6 +271,8 @@ svg { display: block; }
 /* A panel is paper with an ink frame. There is no elevation in this system, so
    hierarchy comes from frame weight and from the amount of air around a thing. */
 .panel {
+  position: relative;
+  padding: var(--s-4) var(--s-5);
   background: var(--paper);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);

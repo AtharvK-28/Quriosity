@@ -31,6 +31,8 @@ interface LibraryState {
   rename(id: string, name: string): void;
   remove(id: string): void;
   get(id: string): SavedCircuit | undefined;
+  /** Swap in a whole list — how the account's copy arrives on sign-in. */
+  replaceAll(items: SavedCircuit[]): void;
 }
 
 const KEY = "quriosity.library.v1";
@@ -112,5 +114,11 @@ export const useLibrary = create<LibraryState>((set, get) => ({
 
   get(id) {
     return get().items.find((x) => x.id === id);
+  },
+
+  replaceAll(items) {
+    const kept = items.filter((x) => x && x.circuit && validate(x.circuit).valid).slice(0, MAX_ITEMS);
+    set({ hydrated: true, items: kept });
+    persist(kept);
   },
 }));

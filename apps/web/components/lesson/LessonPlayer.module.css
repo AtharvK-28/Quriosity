@@ -191,6 +191,12 @@
   margin-top: var(--s-5);
 }
 
+/* The state is right; the move the node teaches is missing. Attention, not error. */
+.diagnosis[data-tone="flag"] {
+  background: var(--flag-wash);
+  border-color: var(--flag);
+}
+
 .diagnosis[data-tone="pass"] {
   background: var(--measure-wash);
   border-color: var(--measure);

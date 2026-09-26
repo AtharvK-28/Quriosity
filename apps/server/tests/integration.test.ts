@@ -15,20 +15,32 @@ import WebSocket from "ws";
 import { startArenaServer, type ArenaServer } from "../src/server.ts";
 import { MIN_PLAUSIBLE_SOLVE_MS } from "../src/arena/service.ts";
 import { emptyCircuit, nextGateId, type Circuit, type GateType } from "../../web/lib/ir/types";
+import { freshDb } from "./db.ts";
 
 let server: ArenaServer;
 
 beforeAll(async () => {
-  server = await startArenaServer({ dbFile: ":memory:", tickMs: 50 });
+  server = await startArenaServer({ db: await freshDb(), tickMs: 50, jwtSecret: "test-secret", secureCookies: false, authPerMinute: 1000 });
 });
+
+/** A real account, made through the real API. */
+async function account(name: string): Promise<{ id: string; token: string }> {
+  const res = await fetch(`http://127.0.0.1:${server.port}/auth/signup`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: `${name.toLowerCase()}-${Date.now()}@example.com`, password: "correct horse", displayName: name }),
+  });
+  const body = (await res.json()) as { accessToken: string; user: { id: string } };
+  return { id: body.user.id, token: body.accessToken };
+}
 
 afterAll(async () => {
   await server.close();
 });
 
 /** A socket that records every frame, and can be awaited for one by name. */
-function connect(playerId: string, name: string) {
-  const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws?playerId=${playerId}&name=${name}`);
+function connect(token: string) {
+  const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws?token=${encodeURIComponent(token)}`);
   const frames: Array<{ type: string; payload: any }> = [];
   ws.on("message", (raw) => frames.push(JSON.parse(String(raw))));
 
@@ -72,6 +84,15 @@ describe("the arena over a real socket", () => {
     expect(body.challenges).toBeGreaterThan(0);
   });
 
+  it("refuses a socket with a forged token", async () => {
+    const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws?token=eyJhbGciOiJub25lIn0.eyJzdWIiOiJhZGEifQ.`);
+    const closed = await new Promise<boolean>((resolve) => {
+      ws.on("close", () => resolve(true));
+      setTimeout(() => resolve(false), 3000);
+    });
+    expect(closed).toBe(true);
+  });
+
   it("refuses a socket with no identity", async () => {
     const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
     const closed = await new Promise<boolean>((resolve) => {
@@ -82,8 +103,10 @@ describe("the arena over a real socket", () => {
   });
 
   it("plays a full match and tells both players the same thing", async () => {
-    const ada = connect("ada", "Ada");
-    const bo = connect("bo", "Bo");
+    const adaAccount = await account("Ada");
+    const boAccount = await account("Bo");
+    const ada = connect(adaAccount.token);
+    const bo = connect(boAccount.token);
     await ada.open();
     await bo.open();
 
@@ -126,6 +149,12 @@ describe("the arena over a real socket", () => {
     // under test here, and the flagged path has its own test in arena.test.ts.
     await new Promise((r) => setTimeout(r, MIN_PLAUSIBLE_SOLVE_MS + 200));
 
+    // One honest miss first. The reference answer, exact, on a first attempt,
+    // this fast, is precisely what the copy check flags — also its own test.
+    ada.send("match.submit", { ir: circuit(ch.qubits, []) });
+    await ada.await("match.graded");
+    ada.frames.splice(ada.frames.findIndex((f) => f.type === "match.graded"), 1);
+
     ada.send("match.submit", { ir: solution });
     await ada.await("match.graded");
 
@@ -138,7 +167,7 @@ describe("the arena over a real socket", () => {
 
       expect(resA.payload.matchId).toBe(resB.payload.matchId);
       expect(resA.payload.winnerId).toBe(resB.payload.winnerId);
-      expect(resA.payload.winnerId).toBe("ada");
+      expect(resA.payload.winnerId).toBe(adaAccount.id);
       // Each is told their own rating and the opponent's, mirrored.
       expect(resA.payload.yourRating).toBe(resB.payload.opponentRating);
       expect(resB.payload.yourRating).toBe(resA.payload.opponentRating);
@@ -151,8 +180,8 @@ describe("the arena over a real socket", () => {
       // And the ladder agrees with what the players were told.
       const board = (await (await fetch(`http://127.0.0.1:${server.port}/leaderboard`)).json()) as { players: Array<{ id: string; rating: number }> };
       const ratings = Object.fromEntries(board.players.map((p) => [p.id, p.rating]));
-      expect(ratings.ada).toBe(resA.payload.yourRating);
-      expect(ratings.bo).toBe(resB.payload.yourRating);
+      expect(ratings[adaAccount.id]).toBe(resA.payload.yourRating);
+      expect(ratings[boAccount.id]).toBe(resB.payload.yourRating);
     }
 
     ada.ws.close();
@@ -160,7 +189,7 @@ describe("the arena over a real socket", () => {
   }, 20_000);
 
   it("rejects a submission from someone with no match", async () => {
-    const ghost = connect("ghost", "Ghost");
+    const ghost = connect((await account("Ghost")).token);
     await ghost.open();
     await ghost.await("session.ready");
 
@@ -171,7 +200,7 @@ describe("the arena over a real socket", () => {
   });
 
   it("names an unknown frame instead of dying on it", async () => {
-    const c = connect("odd", "Odd");
+    const c = connect((await account("Odd")).token);
     await c.open();
     await c.await("session.ready");
 

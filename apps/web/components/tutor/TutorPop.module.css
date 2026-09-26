@@ -1,0 +1,280 @@
+/* The tutor dropping by: an instrument card, not a toast. */
+.pop {
+  position: fixed;
+  z-index: 46;
+  /* As wide as the margin beside the page's content column allows, so on a
+     desktop it sits in empty space rather than over the target panel; never
+     narrower than a readable card. */
+  width: clamp(300px, calc((100vw - 1060px) / 2 - 20px), 360px);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper-raised);
+  border: 1px solid var(--frame);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-pop);
+  animation: var(--enter) var(--m-settle) var(--e-settle) both;
+}
+
+/* What happened sets the kicker's colour — and nothing else on the card. */
+.pop[data-kind="new"]  { --signal: var(--ink-3); }
+.pop[data-kind="hint"] { --signal: var(--flag); }
+.pop[data-kind="win"]  { --signal: var(--measure); }
+
+/* Where each side sits, and which way it comes in. Every landing spot is on
+   the right, over the reference column (target, state views), which holds
+   nothing to click. The left and centre were tried: at a laptop's width the
+   card covered the lesson's headline, the task line, the canvas's first
+   column and the verdict's buttons — the exact things a learner reads or
+   clicks next. The entrance still varies, so it reads as the tutor arriving
+   rather than a banner appearing. */
+.pop[data-side="right"]  { top: 76px;    right: 16px; --enter: fromRight; }
+.pop[data-side="top"]    { top: 76px;    right: 16px; --enter: fromTop; }
+.pop[data-side="bottom"] { bottom: 88px; right: 16px; --enter: fromBottom; } /* above the launcher */
+
+@keyframes fromRight  { from { transform: translateX(28px);  opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fromTop    { from { transform: translateY(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fromBottom { from { transform: translateY(20px);  opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* -- Header ------------------------------------------------------------------ */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 10px 10px 10px var(--s-4);
+  border-bottom: 1px solid var(--rule-2);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--signal);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--signal);
+}
+
+.spacer { flex: 1; }
+
+.steps {
+  display: inline-flex;
+  gap: 5px;
+  margin-right: 4px;
+}
+.step {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--rule-3);
+  transition: background var(--m-quick) linear, width var(--m-quick) var(--e-out);
+}
+.step[data-on] {
+  width: 16px;
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-gate);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.close:hover { color: var(--ink); background: var(--paper-inset); }
+
+/* -- Body -------------------------------------------------------------------- */
+
+.body {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  animation: settle var(--m-quick) var(--e-out) both;
+}
+
+@keyframes settle {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* A word is a concept, so it takes the statement face. */
+.title {
+  font-family: var(--font-statement);
+  font-size: 25px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.text {
+  font-size: var(--t-body);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+/* The gates card: one row per gate, each a link to its reference row. */
+.gates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.gateRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 7px 8px;
+  margin: 0 -8px;
+  border-radius: var(--r-panel);
+  color: var(--ink);
+}
+.gateRow:hover { background: var(--paper-inset); text-decoration: none; }
+
+.gateGlyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+.gateGlyph svg { width: 100%; height: 100%; }
+
+.gateText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--t-label);
+  line-height: 1.35;
+}
+.gateText b {
+  font-size: var(--t-body);
+  font-weight: 500;
+}
+.gateText span {
+  color: var(--ink-muted);
+}
+
+/* -- Footer ------------------------------------------------------------------ */
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-4) var(--s-4);
+}
+
+.link {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.link:hover { color: var(--ink); text-decoration: none; }
+
+.primary,
+.ghost {
+  padding: 7px 14px;
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+}
+.primary {
+  background: var(--cta);
+  color: var(--cta-ink);
+}
+.primary:hover { filter: brightness(1.08); }
+.ghost {
+  color: var(--ink-3);
+  border: 1px solid var(--rule-2);
+}
+.ghost:hover { color: var(--ink); border-color: var(--rule-3); }
+
+/* A cheer closes itself; this runs down with it. */
+.timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--measure);
+  transform-origin: left;
+  animation-name: drain;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+@keyframes drain {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* On a phone every side is the bottom, above the tutor launcher. */
+@media (max-width: 640px) {
+  .pop[data-side] {
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 76px;
+    width: auto;
+    translate: none;
+    --enter: fromBottom;
+  }
+  .title { font-size: 23px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop,
+  .body,
+  .timer {
+    animation: none;
+  }
+  .timer { display: none; }
+}

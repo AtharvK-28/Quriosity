@@ -3,6 +3,7 @@ import { Instrument_Serif, Space_Grotesk, JetBrains_Mono } from "next/font/googl
 import "@/styles/tokens.css";
 import { DEFAULT_THEME, THEME_BOOT } from "@/lib/theme";
 import { ServiceWorkerBoot } from "@/components/chrome/ServiceWorkerBoot";
+import { AuthBoot } from "@/components/chrome/AuthBoot";
 
 /**
  * Three faces, three jobs, no overlap.
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <ServiceWorkerBoot />
+        <AuthBoot />
       </body>
     </html>
   );

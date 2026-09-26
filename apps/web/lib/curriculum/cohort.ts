@@ -28,6 +28,8 @@ export interface CohortStudent {
   /** Nodes they got right first time. Drives the cohort mastery figure. */
   firstTime: Set<string>;
   lastSeenDays: number;
+  /** Rule-engine hits. Real cohorts only; the seeded one models them instead. */
+  misconceptions?: Array<{ misconceptionId: string; ruleId: string; nodeId: string | null }>;
 }
 
 export interface MisconceptionRow {
@@ -48,7 +50,9 @@ export interface Cohort {
   name: string;
   institution: string;
   students: CohortStudent[];
-  seeded: true;
+  seeded: boolean;
+  /** Real cohorts: the code students join with. */
+  joinCode?: string;
 }
 
 /* -- Deterministic noise ---------------------------------------------------- */
@@ -129,6 +133,7 @@ export function seedCohort(size = 58): Cohort {
  * that changes the lecture.
  */
 export function misconceptionRows(cohort: Cohort): MisconceptionRow[] {
+  if (!cohort.seeded) return realMisconceptionRows(cohort);
   const rand = mulberry32(0x9e_37);
   const nodeBy = (id: string) => NODES.find((n) => n.id === id);
 
@@ -224,4 +229,92 @@ export function cohortSummary(cohort: Cohort) {
   const active = cohort.students.filter((s) => s.lastSeenDays <= 2).length;
 
   return { total, median, stuck, active };
+}
+
+/* -- Real cohorts --------------------------------------------------------------- */
+
+/**
+ * What each rule says a learner believes, phrased to finish the sentence
+ * "38% of the class ___". Written per rule rather than per misconception,
+ * because the rule is what actually fired on the circuit.
+ */
+const BELIEFS: Record<string, string> = {
+  L01_no_entangler: "expects wires to correlate without an entangling gate",
+  L02_redundant_pair: "leaves gate pairs that cancel each other out",
+  L03_order_inverted: "puts gates in the wrong order",
+  L04_global_phase_only: "adds a global phase and expects a change",
+  L05_measure_then_coherent: "measures mid-circuit and expects interference to survive",
+  L06_grover_iterations: "runs the wrong number of Grover iterations",
+  L07_control_target_swapped: "swaps a controlled gate's control and target",
+  L08_idle_qubit: "leaves a qubit doing nothing",
+  L09_unmeasured_result: "forgets to measure the result",
+  L10_h_without_purpose: "treats a qubit as a coin that is secretly heads or tails",
+  L11_reduced_state_mixed: "reads an entangled Bloch sphere as an error",
+  L12_relative_phase_ignored: "treats |+⟩ and |−⟩ as interchangeable",
+  L13_depth_vs_noise: "builds circuits deeper than the noise allows",
+};
+
+/** Counted, not modelled: distinct students per rule, from their own hits. */
+function realMisconceptionRows(cohort: Cohort): MisconceptionRow[] {
+  const byRule = new Map<string, { id: MisconceptionId; students: Set<string>; nodes: Map<string, number> }>();
+  for (const st of cohort.students) {
+    for (const e of st.misconceptions ?? []) {
+      const key = e.ruleId;
+      const entry = byRule.get(key) ?? { id: e.misconceptionId as MisconceptionId, students: new Set(), nodes: new Map() };
+      entry.students.add(st.id);
+      if (e.nodeId) entry.nodes.set(e.nodeId, (entry.nodes.get(e.nodeId) ?? 0) + 1);
+      byRule.set(key, entry);
+    }
+  }
+  return [...byRule.entries()]
+    .map(([ruleId, e]) => {
+      const topNode = [...e.nodes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+      return {
+        id: e.id,
+        ruleId,
+        belief: BELIEFS[ruleId] ?? "trips the rule engine",
+        students: e.students.size,
+        node: topNode ? NODES.find((n) => n.id === topNode) : undefined,
+      };
+    })
+    .sort((a, b) => b.students - a.students);
+}
+
+/** The server's report for one cohort — only what the console reads. */
+export interface CohortReport {
+  cohort: { id: string; name: string; joinCode: string };
+  students: Array<{
+    id: string;
+    name: string;
+    progress: Record<string, { state?: string; firstAttemptCorrect?: boolean | null }>;
+    misconceptions: Array<{ misconceptionId: string; ruleId: string; nodeId: string | null }>;
+    updatedAt: number | null;
+  }>;
+}
+
+export function cohortFromReport(report: CohortReport, now = Date.now()): Cohort {
+  return {
+    name: report.cohort.name,
+    institution: "Live cohort",
+    joinCode: report.cohort.joinCode,
+    seeded: false,
+    students: report.students.map((st) => {
+      const progress: CohortStudent["progress"] = {};
+      const firstTime = new Set<string>();
+      for (const node of NODES) {
+        const p = st.progress[node.id];
+        // "available" is not yet reached, which the console counts as locked.
+        progress[node.id] = p?.state === "passed" ? "passed" : p?.state === "attempted" ? "attempted" : "locked";
+        if (p?.state === "passed" && p.firstAttemptCorrect) firstTime.add(node.id);
+      }
+      return {
+        id: st.id,
+        name: st.name,
+        progress,
+        firstTime,
+        lastSeenDays: st.updatedAt === null ? 99 : Math.max(0, Math.floor((now - st.updatedAt) / 86_400_000)),
+        misconceptions: st.misconceptions,
+      };
+    }),
+  };
 }

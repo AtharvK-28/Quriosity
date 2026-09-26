@@ -63,7 +63,9 @@
 }
 
 @media (max-width: 1040px) {
-  .workspace { grid-template-columns: 1fr; }
+  /* minmax(0, 1fr), not 1fr: a bare 1fr is floored at the circuit's width and
+     pushes the page sideways on a phone. */
+  .workspace { grid-template-columns: minmax(0, 1fr); }
 }
 
 .stage {

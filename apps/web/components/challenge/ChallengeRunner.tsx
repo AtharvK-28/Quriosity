@@ -37,6 +37,8 @@ import { useSession } from "@/stores/sessionStore";
 import {
   DIFFICULTY_COPY, KIND_COPY, type Challenge,
 } from "@/lib/curriculum/challenges";
+import { clearPop, dismissPop, popHint, popWin } from "@/components/tutor/moments";
+import { logAttempt } from "@/lib/sync/attempts";
 import s from "./ChallengeRunner.module.css";
 
 type View = "bloch" | "table" | "code";
@@ -104,6 +106,7 @@ export function ChallengeRunner({
   const used = gateCount(circuit);
 
   function onRun() {
+    clearPop();
     execute(challenge.target);
     setAttempts((a) => a + 1);
   }
@@ -120,8 +123,23 @@ export function ChallengeRunner({
     if (run.finding?.misconception) {
       recordMisconception(run.finding.misconception, run.finding.ruleId, null);
     }
+    if (!run.grade.passed) {
+      popHint(run.finding, circuit, run.grade.fidelity);
+      if (!authored) logAttempt(`challenge:${challenge.id}`, circuit, run.grade.fidelity, run.finding);
+    } else {
+      const used = gateCount(circuit);
+      popWin(
+        challenge.kind === "golf" && used < challenge.par
+          ? "Under par, too."
+          : attempts <= 1
+            ? "First try, too."
+            : undefined,
+      );
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run?.at]);
+
+  useEffect(() => dismissPop, [challenge.id]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -187,8 +205,7 @@ export function ChallengeRunner({
         <p className={s.briefText}>{challenge.brief}</p>
         {challenge.kind === "bughunt" && (
           <p className={s.briefNote}>
-            The circuit below is already on the bench. Do not clear it — the
-            point is to find what is wrong with it.
+            Something below is broken. Find it — don't start over.
           </p>
         )}
       </header>
@@ -289,14 +306,12 @@ export function ChallengeRunner({
               {hintShown && <p className={s.hint}>{challenge.hint}</p>}
               {solutionShown && (
                 <p className={s.hint}>
-                  That is one answer, now on the bench — run it to see it pass. It is
-                  not the only one: grading compares the state you reach, so any
-                  circuit that gets there counts.
+                  One answer is on the bench — run it. Other circuits work too.
                 </p>
               )}
               {!solutionAvailable && attempts > 0 && attempts < 3 && !hintShown && (
                 <p className={s.hint}>
-                  A full answer opens after three tries. You have had {attempts}.
+                  An answer opens after three tries ({attempts} so far).
                 </p>
               )}
             </div>
@@ -389,21 +404,19 @@ export function ChallengeRunner({
               <div className={s.rules}>
                 <span className={s.ruleRow}>
                   <span className={s.ruleMark}>01</span>
-                  Any circuit reaching the target passes. Grading compares the
-                  state you produce, never the gates you used.
+                  Any circuit that reaches the target passes.
                 </span>
                 <span className={s.ruleRow}>
                   <span className={s.ruleMark}>02</span>
                   {challenge.kind === "golf"
-                    ? `Par is ${challenge.par} gates. Correctness comes first; the gate count is the score.`
+                    ? `Fewer gates is better. Par is ${challenge.par}.`
                     : challenge.kind === "bughunt"
-                      ? "The circuit on the bench is already wrong. Change it — do not start over."
-                      : `Par is ${challenge.par} gates, but a longer correct answer still passes.`}
+                      ? "Fix the circuit you were given."
+                      : `Par is ${challenge.par} gates. Longer still passes.`}
                 </span>
                 <span className={s.ruleRow}>
                   <span className={s.ruleMark}>03</span>
-                  A hint is there if you ask for one. A full answer opens after
-                  three tries.
+                  Hints on ask. An answer after three tries.
                 </span>
               </div>
             </div>

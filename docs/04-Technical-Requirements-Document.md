@@ -5,11 +5,47 @@
 |---|---|
 | PS ID | 26140 |
 | Team | Logic Sorcerers |
-| Version | 1.0 |
+| Version | 1.1 — adds §0, the as-built record |
 | Parent documents | 01-Ideation-Document-v2.md, 02-Product-Requirements-Document.md, 03-Design-Document.md |
 | Audience | Implementers, and Claude Code as an implementation agent |
 
 > **The one rule.** The circuit IR schema in §4 is frozen before any other code is written. Every service in this system is a function over that object. Renegotiating it mid-build is the single failure mode most likely to cost the project.
+
+---
+
+## 0. As built
+
+Sections 1–16 are the design. This section records where the build that exists took a different route, and why, so the document can be read against the code without surprises. The one rule held: the IR in §4 is unchanged, and every surface below is still a function over it.
+
+### 0.1 Differences from the design
+
+| Design (§) | As built | Why |
+|---|---|---|
+| Next.js 14, TanStack Query (§1.2) | Next.js 16 App Router; Zustand for all client state | Few server calls — sync, cohorts, arena — so a query cache added weight without a job |
+| React Flow canvas (§1.2, T9) | Hand-built canvas (`components/circuit/CircuitCanvas.tsx`) on a fixed column grid | The fixed grid and the full keyboard grammar (Design §11.2) are the interaction; a free-form node editor had to be fought for both |
+| Monaco editor (§1.2) | Code panel with its own rendering; Qiskit and OpenQASM 2/3 are **parsed**, never executed (`lib/io/`) | No user code runs anywhere, so there is nothing to sandbox and no 2MB editor to lazy-load |
+| FastAPI gateway (§1, §7, T8) | Node/TypeScript server, `apps/server` — plain `node:http` + `ws` | It imports the web app's own IR validator, simulator and grader, so a server re-grade is identical to the client's by construction, not by a golden-parity test (§14, T10) |
+| Celery + Docker sandbox + Aer/Cirq/PennyLane workers (§1, §6, §8) | In-browser state-vector simulator (`lib/sim/`, 16-qubit cap); the server re-simulates arena submissions with the same code | Nothing executes user code, which removes the attack surface §8 exists to contain. Renderers for Qiskit, Cirq, PennyLane, Q# and OpenQASM 3 exist; *execution* on those SDKs does not, so D4's Aer-versus-Cirq check is not yet demonstrable |
+| PostgreSQL 16 (§9) | Postgres — Neon in production, PGlite (in-process Postgres) locally and in tests. Schema: `apps/server/src/db/schema.sql` | One dialect everywhere; no database to install to run or test the server |
+| Redis: queue, cache, leaderboards (§1, §12.1, §13.1) | Not used. Matchmaking runs in the server process; the leaderboard is one indexed query | One server instance. A second instance needs a shared queue — this is the first thing to add at scale |
+| Qdrant + RAG over SDK docs (§11.4) | BM25 over the platform's own corpus (lessons, gate registry, misconceptions); Claude answers from a server-built summary of the learner's circuit | Grounding in the platform's own content and the simulator result; retrieval over official SDK docs is still to do |
+| LangChain + LLM API (§11) | Anthropic TypeScript SDK, `claude-opus-5`, streamed | Direct SDK; no orchestration layer needed for one call |
+| Guardrails G1–G7 (§11.3) | G1 (probabilities checked against the simulator, placeholders filled from it), G2 (gate references validated), G3 (low-confidence refusal), G4 (length cap), G5 (no proactive output in Workbench), G7 (solution disclosure gated server-side) — plus a **physics firewall** that withdraws any answer breaking a law of quantum mechanics or misstating what a fixed gate does, checked against the gate matrices | G6 (per-response source tagging) is partial: the learner is told which engine answered |
+| Arena anti-cheat (§12.4) | Impossible-solve-time and known-solution copy checks, both flagging and withholding rating; same-IP collusion check not built | |
+
+### 0.2 What is built exactly as designed
+
+Auth (§13.4): Argon2id at the stated parameters, 15-minute HS256 access tokens held in memory, 30-day refresh tokens in an httpOnly `SameSite=Strict` cookie, rotated on every use with family revocation on reuse; roles student / instructor / admin; RBAC decided per route on the server. Arena (§12): rating-band matchmaking widening to ±400, 60-second timeout, Elo with K=32/16 and a floor of 100, rating and match record in one transaction, server-clock ordering, one computation told to both players, 30-second reconnect grace; Blitz, Circuit golf and Bug hunt (E9-S6). Grading (§10): fidelity, global-phase invariant, partial credit. The rule engine: L01–L13 (§4.3).
+
+### 0.3 Deployment as built
+
+| Part | Where | Settings |
+|---|---|---|
+| Web app | Vercel | `ANTHROPIC_API_KEY` (optional — without it the built-in guide answers); `API_ORIGIN` (optional — defaults to the deployed server) |
+| Server | Render | `DATABASE_URL` (Neon), `JWT_SECRET` (required — the server refuses to start in production without it), `INSTRUCTOR_CODE`, `ADMIN_EMAILS`, `CORS_ORIGIN` |
+| Database | Neon Postgres | The schema applies itself on boot |
+
+The web app reaches the server through its own origin (`/api/server/*` is rewritten to the server) so the refresh cookie is first-party. The arena's WebSocket connects to the server directly with the access token. Everything a learner does on the path, the bench and the challenges runs in the browser and works with the server down.
 
 ---
 

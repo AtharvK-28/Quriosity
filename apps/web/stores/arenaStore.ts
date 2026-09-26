@@ -21,14 +21,19 @@
 
 import { create } from "zustand";
 import type { Circuit } from "@/lib/ir/types";
-import { arenaPlayerId } from "@/lib/arena/identity";
+import { freshToken, useAuth } from "@/stores/authStore";
+import { arenaSocketBase, isLocalPage } from "@/lib/arena/server";
 
-export type ArenaPhase = "offline" | "connecting" | "idle" | "queued" | "matched" | "finished";
+/** "signed-out": ranked play needs an account (PRD §6.4); the page says so. */
+export type ArenaPhase = "signed-out" | "offline" | "connecting" | "idle" | "queued" | "matched" | "finished";
+
+export type ArenaMode = "blitz" | "golf" | "bughunt";
 
 export interface ArenaChallenge {
   id: string;
   title: string;
   brief: string;
+  starter?: Array<{ type: string; targets: number[]; controls?: number[]; params?: number[]; column: number }>;
   qubits: number;
   target: unknown;
   allowedGates: string[];
@@ -54,6 +59,13 @@ interface ArenaState {
   rating: number;
   gamesPlayed: number;
 
+  /** The mode last queued for, and the mode of the match in progress. */
+  mode: ArenaMode;
+  /** Golf: how long the match runs, from the server. */
+  capMs: number | null;
+  /** Golf: your fewest gates in a correct circuit so far. */
+  best: number | null;
+
   matchId: string | null;
   challenge: ArenaChallenge | null;
   opponent: { name: string; rating: number } | null;
@@ -64,25 +76,35 @@ interface ArenaState {
   lastGrade: { passed: boolean; fidelity: number } | null;
   result: MatchResult | null;
 
-  connect(displayName: string): void;
+  /** Opens the socket as the signed-in account. */
+  connect(): Promise<void>;
   disconnect(): void;
-  queue(mode?: string): void;
+  queue(mode?: ArenaMode): void;
   leaveQueue(): void;
   submit(circuit: Circuit): void;
   reportProgress(gateCount: number, runCount: number): void;
   reset(): void;
 }
 
-const SERVER = process.env.NEXT_PUBLIC_ARENA_URL ?? "ws://localhost:4000";
 const HEARTBEAT_MS = 5_000;
 
 let socket: WebSocket | null = null;
+/**
+ * Bumped by every connect and disconnect. A socket (or a connect still waiting
+ * on its token) from an older generation has been superseded, and its late
+ * events must not touch the live one — a stale `onclose` used to null the
+ * current socket, leaving the Queue button sending into nothing.
+ */
+let generation = 0;
 let heartbeat: ReturnType<typeof setInterval> | null = null;
 
 export const useArena = create<ArenaState>((set, get) => ({
   phase: "offline",
   problem: null,
   playerId: "",
+  mode: "blitz",
+  capMs: null,
+  best: null,
   rating: 1200,
   gamesPlayed: 0,
   matchId: null,
@@ -93,13 +115,22 @@ export const useArena = create<ArenaState>((set, get) => ({
   lastGrade: null,
   result: null,
 
-  connect(displayName) {
+  async connect() {
     if (socket && socket.readyState <= WebSocket.OPEN) return;
+    const gen = ++generation;
 
-    const playerId = arenaPlayerId();
-    set({ phase: "connecting", problem: null, playerId });
+    // The socket carries the same access token as the API. The server takes
+    // the player's identity and name from it — never from the client.
+    set({ phase: "connecting", problem: null });
+    const token = await freshToken();
+    if (gen !== generation) return;
+    if (!token) {
+      set({ phase: "signed-out", problem: null });
+      return;
+    }
+    set({ playerId: useAuth.getState().user?.id ?? "" });
 
-    const url = `${SERVER}/ws?playerId=${encodeURIComponent(playerId)}&name=${encodeURIComponent(displayName || "Anonymous")}`;
+    const url = `${arenaSocketBase()}/ws?token=${encodeURIComponent(token)}`;
     let ws: WebSocket;
     try {
       ws = new WebSocket(url);
@@ -109,13 +140,18 @@ export const useArena = create<ArenaState>((set, get) => ({
     }
     socket = ws;
 
+    const live = () => socket === ws && gen === generation;
+
     ws.onopen = () => {
+      if (!live()) return;
+      if (heartbeat) clearInterval(heartbeat);
       heartbeat = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "match.heartbeat", payload: {}, ts: Date.now() }));
       }, HEARTBEAT_MS);
     };
 
     ws.onclose = () => {
+      if (!live()) return;
       if (heartbeat) clearInterval(heartbeat);
       heartbeat = null;
       socket = null;
@@ -128,10 +164,16 @@ export const useArena = create<ArenaState>((set, get) => ({
     };
 
     ws.onerror = () => {
-      set({ problem: "The arena server is not reachable. Start it with npm run dev:server." });
+      if (!live()) return;
+      set({
+        problem: isLocalPage()
+          ? "The arena server is not reachable. Start it with npm run dev:server."
+          : "The arena server is not answering. It sleeps when idle and can take a minute to wake — try again shortly.",
+      });
     };
 
     ws.onmessage = (event) => {
+      if (!live()) return;
       let f: { type: string; payload: Record<string, unknown> };
       try {
         f = JSON.parse(String(event.data));
@@ -143,6 +185,7 @@ export const useArena = create<ArenaState>((set, get) => ({
         case "session.ready":
           set({
             phase: "idle",
+            playerId: String(f.payload.id ?? get().playerId),
             problem: null,
             rating: Number(f.payload.rating) || 1200,
             gamesPlayed: Number(f.payload.gamesPlayed) || 0,
@@ -172,6 +215,9 @@ export const useArena = create<ArenaState>((set, get) => ({
             startedAt: Date.now(),
             lastGrade: null,
             result: null,
+            mode: (f.payload.mode as ArenaMode) ?? get().mode,
+            capMs: f.payload.capMs == null ? null : Number(f.payload.capMs),
+            best: null,
           });
           return;
 
@@ -185,7 +231,10 @@ export const useArena = create<ArenaState>((set, get) => ({
           return;
 
         case "match.graded":
-          set({ lastGrade: { passed: Boolean(f.payload.passed), fidelity: Number(f.payload.fidelity) || 0 } });
+          set({
+            lastGrade: { passed: Boolean(f.payload.passed), fidelity: Number(f.payload.fidelity) || 0 },
+            best: f.payload.best == null ? get().best : Number(f.payload.best),
+          });
           return;
 
         case "match.result": {
@@ -206,6 +255,7 @@ export const useArena = create<ArenaState>((set, get) => ({
   },
 
   disconnect() {
+    generation++;
     if (heartbeat) clearInterval(heartbeat);
     heartbeat = null;
     socket?.close();
@@ -213,7 +263,8 @@ export const useArena = create<ArenaState>((set, get) => ({
     set({ phase: "offline" });
   },
 
-  queue(mode = "blitz") {
+  queue(mode = get().mode) {
+    set({ mode });
     socket?.send(JSON.stringify({ type: "queue.join", payload: { mode }, ts: Date.now() }));
   },
 

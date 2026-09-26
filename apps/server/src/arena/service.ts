@@ -6,6 +6,22 @@
  * boundary", can be tested by calling methods rather than by opening sockets.
  * `src/ws/` is a thin adapter over this and holds no rules.
  *
+ * ORDERING. The repository is async (Postgres), but every decision that
+ * orders events — who is paired, who submitted first, who won — is taken
+ * synchronously in memory before anything is awaited. A match is claimed as
+ * settled in the same tick its winning submission is graded, so two passes
+ * arriving together cannot both win while a database write is in flight.
+ *
+ * MODES (PRD E9-S6). Three, sharing one trust boundary:
+ *
+ *   blitz    the first correct circuit wins.
+ *   bughunt  both start from the same broken circuit; the first correct fix
+ *            wins — blitz from a different starting point.
+ *   golf     a time cap, and the fewest gates wins. Players may keep
+ *            submitting to improve until the cap; a tie on gates goes to
+ *            whoever reached that count first. It ends early once both have
+ *            reached par, since neither can then be beaten on count.
+ *
  * THE TRUST BOUNDARY (TRD §7.2, §12.3). Nothing a client sends decides a match:
  *
  *   - the submitted IR is re-validated here before it is touched
@@ -27,22 +43,42 @@ import type { Target } from "../../../web/lib/grade/fidelity";
 import { createMatchmaker, type Matchmaker, type QueueEntry } from "./queue.ts";
 import type { ArenaRepo } from "../db/repo.ts";
 
+export type ArenaMode = "blitz" | "golf" | "bughunt";
+export const ARENA_MODES: ArenaMode[] = ["blitz", "golf", "bughunt"];
+
 /** What both players are handed. E9-S2: identical, simultaneous. */
 export interface ArenaChallenge {
   id: string;
   title: string;
   brief: string;
+  kind: "reach" | "golf" | "bughunt";
   qubits: number;
   target: Target;
   allowedGates: string[];
   par: number;
   starter?: unknown;
+  /**
+   * Canonical hash of the challenge's own reference answer — what TRD §12.4's
+   * copy check compares against. Server-side only; never sent to a player.
+   */
+  referenceHash?: string;
+}
+
+/** Which challenges each mode draws from. */
+export function poolFor(mode: string, challenges: ArenaChallenge[]): ArenaChallenge[] {
+  const pool =
+    mode === "golf" ? challenges.filter((c) => c.kind === "golf")
+      : mode === "bughunt" ? challenges.filter((c) => c.kind === "bughunt")
+        : challenges.filter((c) => c.kind !== "bughunt");
+  return pool.length > 0 ? pool : challenges;
 }
 
 export interface ArenaEvents {
   matchFound(playerId: string, payload: {
     matchId: string; mode: string; challenge: ArenaChallenge;
     opponent: { name: string; rating: number };
+    /** Golf only: how long the match runs, in ms. */
+    capMs: number | null;
   }): void;
   opponentProgress(playerId: string, payload: { gateCount: number; runCount: number }): void;
   matchResult(playerId: string, payload: {
@@ -59,11 +95,21 @@ export interface ArenaEvents {
  * rejected: the match is recorded and the rating is withheld.
  */
 export const MIN_PLAUSIBLE_SOLVE_MS = 1_500;
+/**
+ * TRD §12.4's copy check: the challenge's own reference answer, submitted
+ * exactly, on a first attempt, faster than this. Each part alone is innocent —
+ * H then CNOT IS the natural Bell circuit — so only all three together flag.
+ */
+export const COPY_FLOOR_MS = 8_000;
+/** How long a golf match runs before the best counts are compared. */
+export const GOLF_CAP_MS = 180_000;
 /** 30s without a heartbeat starts the abandon clock (TRD §7.2). */
 export const HEARTBEAT_TIMEOUT_MS = 30_000;
 
 interface LiveMatch {
   id: string;
+  /** The match row's insert. Submissions wait on it — they reference it. */
+  created: Promise<void>;
   mode: string;
   challenge: ArenaChallenge;
   a: string;
@@ -71,14 +117,23 @@ interface LiveMatch {
   startedAt: number;
   settled: boolean;
   lastSeen: Map<string, number>;
+  /** Golf: the moment the cap falls. Null in the other modes. */
+  deadline: number | null;
+  /** Submissions so far, per player — the copy check wants the first. */
+  attempts: Map<string, number>;
+  /** Golf: each player's best passing circuit so far. */
+  best: Map<string, { gates: number; at: number; flagged: boolean }>;
 }
 
 export interface Arena {
-  queue(playerId: string, displayName: string, mode: string, now?: number): void;
+  queue(playerId: string, displayName: string, mode: string, now?: number): Promise<void>;
   dequeue(playerId: string): void;
-  /** Pair and expire. Call on an interval; the clock is an argument. */
-  tick(now?: number): void;
-  submit(playerId: string, ir: unknown, now?: number): SubmitOutcome;
+  /**
+   * Pair and expire. Call on an interval; the clock is an argument. The
+   * pairing itself is synchronous; the promise settles once it is persisted.
+   */
+  tick(now?: number): Promise<void>;
+  submit(playerId: string, ir: unknown, now?: number): Promise<SubmitOutcome>;
   progress(playerId: string, p: { gateCount: number; runCount: number }): void;
   heartbeat(playerId: string, now?: number): void;
   disconnect(playerId: string, now?: number): void;
@@ -90,7 +145,7 @@ export type SubmitOutcome =
   | { status: "no_match" }
   | { status: "invalid"; errors: string[] }
   | { status: "rejected"; reason: string }
-  | { status: "graded"; passed: boolean; fidelity: number; won: boolean };
+  | { status: "graded"; passed: boolean; fidelity: number; won: boolean; best: number | null };
 
 export function createArena(
   repo: ArenaRepo,
@@ -107,13 +162,37 @@ export function createArena(
   const byPlayer = new Map<string, string>();
   const names = new Map<string, string>();
 
-  const pick = opts.pick ?? (() => opts.challenges[Math.floor(Math.random() * opts.challenges.length)]);
+  const pick = opts.pick ?? ((mode: string) => {
+    const pool = poolFor(mode, opts.challenges);
+    return pool[Math.floor(Math.random() * pool.length)];
+  });
 
-  function finish(m: LiveMatch, outcome: "a" | "b" | "draw", flagged: boolean, reason: string, now: number) {
+  /**
+   * Golf's result: the fewer gates wins; equal counts go to whoever got there
+   * first; nobody correct is a draw. Flagged if the winning circuit was.
+   */
+  function settleGolf(m: LiveMatch, reason: string, now: number) {
+    const a = m.best.get(m.a);
+    const b = m.best.get(m.b);
+    let outcome: "a" | "b" | "draw" = "draw";
+    if (a && b) outcome = a.gates !== b.gates ? (a.gates < b.gates ? "a" : "b") : a.at !== b.at ? (a.at < b.at ? "a" : "b") : "draw";
+    else if (a) outcome = "a";
+    else if (b) outcome = "b";
+    const flagged = outcome === "a" ? a!.flagged : outcome === "b" ? b!.flagged : false;
+    const why = outcome === "draw" ? (a || b ? "same gates, same moment" : "nobody reached the target") : reason;
+    return finish(m, outcome, flagged, flagged ? "flagged for review" : why, now);
+  }
+
+  /** Claims the match synchronously, then persists and announces the result. */
+  async function finish(m: LiveMatch, outcome: "a" | "b" | "draw", flagged: boolean, reason: string, now: number) {
     if (m.settled) return;
     m.settled = true;
+    live.delete(m.id);
+    byPlayer.delete(m.a);
+    byPlayer.delete(m.b);
 
-    const change = repo.settleMatch(m.id, outcome, flagged, now);
+    await m.created;
+    const change = await repo.settleMatch(m.id, outcome, flagged, now);
     const winnerId = outcome === "a" ? m.a : outcome === "b" ? m.b : null;
 
     // One computation, both players told the same thing (TRD §12.3 item 4).
@@ -127,17 +206,14 @@ export function createArena(
         opponentRating: change.ratingA, flagged, reason,
       });
     }
-
-    live.delete(m.id);
-    byPlayer.delete(m.a);
-    byPlayer.delete(m.b);
   }
 
   return {
-    queue(playerId, displayName, mode, now = Date.now()) {
+    async queue(playerId, displayName, mode, now = Date.now()) {
       names.set(playerId, displayName);
-      const player = repo.touchPlayer(playerId, displayName);
       // Already mid-match: queueing again must not create a second one.
+      if (byPlayer.has(playerId)) return;
+      const player = await repo.touchPlayer(playerId, displayName);
       if (byPlayer.has(playerId)) return;
       mm.join({ playerId, rating: player.rating, mode, joinedAt: now });
     },
@@ -146,31 +222,40 @@ export function createArena(
       mm.leave(playerId);
     },
 
-    tick(now = Date.now()) {
+    async tick(now = Date.now()) {
+      const pending: Promise<unknown>[] = [];
+
       for (const [ea, eb] of mm.pair(now)) {
         const challenge = pick(ea.mode);
         const id = randomUUID();
-        const m: LiveMatch = {
-          id, mode: ea.mode, challenge,
-          a: ea.playerId, b: eb.playerId,
-          startedAt: now, settled: false,
-          lastSeen: new Map([[ea.playerId, now], [eb.playerId, now]]),
-        };
-
-        repo.createMatch({
+        const created = repo.createMatch({
           id, mode: ea.mode, challenge: { id: challenge.id, title: challenge.title },
           playerA: ea.playerId, playerB: eb.playerId,
           ratingABefore: ea.rating, ratingBBefore: eb.rating, startedAt: now,
         });
+        pending.push(created);
+        const golf = ea.mode === "golf";
+        const m: LiveMatch = {
+          id, created, mode: ea.mode, challenge,
+          a: ea.playerId, b: eb.playerId,
+          startedAt: now, settled: false,
+          lastSeen: new Map([[ea.playerId, now], [eb.playerId, now]]),
+          deadline: golf ? now + GOLF_CAP_MS : null,
+          attempts: new Map(),
+          best: new Map(),
+        };
 
         live.set(id, m);
         byPlayer.set(ea.playerId, id);
         byPlayer.set(eb.playerId, id);
 
+        // The reference hash stays here: it is how copying is caught.
+        const { referenceHash: _secret, ...shown } = challenge;
         const seat = (e: QueueEntry, other: QueueEntry) =>
           opts.events.matchFound(e.playerId, {
-            matchId: id, mode: e.mode, challenge,
+            matchId: id, mode: e.mode, challenge: shown,
             opponent: { name: names.get(other.playerId) ?? "Opponent", rating: other.rating },
+            capMs: golf ? GOLF_CAP_MS : null,
           });
         seat(ea, eb);
         seat(eb, ea);
@@ -178,20 +263,27 @@ export function createArena(
 
       for (const e of mm.expire(now)) opts.events.queueTimedOut(e.playerId);
 
+      // Golf: the cap has fallen, so the best counts are final.
+      for (const m of [...live.values()]) {
+        if (m.deadline !== null && now >= m.deadline && !m.settled) pending.push(settleGolf(m, "fewest gates", now));
+      }
+
       // Abandon a match whose player has gone quiet for too long.
       for (const m of [...live.values()]) {
         for (const p of [m.a, m.b]) {
           if (now - (m.lastSeen.get(p) ?? m.startedAt) >= HEARTBEAT_TIMEOUT_MS) {
             const other = p === m.a ? m.b : m.a;
             opts.events.matchAbandoned(other, { matchId: m.id, reason: "opponent disconnected" });
-            finish(m, p === m.a ? "b" : "a", false, "opponent disconnected", now);
+            pending.push(finish(m, p === m.a ? "b" : "a", false, "opponent disconnected", now));
             break;
           }
         }
       }
+
+      await Promise.all(pending);
     },
 
-    submit(playerId, ir, now = Date.now()) {
+    async submit(playerId, ir, now = Date.now()) {
       const matchId = byPlayer.get(playerId);
       const m = matchId ? live.get(matchId) : undefined;
       if (!m || m.settled) return { status: "no_match" };
@@ -217,19 +309,42 @@ export function createArena(
       const submittedAt = now;
       const durationMs = submittedAt - m.startedAt;
 
-      repo.recordSubmission({
-        matchId: m.id, playerId, ir: circuit, irHash: irHashSync(circuit),
+      const attempt = (m.attempts.get(playerId) ?? 0) + 1;
+      m.attempts.set(playerId, attempt);
+      const irHash = irHashSync(circuit);
+      const copied = attempt === 1 && irHash === m.challenge.referenceHash && durationMs < COPY_FLOOR_MS;
+      const suspicious = copied || durationMs < MIN_PLAUSIBLE_SOLVE_MS;
+
+      // Decided here, before any await, so a submission graded a moment later
+      // finds the match already settled.
+      let wins = false;
+      let settling: Promise<void> | null = null;
+      if (m.mode === "golf") {
+        if (g.passed) {
+          const gates = gateCount(circuit);
+          const prev = m.best.get(playerId);
+          if (!prev || gates < prev.gates) m.best.set(playerId, { gates, at: now, flagged: suspicious });
+        }
+        const a = m.best.get(m.a);
+        const b = m.best.get(m.b);
+        if (a && b && a.gates <= m.challenge.par && b.gates <= m.challenge.par) {
+          settling = settleGolf(m, "fewest gates", now);
+        }
+      } else if (g.passed && !m.settled) {
+        // First passing submission takes it.
+        wins = true;
+        settling = finish(m, playerId === m.a ? "a" : "b", suspicious, suspicious ? "flagged for review" : "solved first", now);
+      }
+
+      await m.created;
+      await repo.recordSubmission({
+        matchId: m.id, playerId, ir: circuit, irHash,
         passed: g.passed, fidelity: g.fidelity, gateCount: gateCount(circuit),
         submittedAt, durationMs,
       });
+      await settling;
 
-      if (!g.passed) return { status: "graded", passed: false, fidelity: g.fidelity, won: false };
-
-      // First passing submission takes it. Ties on the same millisecond break
-      // on submission id, which `submissionsFor` already orders by.
-      const flagged = durationMs < MIN_PLAUSIBLE_SOLVE_MS;
-      finish(m, playerId === m.a ? "a" : "b", flagged, flagged ? "flagged for review" : "solved first", now);
-      return { status: "graded", passed: true, fidelity: g.fidelity, won: true };
+      return { status: "graded", passed: g.passed, fidelity: g.fidelity, won: wins, best: m.best.get(playerId)?.gates ?? null };
     },
 
     progress(playerId, p) {

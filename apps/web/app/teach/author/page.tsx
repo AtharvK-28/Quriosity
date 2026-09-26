@@ -193,7 +193,7 @@ export default function AuthorPage() {
                   );
                 })}
               </div>
-              <span className={p.muted}>Suggested from the answer, with a decoy or two so the palette doesn&apos;t give it away.</span>
+              <span className={p.muted} style={{ marginTop: "var(--s-2)" }}>Suggested from the answer, with a decoy or two so the palette doesn&apos;t give it away.</span>
             </fieldset>
 
             {problems.length > 0 && <p className={p.muted}>Still needs {problems.join(", ")}.</p>}

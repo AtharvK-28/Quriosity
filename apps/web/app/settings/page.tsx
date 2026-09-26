@@ -21,6 +21,8 @@ import { useLibrary } from "@/stores/libraryStore";
 import { useAuthored } from "@/stores/authoredStore";
 import { analyticsEnabled, readEvents, setAnalyticsEnabled } from "@/lib/analytics";
 import { downloadText } from "@/lib/download";
+import { popsEnabled, setPopsEnabled } from "@/stores/popStore";
+import { AccountPanel } from "@/components/account/AccountPanel";
 import p from "@/components/ui/page.module.css";
 
 const PREFIX = "quriosity.";
@@ -34,6 +36,7 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [events, setEvents] = useState(0);
   const [tracking, setTracking] = useState(true);
+  const [pops, setPops] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
 
@@ -43,6 +46,7 @@ export default function SettingsPage() {
     useAuthored.getState().hydrate();
     setEvents(readEvents().length);
     setTracking(analyticsEnabled());
+    setPops(popsEnabled());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,6 +107,14 @@ export default function SettingsPage() {
           </div>
         </header>
 
+        {/* -- Account — E1 ----------------------------------------------------- */}
+        <section className={p.section} id="account" style={{ scrollMarginTop: 84 }}>
+          <div className={p.sectionHead}>
+            <h2 className={p.sectionTitle}>Account</h2>
+          </div>
+          <AccountPanel />
+        </section>
+
         {/* -- Mode — E1-S3 ------------------------------------------------------ */}
         <section className={p.section}>
           <div className={p.sectionHead}>
@@ -157,9 +169,20 @@ export default function SettingsPage() {
               <Button variant={theme === "night" ? "primary" : "ghost"} size="sm" onClick={() => setTheme("night")}>Night</Button>
               <Button variant={theme === "day" ? "primary" : "ghost"} size="sm" onClick={() => setTheme("day")}>Day</Button>
             </div>
+            <label className={p.row} style={{ cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={pops}
+                onChange={(e) => {
+                  setPopsEnabled(e.target.checked);
+                  setPops(e.target.checked);
+                }}
+              />
+              <span>Tutor pop-ups — new words, hints and cheers during lessons</span>
+            </label>
             <p className={p.muted}>
-              Motion follows your system&apos;s reduced-motion setting: the scrubber steps
-              instead of tweening, and nothing animates on its own.
+              Pop-ups never appear in Workbench mode. Motion follows your system&apos;s
+              reduced-motion setting.
             </p>
           </div>
           {saved && <p className={p.muted} role="status" style={{ marginTop: "var(--s-2)" }}>{saved}</p>}

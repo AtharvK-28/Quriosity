@@ -1,0 +1,72 @@
+/* A specimen well: inset paper, a hairline frame, the thing in the middle. */
+.tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--paper-inset);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  overflow: hidden;
+  container-type: size;
+}
+
+.sphere {
+  width: 88%;
+  height: 88%;
+}
+
+/* A gate is only a gate on a wire. */
+.wire {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14%;
+  width: 100%;
+  height: 100%;
+}
+.wire::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1.5px;
+  background: var(--rule-3);
+}
+
+.gate {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38cqh;
+  height: 38cqh;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: 17cqh;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+.gate[data-tall] {
+  height: 62cqh;
+}
+.gate svg {
+  width: 100%;
+  height: 100%;
+}
+
+.text {
+  font-family: var(--font-mono);
+  font-size: 34cqh;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.text[data-long] {
+  font-size: 22cqh;
+}

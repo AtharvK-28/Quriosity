@@ -1346,8 +1346,17 @@ are small and belong in git.
 The player is built. Adding one is four files and a manifest row — no component
 work.
 
-**1. The MP4.** Drop it in `apps/web/public/video/` named for the first node it
-covers, e.g. `u2.n1.mp4`. Gitignored, so it stays local.
+**1. The MP4.** Drop the NotebookLM export in `apps/web/video-src/` named for
+the first node it covers, e.g. `u2.n1.mp4` — that folder is gitignored, so the
+~20MB master stays local. Then make the web copy:
+
+```bash
+cd apps/web && node scripts/encode-videos.mjs
+```
+
+It writes `public/video/u2.n1.mp4` at about a fifth of the size (≈4MB,
+visually identical — SSIM ≈ 0.996) with the index at the front so playback
+starts immediately. That copy **is** committed, and deploys with the site.
 
 **2. The poster.** A black rectangle where the player should be reads as broken,
 so every video needs a still. Two seconds in is the title card:
@@ -1376,9 +1385,10 @@ node, that nothing is covered twice, that the poster and transcript both exist,
 and that the VTT parses. A missing file fails there rather than in front of a
 learner.
 
-The `.jpg` and `.vtt` are committed; only the `.mp4` is not. That is deliberate —
-a fresh checkout with no video files still shows the poster, the title and the
-full transcript rather than a broken player.
+The web `.mp4`, `.jpg` and `.vtt` are all committed; only the master in
+`video-src/` is not. The player still falls back to the poster, the title and
+the full transcript when a video fails to load — offline, for instance, where
+the service worker deliberately does not cache video.
 
 ## 8. Notes, cards and the check
 

@@ -10,6 +10,7 @@
 
 import type { CircuitContext } from "./context";
 import { CORPUS } from "./corpus";
+import type { Violation } from "./firewall";
 import type { TutorSource } from "./protocol";
 import { isConfident, retrieve, toSources, type Hit } from "./retrieve";
 
@@ -22,7 +23,7 @@ export interface GuideAnswer {
   sources: TutorSource[];
 }
 
-const REFERENCE: TutorSource = { title: "Gate reference", href: "/reference", kind: "gate" };
+const REFERENCE: TutorSource = { title: "Glossary", href: "/reference", kind: "gate" };
 
 function list(items: string[]): string {
   if (items.length <= 1) return items.join("");
@@ -91,6 +92,18 @@ export function retractionAnswer(question: string, ctx: CircuitContext): GuideAn
   return truth ? { text: truth, sources: relatedSources(question, ctx) } : guideAnswer(question, ctx);
 }
 
+/**
+ * What replaces an answer the physics firewall withdrew. The error was about
+ * physics, not the circuit, so the replacement is the law it broke — the same
+ * correction the curriculum teaches — with the myth it came from linked.
+ */
+export function physicsAnswer(v: Violation, question: string, ctx: CircuitContext): GuideAnswer {
+  const myth = v.misconception ? CORPUS.find((p) => p.id === `misconception:${v.misconception}`) : null;
+  const sources: TutorSource[] = myth ? [{ title: myth.title, href: myth.href, kind: myth.kind }] : [REFERENCE];
+  for (const s of relatedSources(question, ctx)) if (!sources.some((o) => o.href === s.href)) sources.push(s);
+  return { text: v.truth, sources: sources.slice(0, 2) };
+}
+
 export function guideAnswer(question: string, ctx: CircuitContext | null): GuideAnswer {
   const hits = retrieve(question, 3);
   const sources = relatedSources(question, ctx, hits);
@@ -102,7 +115,7 @@ export function guideAnswer(question: string, ctx: CircuitContext | null): Guide
 
   return {
     text:
-      "I can't answer that one confidently without the full tutor. Ask about a gate by name, an idea from a lesson, or the circuit you have open — or look it up in the gate reference.",
+      "I can't answer that one confidently without the full tutor. Ask about a gate by name, an idea from a lesson, or the circuit you have open — or look it up in the glossary.",
     sources: [REFERENCE],
   };
 }

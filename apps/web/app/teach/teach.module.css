@@ -292,3 +292,103 @@
 }
 
 .trackFill[data-stalled="true"] { background: var(--flag); }
+
+/* -- Class picker (signed-in instructors) ------------------------------------ */
+
+.classBar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--rule-2);
+}
+
+.classPick {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: min(100%, 280px);
+}
+
+.select {
+  padding: 8px 10px;
+  background: var(--paper-inset);
+  color: var(--ink);
+  border: 1px solid var(--rule-3);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: var(--t-body);
+}
+
+.classNew {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.instructorHint {
+  margin-bottom: var(--s-5);
+  font-size: var(--t-body);
+  color: var(--ink-3);
+}
+.instructorHint a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.problem {
+  margin-bottom: var(--s-4);
+  padding: var(--s-3);
+  border: 1px solid var(--error);
+  background: var(--error-wash);
+  border-radius: var(--r-panel);
+  font-size: var(--t-body);
+}
+
+.live {
+  display: inline-block;
+  margin-bottom: var(--s-4);
+  padding: 5px 10px;
+  border: 1px solid var(--measure);
+  border-radius: var(--r-gate);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--measure);
+}
+
+.joinCode {
+  display: inline-block;
+  margin-top: var(--s-4);
+  padding: 10px 18px;
+  border: var(--frame-w) solid var(--frame);
+  border-radius: var(--r-panel);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--ink);
+}
+
+.heatEmpty {
+  padding: var(--s-3) 0;
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+}
+
+.studentOpen {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.studentOpen:hover { color: var(--ink); }

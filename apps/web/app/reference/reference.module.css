@@ -110,3 +110,114 @@
   font-size: var(--t-label);
   color: var(--ink-2);
 }
+
+/* -- Terms ------------------------------------------------------------------ */
+
+.search {
+  max-width: 420px;
+  margin-bottom: var(--s-6);
+}
+
+.empty {
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+}
+
+.group {
+  margin-bottom: var(--s-7);
+}
+
+.group > h2 {
+  margin-bottom: var(--s-3);
+}
+
+.terms {
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  padding: 0 var(--s-5);
+}
+
+.term {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-2) var(--s-5);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.term:last-child { border-bottom: none; }
+
+.term:target {
+  box-shadow: inset 3px 0 0 var(--cta);
+  padding-left: var(--s-3);
+}
+
+.termName {
+  font-size: var(--t-body-lg);
+  font-weight: 500;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.termName .symbol { margin-left: var(--s-2); }
+
+.symbol {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  color: var(--phase);
+}
+
+.termBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.more { color: var(--ink-muted); }
+
+.termGates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: 4px;
+}
+
+.gateLink {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-gate);
+  padding: 2px 6px;
+}
+.gateLink:hover { color: var(--ink); border-color: var(--cta); }
+
+@media (max-width: 640px) {
+  .term { grid-template-columns: 1fr; }
+  .terms { padding: 0 var(--s-4); }
+}
+
+/* -- Gates ------------------------------------------------------------------ */
+
+.gatesHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+
+.lede {
+  font-size: var(--t-body);
+  color: var(--ink-3);
+}

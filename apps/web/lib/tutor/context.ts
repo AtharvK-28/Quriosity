@@ -10,7 +10,7 @@
  */
 
 import { CHALLENGES_BY_ID } from "@/lib/curriculum/challenges";
-import { NODES_BY_ID } from "@/lib/curriculum/nodes";
+import { NODES_BY_ID, unmetRequirement } from "@/lib/curriculum/nodes";
 import { grade, type GradeResult, type Target } from "@/lib/grade/fidelity";
 import { GATES, formatParam, isGateType } from "@/lib/ir/gates";
 import { SCHEMA_VERSION, gateQubits, type Circuit, type Gate, type GateType } from "@/lib/ir/types";
@@ -238,6 +238,14 @@ export function buildContext(where: TutorWhere, raw: unknown): CircuitContext {
 
   if (target) {
     ctx.grade = grade(result, target);
+    // A lesson that teaches a process is not passed by reaching its state some
+    // other way. The tutor must not congratulate an empty circuit on u0.n3.
+    const node = where.surface === "lesson" && where.nodeId ? NODES_BY_ID.get(where.nodeId) : undefined;
+    const missing = node && ctx.grade.passed ? unmetRequirement(node, circuit) : null;
+    if (missing) {
+      ctx.grade = { ...ctx.grade, passed: false };
+      lines.push(`The state matches the target, but the node is not complete: ${missing}`);
+    }
     lines.push(
       `Against the target: fidelity ${ctx.grade.fidelity.toFixed(3)}, ${ctx.grade.passed ? "passing" : "not yet passing"}` +
         (ctx.grade.globalPhaseOnly ? " (differs only by a global phase)" : "") +

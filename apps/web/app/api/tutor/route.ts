@@ -14,7 +14,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import { buildContext, type CircuitContext } from "@/lib/tutor/context";
 import { SentenceBuffer } from "@/lib/tutor/guard";
 import { ClaimChecker, fillPlaceholders, type Contradiction } from "@/lib/tutor/claims";
-import { guideAnswer, relatedSources, retractionAnswer, type GuideAnswer } from "@/lib/tutor/offline";
+import { firewall, type Violation } from "@/lib/tutor/firewall";
+import {
+  guideAnswer,
+  physicsAnswer,
+  relatedSources,
+  retractionAnswer,
+  type GuideAnswer,
+} from "@/lib/tutor/offline";
 import { SYSTEM_PROMPT, TUTOR_MODEL } from "@/lib/tutor/prompt";
 import {
   MAX_CHARS,
@@ -33,6 +40,9 @@ const MAX_WORDS = 170;
 
 const WITHDRAWN =
   "The tutor's answer said something about your circuit that the simulator does not back up, so it was withdrawn. This is the simulator's and the rule engine's reading instead.";
+
+const firewalled = (v: Violation) =>
+  `The tutor's answer broke a rule of quantum physics (${v.name}), so the physics firewall withdrew it. This is what is true instead.`;
 
 /* -- Rate limit ---------------------------------------------------------------
    Per address, in memory. Enough for one instance; a deployment with several
@@ -165,10 +175,15 @@ async function answerFromClaude(
   };
 
   // Every released chunk is filled from the simulator, then checked against
-  // it (PRD E7-S8). A contradiction or a runaway length ends the generation.
+  // it (PRD E7-S8) and against physics itself. A contradiction, a broken law
+  // or a runaway length ends the generation.
   const checker = new ClaimChecker(ctx);
   const halt: {
-    reason: { kind: "contradiction"; bad: Contradiction } | { kind: "length" } | null;
+    reason:
+      | { kind: "contradiction"; bad: Contradiction }
+      | { kind: "physics"; bad: Violation }
+      | { kind: "length" }
+      | null;
   } = { reason: null };
   let words = 0;
   const release = (chunk: string): boolean => {
@@ -177,6 +192,11 @@ async function answerFromClaude(
     const bad = checker.check(text);
     if (bad) {
       halt.reason = { kind: "contradiction", bad };
+      return false;
+    }
+    const broken = firewall(text);
+    if (broken) {
+      halt.reason = { kind: "physics", bad: broken };
       return false;
     }
     emit(text);
@@ -230,6 +250,13 @@ async function answerFromClaude(
       console.warn(`[tutor] withdrew an answer that contradicts the simulator: "${bad.claim}" (${bad.actual})`);
       if (started) send({ t: "retract" });
       answerFromGuide(send, question, ctx, WITHDRAWN, retractionAnswer(question, ctx));
+      return;
+    }
+    if (halt.reason?.kind === "physics") {
+      const { bad } = halt.reason;
+      console.warn(`[tutor] physics firewall withdrew an answer (${bad.law}): "${bad.claim}"`);
+      if (started) send({ t: "retract" });
+      answerFromGuide(send, question, ctx, firewalled(bad), physicsAnswer(bad, question, ctx));
       return;
     }
     if (halt.reason?.kind === "length") {

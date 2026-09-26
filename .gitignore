@@ -8,9 +8,14 @@ dist/
 .DS_Store
 coverage/
 
-# Lesson videos — ~20MB each, fetched separately. See docs/05-Video-Production-Guide.md
-apps/web/public/video/*.mp4
+# Lesson video masters — ~20MB NotebookLM exports. The web copies that
+# scripts/encode-videos.mjs makes from them (~4MB) live in public/video and ARE
+# committed, so the videos deploy with the site.
+apps/web/video-src/
 
 # Arena database — created at runtime by apps/server
 arena.db
 arena.db-*
+
+# Local PGlite database — created by apps/server when DATABASE_URL is unset
+apps/server/data/

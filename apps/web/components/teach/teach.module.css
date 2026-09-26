@@ -1,0 +1,149 @@
+.muted {
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+}
+
+.select {
+  padding: 7px 10px;
+  background: var(--paper-inset);
+  color: var(--ink);
+  border: 1px solid var(--rule-3);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: var(--t-body);
+}
+
+/* -- Attempts dialog ----------------------------------------------------------- */
+
+.attempts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.attempt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--rule);
+}
+.attempt:last-child { border-bottom: none; padding-bottom: 0; }
+
+.attemptHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+
+.attemptCircuit {
+  overflow-x: auto;
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  padding: var(--s-2);
+}
+
+.attemptMessage {
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--ink-2);
+  padding-left: var(--s-3);
+  border-left: 2px solid var(--flag);
+}
+
+/* -- Assignments ---------------------------------------------------------------- */
+
+.assignments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  background: var(--paper);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+}
+
+.assignForm {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.assignField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assignList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.assignRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 140px 48px 28px;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--rule);
+}
+
+.assignTitle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  font-size: var(--t-body);
+  color: var(--ink);
+  min-width: 0;
+}
+
+.assignDue {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.assignDue[data-overdue] { color: var(--flag); }
+
+.assignBar {
+  height: 6px;
+  background: var(--paper-inset);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+.assignBar > span {
+  display: block;
+  height: 100%;
+  background: var(--measure);
+}
+
+.assignCount {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  color: var(--ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.assignRemove {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.assignRemove:hover { color: var(--ink); }
+
+@media (max-width: 640px) {
+  .assignRow { grid-template-columns: minmax(0, 1fr) auto 28px; }
+  .assignBar { display: none; }
+}

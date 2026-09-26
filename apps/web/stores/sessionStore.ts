@@ -18,6 +18,7 @@ import { create } from "zustand";
 import { NODES, NODES_BY_ID, NODE_ORDER, UNITS, nodesInUnit, type LessonNode } from "@/lib/curriculum/nodes";
 import { setAnalyticsMode, track } from "@/lib/analytics";
 import { MAX_SIM_QUBITS } from "@/lib/sim/statevector";
+import type { SessionDoc } from "@/lib/sync/merge";
 
 export type Mode = "guided" | "workbench" | "track";
 
@@ -89,11 +90,28 @@ interface SessionState {
 
   reset(): void;
   hydrate(): void;
+  /** Replace everything with a (merged) document — how a synced copy comes in. */
+  applyDoc(doc: SessionDoc): void;
   /** Walk the path up to a unit or node id. See `seedThrough` below. */
   seedThrough(id: string): void;
 }
 
 const STORAGE_KEY = "quriosity.session.v1";
+
+/** What is saved, locally and to the account. The same shape both places. */
+export function sessionDoc(s: Pick<SessionState, keyof SessionDoc>): SessionDoc {
+  return {
+    mode: s.mode,
+    displayName: s.displayName,
+    trackId: s.trackId,
+    progress: s.progress,
+    challenges: s.challenges,
+    xp: s.xp,
+    streakDays: s.streakDays,
+    streakLastDay: s.streakLastDay,
+    misconceptions: s.misconceptions,
+  };
+}
 
 function blankProgress(): NodeProgress {
   return {
@@ -338,6 +356,23 @@ export const useSession = create<SessionState>((set, get) => ({
     persist(get());
   },
 
+  applyDoc(doc) {
+    setAnalyticsMode(doc.mode ?? "guided");
+    set({
+      hydrated: true,
+      mode: doc.mode ?? "guided",
+      displayName: doc.displayName ?? "you",
+      trackId: doc.trackId ?? null,
+      progress: recomputeUnlocks(doc.progress ?? {}),
+      challenges: doc.challenges ?? {},
+      xp: doc.xp ?? 0,
+      streakDays: doc.streakDays ?? 0,
+      streakLastDay: doc.streakLastDay ?? null,
+      misconceptions: doc.misconceptions ?? [],
+    });
+    persist(get());
+  },
+
   hydrate() {
     if (get().hydrated) return;
     let loaded: Partial<SessionState> = {};
@@ -366,20 +401,7 @@ export const useSession = create<SessionState>((set, get) => ({
 function persist(s: SessionState) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        mode: s.mode,
-        displayName: s.displayName,
-        trackId: s.trackId,
-        progress: s.progress,
-        challenges: s.challenges,
-        xp: s.xp,
-        streakDays: s.streakDays,
-        streakLastDay: s.streakLastDay,
-        misconceptions: s.misconceptions,
-      }),
-    );
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionDoc(s)));
   } catch {
     // Private browsing, quota, or a blocked store. Progress stays in memory.
   }

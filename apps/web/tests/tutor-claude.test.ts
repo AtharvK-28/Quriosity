@@ -239,6 +239,37 @@ describe("POST /api/tutor with a key", () => {
     expect(notesOf(ev)).toMatch(/withdrawn/);
   });
 
+  it("firewalls an answer that breaks physics, and answers with the law instead", async () => {
+    fake.script = {
+      deltas: [
+        "Your circuit entangles q0 and q1. ",
+        "That means measuring q0 lets you send a message to q1 faster than light. ",
+        "More text that never arrives.",
+      ],
+      stopReason: "end_turn",
+    };
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ev = await ask("What can I do with this?");
+    const kinds = ev.map((e) => e.t);
+
+    expect(kinds).toContain("retract");
+    const after = ev.slice(kinds.indexOf("retract") + 1);
+    expect(after[0]).toMatchObject({ t: "meta", mode: "guide" });
+    expect(textOf(after)).toMatch(/nothing travels faster than light/);
+    expect(notesOf(ev)).toMatch(/physics firewall/);
+    expect(notesOf(ev)).toMatch(/faster-than-light/);
+    expect(textOf(ev)).not.toContain("never arrives");
+    expect(fake.aborts).toBe(1);
+  });
+
+  it("firewalls a wrong gate action by working out the matrix", async () => {
+    fake.script = { deltas: ["The [[gate:h]] gate maps |0⟩ to |1⟩, which is why. "], stopReason: "end_turn" };
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ev = await ask("What does H do?");
+    expect(textOf(ev)).toMatch(/Hadamard sends \|0⟩ to \|\+⟩, not \|1⟩/);
+    expect(notesOf(ev)).toMatch(/gate algebra/);
+  });
+
   it("stops a runaway answer at the word cap", async () => {
     fake.script = {
       deltas: Array.from({ length: 40 }, () => "This sentence has exactly seven words here. "),

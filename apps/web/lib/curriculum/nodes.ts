@@ -21,6 +21,7 @@
 import type { GateType } from "@/lib/ir/types";
 import { TARGETS, distributionTarget, stateTarget, type Target } from "@/lib/grade/fidelity";
 import type { MisconceptionId } from "@/lib/tutor/rules";
+import type { Circuit } from "@/lib/ir/types";
 
 const R2 = Math.SQRT1_2;
 
@@ -64,6 +65,14 @@ export interface LessonNode {
   starter?: Array<{ type: GateType; targets: number[]; controls?: number[]; params?: number[]; column: number }>;
   /** Fewest gates a correct answer needs. Shown after a pass, never before. */
   par: number;
+  /**
+   * For the few nodes whose lesson IS a process — H twice cancelling, a
+   * measurement destroying a lean — the move the learner has to make. Grading
+   * still compares states, and the fidelity still reads 1.000; this only stops
+   * a shortcut (an empty circuit, a single X) from skipping the idea. Most
+   * nodes have none: "any circuit that reaches it" is usually the lesson.
+   */
+  requires?: { gates: Partial<Record<GateType, number>>; why: string };
 
   /** Beat 4 — instruction, delivered only after the attempt. */
   instructionTitle: string;
@@ -184,6 +193,7 @@ export const NODES: LessonNode[] = [
     target: stateTarget(1, [[1, 0], [0, 0]], "|0⟩ with certainty"),
     allowedGates: ["h", "x", "z", "measure"],
     par: 2,
+    requires: { gates: { h: 2 }, why: "This one is about what two H gates do together. Build it with H twice." },
     instructionTitle: "Amplitudes cancel. Probabilities cannot.",
     instruction:
       "After one H the qubit is not secretly 0 or 1. If it were, a second H would leave it random. Instead the two paths to |1⟩ cancel exactly, and |0⟩ comes back certain.",
@@ -273,6 +283,10 @@ export const NODES: LessonNode[] = [
     target: TARGETS.fairCoin(),
     allowedGates: ["h", "x", "measure"],
     par: 3,
+    requires: {
+      gates: { h: 2, measure: 1 },
+      why: "The point is what a measurement between two H gates does. Measure after the first H.",
+    },
     instructionTitle: "Measurement is not a peek",
     instruction:
       "Without the measurement, H·H returns |0⟩ with certainty. With it, you get 50/50. Reading the qubit destroyed the lean that the second H needed — you did not discover a value, you created one.",
@@ -462,6 +476,7 @@ export const NODES: LessonNode[] = [
     allowedGates: ["h", "z", "s", "t", "p", "x", "measure"],
     starter: [{ type: "h", targets: [0], column: 0 }],
     par: 3,
+    requires: { gates: { h: 2 }, why: "The lesson is the phase between two H gates. Keep both H gates." },
     instructionTitle: "This is what a quantum computer sells",
     instruction:
       "Halfway through, the qubit reads 50/50 and a measurement there would learn nothing and destroy everything. The second H converts that unmeasurable phase into a certainty. Probabilities can only add; amplitudes can cancel.",
@@ -677,3 +692,18 @@ export function nextNodeId(nodeId: string): string | null {
   const i = NODE_ORDER.indexOf(nodeId);
   return i >= 0 && i < NODE_ORDER.length - 1 ? NODE_ORDER[i + 1] : null;
 }
+
+/**
+ * The step a node asks for that this circuit leaves out, or null when there
+ * is none. Only meaningful once the state is right: a wrong state is the
+ * grader's business, not this.
+ */
+export function unmetRequirement(node: LessonNode, circuit: Circuit): string | null {
+  if (!node.requires) return null;
+  for (const [type, count] of Object.entries(node.requires.gates)) {
+    const used = circuit.gates.filter((g) => g.type === type).length;
+    if (used < (count ?? 0)) return node.requires.why;
+  }
+  return null;
+}
+

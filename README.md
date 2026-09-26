@@ -24,13 +24,26 @@ mode double-invokes every effect under Strict Mode, which has already produced
 one visible bug (the fork banner announced itself as an ordinary draft restore,
 because the effect consumed its own one-shot flag on the first pass).
 
-No Docker, no database. The simulator, the grader and the tutor's rule engine
-all run in the browser. An API key is optional — it switches the tutor chat
-from the built-in guide to Claude:
+No Docker, and no database to install. The simulator, the grader and the
+tutor's rule engine all run in the browser, and everything works as a guest. An
+API key is optional — it switches the tutor chat from the built-in guide to
+Claude:
 
 ```bash
 cp apps/web/.env.example apps/web/.env.local   # then set ANTHROPIC_API_KEY
 ```
+
+**Accounts, sync, classes and the ranked arena** need the server as well:
+
+```bash
+npm run dev:server   # :4000 — accounts, synced progress, cohorts, arena
+```
+
+Locally it keeps its data in an in-process Postgres (PGlite) under
+`apps/server/data`, so there is still nothing to install. In production it uses
+Neon Postgres through `DATABASE_URL` — see `apps/server/.env.example` for every
+setting. The web app reaches it through its own origin (`/api/server/*` is
+proxied), so sign-in cookies stay first-party.
 
 ---
 
@@ -61,7 +74,12 @@ a function over the IR.
 | Review bench (retention decay + SM-2) | `/review` | Built |
 | **Settings** — mode, name, theme, usage log on/off, export and delete your data | `/settings` | Built |
 | **Docs** — IR schema, conventions, formats, keyboard, limits | `/docs` | Built |
-| Gate reference | `/reference` | Built |
+| **Glossary** — every term with its specimen, and every gate | `/reference` | Built |
+| **Accounts** — sign up, sign in, student / instructor / admin roles, delete account | `/auth/signup`, `/auth/login`, Settings | Built |
+| **Sync** — progress and saved circuits follow the account; guest progress merges in on sign-up | automatic | Built |
+| **Classes** — instructors create a class with a join code and see its real progress and misconceptions | `/teach` | Built |
+| **Arena modes** — Blitz, Circuit golf (3-minute cap, fewest gates) and Bug hunt (same broken circuit, first fix), with the copy check | `/arena` | Built |
+| **Assignments and attempt review** — set a lesson or challenge with a deadline, see completion roll up from synced progress, open any student's failed attempt with its diagnosis | `/teach`, `/path` | Built |
 
 ### The engine
 
@@ -373,20 +391,19 @@ identity.
 Audited against the PRD epics. **M** = MVP-blocking in the PRD's own MoSCoW,
 **S** = v1.
 
-### Needs the backend
+### Needs more of the backend
 
-Nothing below can be honest without a server: FastAPI gateway, Postgres, Redis,
-Celery, and the Docker sandbox (TRD §8).
+The Node server (`apps/server`) now carries accounts, roles, synced progress
+and circuits, classes and the ranked arena, on Postgres. What remains needs the
+parts of the TRD it does not have: Redis, Celery and the Docker sandbox (§8).
 
-| # | Gap | Where the frontend stands |
+| # | Gap | Where it stands |
 |---|---|---|
-| E1 (M) | **Accounts**, progress across devices | Everything is local to one browser, and Settings says so |
 | E3-S3 (M) | **Arbitrary Python** → IR | Straight-line Qiskit is read in the browser; anything needing execution is refused by name |
 | E4-S1, S2, S6, S7 (M/S) | Queued, sandboxed execution on Aer/Cirq/PennyLane, result cache | Runs in the browser simulator |
-| E9 (M) | **Arena** — matchmaking, Elo, server-decided winner | Not started; cannot be faked |
-| E10-S1, S4, S5 | Roster import, assignments, a student's submission | Heatmap, completion and CSV export run on a seeded cohort, labelled as seeded |
-| E8-S5, E8-S6, E11 | Signed records, publishing authored challenges, circuits across devices | Records are tamper-evident but unsigned; authored challenges and saved circuits stay in the browser that made them |
-| SEC5 | Rate limits | Only the tutor's in-memory limiter |
+| E10-S1 | Roster CSV import with emailed invitations | Students join with the class code instead; sending invitations needs an email service |
+| E8-S5, E8-S6 | Signed records, publishing authored challenges | Records are tamper-evident but unsigned; authored challenges stay in the browser that made them |
+| E1-S6 | Guest 5-qubit cap | Guests get the full bench |
 
 ### Not done, and not blocked
 

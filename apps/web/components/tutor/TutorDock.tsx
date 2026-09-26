@@ -12,6 +12,10 @@
  * When the rule engine already has something to say about the current run, it
  * sits at the top of an empty conversation — instant, local, no model call —
  * with a one-tap follow-up that asks for the fuller explanation.
+ *
+ * The short-form tutor — a new word, a nudge, a cheer — is TutorPop, mounted
+ * here so it exists wherever the dock does. The panel itself still never
+ * opens on its own.
  */
 
 import Link from "next/link";
@@ -23,6 +27,7 @@ import type { TutorWhere } from "@/lib/tutor/protocol";
 import { useCircuit } from "@/stores/circuitStore";
 import { MODE, useSession } from "@/stores/sessionStore";
 import { useTutor, type TutorMessage } from "@/stores/tutorStore";
+import { TutorPop } from "./TutorPop";
 import s from "./TutorDock.module.css";
 
 const SUGGESTIONS: Record<TutorWhere["surface"], string[]> = {
@@ -31,7 +36,7 @@ const SUGGESTIONS: Record<TutorWhere["surface"], string[]> = {
   challenge: ["Give me a nudge, not the answer", "Which gate should I look at?", "What does CNOT do?"],
 };
 
-const FOLLOW_UP = "Why is that wrong, and how do I fix it?";
+export const FOLLOW_UP = "Why is that wrong, and how do I fix it?";
 
 export function TutorDock({ where }: { where: TutorWhere }) {
   const { open, busy, messages, setOpen, toggle, enter, ask, stop, clear } = useTutor();
@@ -88,18 +93,21 @@ export function TutorDock({ where }: { where: TutorWhere }) {
 
   if (!open) {
     return (
-      <button
-        type="button"
-        className={s.launcher}
-        onClick={() => setOpen(true)}
-        aria-keyshortcuts="Control+/ Meta+/"
-      >
-        <span className={s.launcherMark} aria-hidden>
-          q
-        </span>
-        Ask the tutor
-        <kbd className={s.kbd}>⌘/</kbd>
-      </button>
+      <>
+        <TutorPop />
+        <button
+          type="button"
+          className={s.launcher}
+          onClick={() => setOpen(true)}
+          aria-keyshortcuts="Control+/ Meta+/"
+        >
+          <span className={s.launcherMark} aria-hidden>
+            q
+          </span>
+          Ask the tutor
+          <kbd className={s.kbd}>⌘/</kbd>
+        </button>
+      </>
     );
   }
 
@@ -133,8 +141,7 @@ export function TutorDock({ where }: { where: TutorWhere }) {
               </div>
             )}
             <p className={s.introText}>
-              Ask about a gate, an idea, or the circuit you have open. The tutor sees your circuit and
-              what the simulator made of it.
+              Ask about a gate, an idea, or your circuit — the tutor can see it.
             </p>
             <div className={s.suggestions}>
               {finding && diagnosisOnPage && (
