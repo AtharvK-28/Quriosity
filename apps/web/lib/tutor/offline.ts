@@ -15,8 +15,10 @@ import type { TutorSource } from "./protocol";
 import { isConfident, retrieve, toSources, type Hit } from "./retrieve";
 
 /** Questions about the learner's own work go to the rule engine first. */
+// "my" alone is not enough: "my professor says CNOT copies" is a question
+// about physics, and it deserves the no-cloning answer, not a circuit report.
 const ABOUT_MINE =
-  /\b(my|mine|wrong|fix|hint|stuck|broken|fail\w*|nudge|circuit|next step|which gate)\b/i;
+  /\b(my (?:circuit|answer|attempt|run|result|state|gates?|code|solution|work)|mine|wrong|fix|hint|stuck|broken|fail\w*|nudge|circuit|next step|which gate)\b/i;
 
 export interface GuideAnswer {
   text: string;

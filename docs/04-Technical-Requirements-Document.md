@@ -29,7 +29,7 @@ Sections 1–16 are the design. This section records where the build that exists
 | PostgreSQL 16 (§9) | Postgres — Neon in production, PGlite (in-process Postgres) locally and in tests. Schema: `apps/server/src/db/schema.sql` | One dialect everywhere; no database to install to run or test the server |
 | Redis: queue, cache, leaderboards (§1, §12.1, §13.1) | Not used. Matchmaking runs in the server process; the leaderboard is one indexed query | One server instance. A second instance needs a shared queue — this is the first thing to add at scale |
 | Qdrant + RAG over SDK docs (§11.4) | BM25 over the platform's own corpus (lessons, gate registry, misconceptions); Claude answers from a server-built summary of the learner's circuit | Grounding in the platform's own content and the simulator result; retrieval over official SDK docs is still to do |
-| LangChain + LLM API (§11) | Anthropic TypeScript SDK, `claude-opus-5`, streamed | Direct SDK; no orchestration layer needed for one call |
+| LangChain + LLM API (§11) | Claude (`claude-opus-5`, Anthropic TypeScript SDK) when `ANTHROPIC_API_KEY` is set; otherwise Gemini (`gemini-2.5-flash`, falling back to `gemini-3.5-flash-lite`) when `GEMINI_API_KEY` is set; otherwise the built-in guide. All streamed | One call needs no orchestration layer. Every model's text passes the same claim check and physics firewall, so the guarantees do not depend on the vendor |
 | Guardrails G1–G7 (§11.3) | G1 (probabilities checked against the simulator, placeholders filled from it), G2 (gate references validated), G3 (low-confidence refusal), G4 (length cap), G5 (no proactive output in Workbench), G7 (solution disclosure gated server-side) — plus a **physics firewall** that withdraws any answer breaking a law of quantum mechanics or misstating what a fixed gate does, checked against the gate matrices | G6 (per-response source tagging) is partial: the learner is told which engine answered |
 | Arena anti-cheat (§12.4) | Impossible-solve-time and known-solution copy checks, both flagging and withholding rating; same-IP collusion check not built | |
 
@@ -41,7 +41,7 @@ Auth (§13.4): Argon2id at the stated parameters, 15-minute HS256 access tokens 
 
 | Part | Where | Settings |
 |---|---|---|
-| Web app | Vercel | `ANTHROPIC_API_KEY` (optional — without it the built-in guide answers); `API_ORIGIN` (optional — defaults to the deployed server) |
+| Web app | Vercel | `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` (optional — with neither, the built-in guide answers); `GEMINI_MODEL` (optional); `API_ORIGIN` (optional — defaults to the deployed server) |
 | Server | Render | `DATABASE_URL` (Neon), `JWT_SECRET` (required — the server refuses to start in production without it), `INSTRUCTOR_CODE`, `ADMIN_EMAILS`, `CORS_ORIGIN` |
 | Database | Neon Postgres | The schema applies itself on boot |
 

@@ -33,7 +33,7 @@ export interface TutorSource {
 }
 
 /** Which engine answered. The learner is always told. */
-export type TutorMode = "claude" | "guide";
+export type TutorMode = "claude" | "gemini" | "guide";
 
 export type TutorEvent =
   | { t: "meta"; mode: TutorMode; sources: TutorSource[] }

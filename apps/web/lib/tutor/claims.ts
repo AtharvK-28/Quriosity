@@ -40,13 +40,22 @@ export function formatProbability(p: number): string {
   return Math.abs(pct - Math.round(pct)) < 0.05 ? `${Math.round(pct)}%` : `${pct.toFixed(1)}%`;
 }
 
-/** [[p:BITS]] → the simulated probability of that outcome, or "—" if there is none. */
+/**
+ * [[p:BITS]] → the simulated probability of that outcome, or "—" if there is
+ * none. Fewer bits than wires is a question about the lowest wires alone —
+ * models write "[[p:0]]" for "q0 reads 0" on a two-qubit circuit — so it is
+ * answered with the marginal: bitstrings are little-endian, so those are the
+ * rightmost characters of every outcome.
+ */
 export function fillPlaceholders(text: string, truth: Pick<Truth, "width" | "probabilities">): string {
-  return text.replace(PLACEHOLDER, (_m, bits: string) =>
-    truth.probabilities && bits.length === truth.width
-      ? formatProbability(truth.probabilities[bits] ?? 0)
-      : "—",
-  );
+  return text.replace(PLACEHOLDER, (_m, bits: string) => {
+    const probs = truth.probabilities;
+    if (!probs || bits.length === 0 || bits.length > truth.width) return "—";
+    if (bits.length === truth.width) return formatProbability(probs[bits] ?? 0);
+    let p = 0;
+    for (const [outcome, q] of Object.entries(probs)) if (outcome.endsWith(bits)) p += q;
+    return formatProbability(p);
+  });
 }
 
 /* -- Scope: is this clause about the circuit on screen? ---------------------- */

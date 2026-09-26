@@ -210,7 +210,7 @@ function Message({ m }: { m: TutorMessage }) {
 
   return (
     <div className={s.reply} data-failed={m.failed || undefined}>
-      {m.mode && <span className={s.from}>{m.mode === "claude" ? "Claude" : "Built-in guide"}</span>}
+      {m.mode && <span className={s.from}>{m.mode === "claude" ? "Claude" : m.mode === "gemini" ? "Gemini" : "Built-in guide"}</span>}
       {m.text ? (
         <RichText text={m.text} />
       ) : (

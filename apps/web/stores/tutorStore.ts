@@ -96,7 +96,7 @@ export const useTutor = create<TutorState>((set, get) => ({
       if (e.t === "meta") {
         track("tutor_invoked", {
           trigger: "explicit",
-          source: e.mode === "claude" ? "llm" : "guide",
+          source: e.mode === "guide" ? "guide" : "llm",
           latency_ms: Date.now() - started,
         });
         patch((m) => ({ ...m, mode: e.mode, sources: e.sources }));

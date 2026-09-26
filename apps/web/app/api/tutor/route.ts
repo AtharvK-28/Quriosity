@@ -1,13 +1,19 @@
 /**
  * POST /api/tutor — the tutor, streamed as NDJSON.
  *
- * Two engines behind one wire format. With ANTHROPIC_API_KEY set, Claude
- * answers, grounded in a server-built summary of the learner's circuit. With
- * no key, or when the service fails before saying anything, the built-in
- * guide answers from the rule engine and the platform's own content. The
- * learner is told which one replied; neither is passed off as the other.
+ * Three engines behind one wire format. With ANTHROPIC_API_KEY set, Claude
+ * answers; failing that, with GEMINI_API_KEY set, Gemini does — both grounded
+ * in a server-built summary of the learner's circuit. With no key, or when the
+ * service fails before saying anything, the built-in guide answers from the
+ * rule engine and the platform's own content. The learner is told which one
+ * replied; none is passed off as another.
  *
- * The key is read here, on the server, and never reaches the browser.
+ * Whichever model writes, its text goes through the same guarded output:
+ * sentence-buffered, filled from the simulator, checked against the circuit
+ * (claims.ts) and against physics (firewall.ts). The checks read text, so
+ * they hold for any model.
+ *
+ * Keys are read here, on the server, and never reach the browser.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -27,6 +33,7 @@ import {
   MAX_CHARS,
   MAX_TURNS,
   type TutorEvent,
+  type TutorMode,
   type TutorRequest,
   type TutorSource,
   type TutorTurn,
@@ -152,6 +159,83 @@ function describeFailure(err: unknown): string {
   return "an unexpected error";
 }
 
+/**
+ * Model text on its way to the learner: sentence-buffered, filled from the
+ * simulator, checked against the circuit and against physics, capped. One
+ * implementation for every model, so a check added here holds for all of them.
+ */
+function guardedOutput(send: Send, ctx: CircuitContext, sources: TutorSource[], mode: TutorMode) {
+  const buffer = new SentenceBuffer();
+  const checker = new ClaimChecker(ctx);
+  let started = false;
+  let words = 0;
+  let halt:
+    | { kind: "contradiction"; bad: Contradiction }
+    | { kind: "physics"; bad: Violation }
+    | { kind: "length" }
+    | null = null;
+
+  const release = (chunk: string): boolean => {
+    if (!chunk) return true;
+    // Every released chunk is filled from the simulator, then checked against
+    // it (PRD E7-S8) and against physics itself.
+    const text = fillPlaceholders(chunk, ctx);
+    const bad = checker.check(text);
+    if (bad) {
+      halt = { kind: "contradiction", bad };
+      return false;
+    }
+    const broken = firewall(text);
+    if (broken) {
+      halt = { kind: "physics", bad: broken };
+      return false;
+    }
+    if (!started) {
+      started = true;
+      send({ t: "meta", mode, sources });
+    }
+    send({ t: "text", v: text });
+    words += text.trim() ? text.trim().split(/\s+/).length : 0;
+    if (words > MAX_WORDS) {
+      halt = { kind: "length" };
+      return false;
+    }
+    return true;
+  };
+
+  return {
+    get started() {
+      return started;
+    },
+    get halted() {
+      return halt !== null;
+    },
+    /** False once the generation must stop. */
+    push: (delta: string) => release(buffer.push(delta)),
+    finish: () => {
+      if (!halt) release(buffer.flush());
+    },
+    /** Ends the answer if a check stopped it. True when it did. */
+    concluded(question: string): boolean {
+      const h = halt as typeof halt;
+      if (!h) return false;
+      if (h.kind === "contradiction") {
+        console.warn(`[tutor] withdrew an answer that contradicts the simulator: "${h.bad.claim}" (${h.bad.actual})`);
+        if (started) send({ t: "retract" });
+        answerFromGuide(send, question, ctx, WITHDRAWN, retractionAnswer(question, ctx));
+      } else if (h.kind === "physics") {
+        console.warn(`[tutor] physics firewall withdrew an answer (${h.bad.law}): "${h.bad.claim}"`);
+        if (started) send({ t: "retract" });
+        answerFromGuide(send, question, ctx, firewalled(h.bad), physicsAnswer(h.bad, question, ctx));
+      } else {
+        send({ t: "note", v: "The tutor keeps answers short. Ask for more if you want the rest." });
+        send({ t: "done" });
+      }
+      return true;
+    },
+  };
+}
+
 async function answerFromClaude(
   send: Send,
   req: TutorRequest,
@@ -162,51 +246,7 @@ async function answerFromClaude(
 ): Promise<void> {
   const question = req.messages[req.messages.length - 1].content;
   const client = new Anthropic({ apiKey, maxRetries: 1, timeout: 60_000 });
-  const buffer = new SentenceBuffer();
-  let started = false;
-
-  const emit = (text: string) => {
-    if (!text) return;
-    if (!started) {
-      started = true;
-      send({ t: "meta", mode: "claude", sources });
-    }
-    send({ t: "text", v: text });
-  };
-
-  // Every released chunk is filled from the simulator, then checked against
-  // it (PRD E7-S8) and against physics itself. A contradiction, a broken law
-  // or a runaway length ends the generation.
-  const checker = new ClaimChecker(ctx);
-  const halt: {
-    reason:
-      | { kind: "contradiction"; bad: Contradiction }
-      | { kind: "physics"; bad: Violation }
-      | { kind: "length" }
-      | null;
-  } = { reason: null };
-  let words = 0;
-  const release = (chunk: string): boolean => {
-    if (!chunk) return true;
-    const text = fillPlaceholders(chunk, ctx);
-    const bad = checker.check(text);
-    if (bad) {
-      halt.reason = { kind: "contradiction", bad };
-      return false;
-    }
-    const broken = firewall(text);
-    if (broken) {
-      halt.reason = { kind: "physics", bad: broken };
-      return false;
-    }
-    emit(text);
-    words += text.trim() ? text.trim().split(/\s+/).length : 0;
-    if (words > MAX_WORDS) {
-      halt.reason = { kind: "length" };
-      return false;
-    }
-    return true;
-  };
+  const out = guardedOutput(send, ctx, sources, "claude");
 
   try {
     const stream = client.beta.messages.stream(
@@ -237,36 +277,17 @@ async function answerFromClaude(
 
     for await (const event of stream) {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        if (!release(buffer.push(event.delta.text))) {
+        if (!out.push(event.delta.text)) {
           stream.abort();
           break;
         }
       }
     }
-    if (!halt.reason) release(buffer.flush());
-
-    if (halt.reason?.kind === "contradiction") {
-      const { bad } = halt.reason;
-      console.warn(`[tutor] withdrew an answer that contradicts the simulator: "${bad.claim}" (${bad.actual})`);
-      if (started) send({ t: "retract" });
-      answerFromGuide(send, question, ctx, WITHDRAWN, retractionAnswer(question, ctx));
-      return;
-    }
-    if (halt.reason?.kind === "physics") {
-      const { bad } = halt.reason;
-      console.warn(`[tutor] physics firewall withdrew an answer (${bad.law}): "${bad.claim}"`);
-      if (started) send({ t: "retract" });
-      answerFromGuide(send, question, ctx, firewalled(bad), physicsAnswer(bad, question, ctx));
-      return;
-    }
-    if (halt.reason?.kind === "length") {
-      send({ t: "note", v: "The tutor keeps answers short. Ask for more if you want the rest." });
-      send({ t: "done" });
-      return;
-    }
+    out.finish();
+    if (out.concluded(question)) return;
     const final = await stream.finalMessage();
 
-    if (!started) {
+    if (!out.started) {
       const why = final.stop_reason === "refusal" ? "Claude declined this question" : "Claude returned no text";
       answerFromGuide(send, question, ctx, `${why}, so the built-in guide answered instead.`);
       return;
@@ -281,7 +302,182 @@ async function answerFromClaude(
     if (signal.aborted) return;
     const reason = describeFailure(err);
     console.error(`[tutor] ${reason}`);
-    if (!started) {
+    if (!out.started) {
+      answerFromGuide(
+        send,
+        question,
+        ctx,
+        `Detailed explanation is unavailable right now (${reason}), so the built-in guide answered.`,
+      );
+      return;
+    }
+    send({ t: "note", v: "The connection to the tutor dropped partway through this answer." });
+    send({ t: "done" });
+  }
+}
+
+/* -- Gemini ---------------------------------------------------------------------
+   Google's Generative Language API, streamed as server-sent events. Called
+   with fetch rather than an SDK: it is one endpoint, and the guarded output
+   above is where the care goes.
+   ------------------------------------------------------------------------- */
+
+const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
+/**
+ * Measured on this project's key (Sept 2026): 2.5 Flash answers in ~1.5s to
+ * first word with thinking off, and 3.5 Flash-Lite in ~1.3s — both inside PRD
+ * §7.1's 2.5s. The newer full flash models took 12–20s or were refusing
+ * traffic. The second model answers when the first is overloaded (503),
+ * over quota (429) or withdrawn (404): each model has its own quota, so the
+ * chain also raises how many questions a free-tier key can take a minute.
+ */
+export const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
+const GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite";
+
+/** Worth trying the next model: this one is busy, rationed or gone. */
+const NEXT_MODEL = new Set([404, 429, 503]);
+
+/**
+ * Thinking off where the model allows it. 2.5 models take a zero budget; the
+ * 3.x lite models reject that setting and are fast with their default.
+ */
+function geminiThinking(model: string): Record<string, unknown> | undefined {
+  return /^gemini-2\.5-/.test(model) ? { thinkingBudget: 0 } : undefined;
+}
+
+class GeminiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+function describeGemini(err: unknown): string {
+  if (err instanceof GeminiError) {
+    if (err.status === 400 && /API key/i.test(err.message)) return "the Gemini API key was rejected";
+    if (err.status === 401 || err.status === 403) return "this key cannot use the Gemini model";
+    if (err.status === 429) return "the Gemini key is over its per-minute quota";
+    if (err.status === 404) return "the Gemini model is not available to this key";
+    if (err.status === 503) return "Gemini is overloaded right now";
+    return `Gemini returned ${err.status}`;
+  }
+  return "Gemini could not be reached";
+}
+
+interface GeminiChunk {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string; thought?: boolean }> };
+    finishReason?: string;
+  }>;
+  promptFeedback?: { blockReason?: string };
+}
+
+async function answerFromGemini(
+  send: Send,
+  req: TutorRequest,
+  ctx: CircuitContext,
+  sources: TutorSource[],
+  signal: AbortSignal,
+  apiKey: string,
+): Promise<void> {
+  const question = req.messages[req.messages.length - 1].content;
+  const out = guardedOutput(send, ctx, sources, "gemini");
+  const stop = new AbortController();
+  signal.addEventListener("abort", () => stop.abort(), { once: true });
+
+  const primary = process.env.GEMINI_MODEL?.trim() || GEMINI_DEFAULT_MODEL;
+  const models = primary === GEMINI_FALLBACK_MODEL ? [primary] : [primary, GEMINI_FALLBACK_MODEL];
+
+  const bodyFor = (model: string) => {
+    const thinkingConfig = geminiThinking(model);
+    return JSON.stringify({
+      // Gemini has no mid-conversation operator role, so the circuit summary
+      // rides in the system instruction: learner text cannot pose as it there.
+      systemInstruction: { parts: [{ text: `${SYSTEM_PROMPT}\n\n${ctx.text}` }] },
+      contents: req.messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+      generationConfig: {
+        maxOutputTokens: 1024,
+        temperature: 0.3,
+        // Thinking off where allowed: a sixty-word chat answer does not need
+        // it, and on 2.5 Flash it is the difference between 1.5s and 12s.
+        ...(thinkingConfig ? { thinkingConfig } : {}),
+      },
+    });
+  };
+
+  let finishReason: string | undefined;
+  let blocked: string | undefined;
+
+  try {
+    let res: Response | null = null;
+    for (const model of models) {
+      res = await fetch(`${GEMINI_ENDPOINT}/${model}:streamGenerateContent?alt=sse`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
+        body: bodyFor(model),
+        signal: stop.signal,
+      });
+      if (res.ok) break;
+      const detail = await res.text().catch(() => "");
+      // Busy, over quota or withdrawn: nothing has been said yet, so the next
+      // model can answer instead. Anything else (a bad key, a bad request)
+      // would fail the same way on every model.
+      if (NEXT_MODEL.has(res.status) && model !== models[models.length - 1]) continue;
+      throw new GeminiError(res.status, detail.slice(0, 300));
+    }
+    if (!res?.ok || !res.body) throw new GeminiError(res?.status ?? 0, "no response body");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let pending = "";
+    read: for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      pending += decoder.decode(value, { stream: true });
+      for (let nl = pending.indexOf("\n"); nl !== -1; nl = pending.indexOf("\n")) {
+        const line = pending.slice(0, nl).trim();
+        pending = pending.slice(nl + 1);
+        if (!line.startsWith("data:")) continue;
+        let chunk: GeminiChunk;
+        try {
+          chunk = JSON.parse(line.slice(5));
+        } catch {
+          continue;
+        }
+        blocked ??= chunk.promptFeedback?.blockReason;
+        const cand = chunk.candidates?.[0];
+        if (cand?.finishReason) finishReason = cand.finishReason;
+        for (const part of cand?.content?.parts ?? []) {
+          if (part.thought || !part.text) continue;
+          if (!out.push(part.text)) {
+            stop.abort();
+            break read;
+          }
+        }
+      }
+    }
+    out.finish();
+    if (out.concluded(question)) return;
+
+    if (!out.started) {
+      const why = blocked || finishReason === "SAFETY" ? "Gemini declined this question" : "Gemini returned no text";
+      answerFromGuide(send, question, ctx, `${why}, so the built-in guide answered instead.`);
+      return;
+    }
+    if (finishReason === "SAFETY" || finishReason === "RECITATION") {
+      send({ t: "note", v: "The tutor stopped partway through this answer." });
+    } else if (finishReason === "MAX_TOKENS") {
+      send({ t: "note", v: "The answer was cut short. Ask for the rest if you need it." });
+    }
+    send({ t: "done" });
+  } catch (err) {
+    if (signal.aborted) return;
+    if (out.halted && out.concluded(question)) return;
+    const reason = describeGemini(err);
+    console.error(`[tutor] ${reason}`);
+    if (!out.started) {
       answerFromGuide(
         send,
         question,
@@ -316,6 +512,7 @@ export async function POST(request: Request): Promise<Response> {
   const ctx = buildContext(req.where, req.circuit);
   const sources = relatedSources(question, ctx);
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  const geminiKey = process.env.GEMINI_API_KEY?.trim();
 
   const abort = new AbortController();
   request.signal.addEventListener("abort", () => abort.abort(), { once: true });
@@ -332,6 +529,7 @@ export async function POST(request: Request): Promise<Response> {
       };
       try {
         if (apiKey) await answerFromClaude(send, req, ctx, sources, abort.signal, apiKey);
+        else if (geminiKey) await answerFromGemini(send, req, ctx, sources, abort.signal, geminiKey);
         else answerFromGuide(send, question, ctx);
       } catch (err) {
         console.error("[tutor] unexpected:", err instanceof Error ? err.message : String(err));
