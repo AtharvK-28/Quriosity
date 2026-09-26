@@ -121,6 +121,11 @@ describe("built-in guide", () => {
     expect(a.text).toContain("remove the H");
   });
 
+  it("answers a physics question as physics, even when it says 'my'", () => {
+    const a = guideAnswer("My professor says CNOT copies qubits. Is that true?", buildContext({ surface: "bench" }, bell()));
+    expect(a.text).toMatch(/no-cloning/);
+  });
+
   it("describes what the circuit does when nothing is wrong", () => {
     const a = guideAnswer("What does my circuit do?", buildContext({ surface: "bench" }, bell()));
     expect(a.text).toMatch(/\|00⟩ 50% and \|11⟩ 50%/);
@@ -205,7 +210,10 @@ describe("claim check", () => {
   });
 
   it("fills placeholders from the simulator", () => {
-    expect(fillPlaceholders("|00⟩ [[p:00]], |01⟩ [[p:01]], [[p:0]]", bellCtx())).toBe("|00⟩ 50%, |01⟩ 0%, —");
+    expect(fillPlaceholders("|00⟩ [[p:00]], |01⟩ [[p:01]], [[p:000]]", bellCtx())).toBe("|00⟩ 50%, |01⟩ 0%, —");
+    // Fewer bits than wires: the marginal of the lowest wires. q0 reads 0 half
+    // the time in a Bell pair, and q0 = 1 likewise.
+    expect(fillPlaceholders("q0 reads 0 [[p:0]], 1 [[p:1]]", bellCtx())).toBe("q0 reads 0 50%, 1 50%");
   });
 
   it("checks where the tutor says a gate is", () => {
