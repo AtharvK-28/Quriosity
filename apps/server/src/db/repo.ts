@@ -59,6 +59,8 @@ export interface ArenaRepo {
     id: string; mode: string; challenge: unknown;
     playerA: string; playerB: string;
     ratingABefore: number; ratingBBefore: number; startedAt: number;
+    /** False against a bot: recorded, but no rating moves. */
+    rated?: boolean;
   }): Promise<void>;
 
   getMatch(id: string): Promise<MatchRow | null>;
@@ -80,6 +82,35 @@ export interface ArenaRepo {
 
   leaderboard(limit: number): Promise<Player[]>;
   matchHistory(playerId: string, limit: number): Promise<MatchRow[]>;
+  /** A player's record: recent matches with opponents named, and the numbers a profile shows. */
+  profile(playerId: string, limit?: number): Promise<PlayerProfile | null>;
+  /** Points since a moment (3 a win, 1 a draw), rated matches only. */
+  /** Matches finished since a moment — the lobby's "played today". */
+  countSince(since: number): Promise<number>;
+  weekly(since: number, limit: number): Promise<Array<{ id: string; displayName: string; rating: number; points: number; wins: number; played: number }>>;
+}
+
+export interface ProfileMatch {
+  id: string;
+  mode: string;
+  rated: boolean;
+  opponent: string;
+  bot: boolean;
+  result: "win" | "loss" | "draw";
+  delta: number;
+  ratingAfter: number;
+  at: number;
+}
+
+export interface PlayerProfile {
+  player: Player;
+  matches: ProfileMatch[];
+  wins: number;
+  losses: number;
+  draws: number;
+  /** Consecutive wins, counting back from the latest match. */
+  winStreak: number;
+  bestRating: number;
 }
 
 const rowToPlayer = (r: Row): Player => ({
@@ -139,9 +170,9 @@ export function arenaRepo(db: Db): ArenaRepo {
 
     async createMatch(m) {
       await db.query(
-        `INSERT INTO matches (id, mode, challenge, player_a, player_b, rating_a_before, rating_b_before, started_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [m.id, m.mode, JSON.stringify(m.challenge), m.playerA, m.playerB, m.ratingABefore, m.ratingBBefore, m.startedAt],
+        `INSERT INTO matches (id, mode, challenge, player_a, player_b, rating_a_before, rating_b_before, started_at, rated)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [m.id, m.mode, JSON.stringify(m.challenge), m.playerA, m.playerB, m.ratingABefore, m.ratingBBefore, m.startedAt, m.rated ?? true],
       );
     },
 
@@ -184,8 +215,18 @@ export function arenaRepo(db: Db): ArenaRepo {
         const b = players.map(rowToPlayer).find((p) => p.id === match.playerB);
         if (!a || !b) return null;
 
-        const change = applyResult(a, b, outcome);
         const winnerId = outcome === "a" ? a.id : outcome === "b" ? b.id : null;
+
+        // Unrated (a bot match): the record stands, the ratings do not move.
+        if (m.rated === false) {
+          await q.query(
+            `UPDATE matches SET winner_id = $1, rating_a_after = $2, rating_b_after = $3, flagged = $4, ended_at = $5 WHERE id = $6`,
+            [winnerId, a.rating, b.rating, flagged, endedAt, matchId],
+          );
+          return { ratingA: a.rating, ratingB: b.rating, deltaA: 0, deltaB: 0 };
+        }
+
+        const change = applyResult(a, b, outcome);
 
         // A flagged match is recorded and its rating is withheld (TRD §12.4:
         // "Flagged matches are recorded, not silently reversed").
@@ -212,6 +253,77 @@ export function arenaRepo(db: Db): ArenaRepo {
         [limit],
       );
       return rows.map(rowToPlayer);
+    },
+
+    async profile(playerId, limit = 20) {
+      const player = await one("SELECT * FROM players WHERE id = $1", [playerId]);
+      if (!player) return null;
+      const rows = await db.query(
+        `SELECT m.*, pa.display_name AS name_a, pb.display_name AS name_b FROM matches m
+           JOIN players pa ON pa.id = m.player_a
+           JOIN players pb ON pb.id = m.player_b
+          WHERE (m.player_a = $1 OR m.player_b = $1) AND m.ended_at IS NOT NULL
+          ORDER BY m.ended_at DESC LIMIT $2`,
+        [playerId, Math.max(1, Math.min(100, limit))],
+      );
+      const matches: ProfileMatch[] = rows.map((r) => {
+        const mine = r.player_a === playerId;
+        const before = Number(mine ? r.rating_a_before : r.rating_b_before);
+        const afterRaw = mine ? r.rating_a_after : r.rating_b_after;
+        const after = afterRaw === null ? before : Number(afterRaw);
+        const opponentId = String(mine ? r.player_b : r.player_a);
+        return {
+          id: String(r.id),
+          mode: String(r.mode),
+          rated: r.rated !== false,
+          opponent: String(mine ? r.name_b : r.name_a),
+          bot: opponentId.startsWith("bot:"),
+          result: r.winner_id === null ? "draw" : r.winner_id === playerId ? "win" : "loss",
+          delta: after - before,
+          ratingAfter: after,
+          at: Number(r.ended_at),
+        };
+      });
+      let winStreak = 0;
+      for (const m of matches) {
+        if (m.result !== "win") break;
+        winStreak++;
+      }
+      const p = rowToPlayer(player);
+      return {
+        player: p,
+        matches,
+        wins: matches.filter((m) => m.result === "win").length,
+        losses: matches.filter((m) => m.result === "loss").length,
+        draws: matches.filter((m) => m.result === "draw").length,
+        winStreak,
+        bestRating: Math.max(p.rating, ...matches.filter((m) => m.rated).map((m) => m.ratingAfter)),
+      };
+    },
+
+    async countSince(since) {
+      const [r] = await db.query("SELECT COUNT(*)::int AS n FROM matches WHERE ended_at >= $1", [since]);
+      return Number(r?.n ?? 0);
+    },
+
+    async weekly(since, limit) {
+      const rows = await db.query(
+        `SELECT p.id, p.display_name, p.rating,
+                SUM(CASE WHEN m.winner_id = p.id THEN 3 WHEN m.winner_id IS NULL THEN 1 ELSE 0 END)::int AS points,
+                SUM(CASE WHEN m.winner_id = p.id THEN 1 ELSE 0 END)::int AS wins,
+                COUNT(*)::int AS played
+           FROM matches m
+           JOIN players p ON p.id = m.player_a OR p.id = m.player_b
+          WHERE m.ended_at >= $1 AND m.rated = TRUE AND m.flagged = FALSE AND p.id NOT LIKE 'bot:%'
+          GROUP BY p.id, p.display_name, p.rating
+          ORDER BY points DESC, wins DESC, p.rating DESC
+          LIMIT $2`,
+        [since, limit],
+      );
+      return rows.map((r) => ({
+        id: String(r.id), displayName: String(r.display_name), rating: Number(r.rating),
+        points: Number(r.points), wins: Number(r.wins), played: Number(r.played),
+      }));
     },
 
     async matchHistory(playerId, limit) {

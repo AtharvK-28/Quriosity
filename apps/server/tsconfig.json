@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    // DOM for types only: record signing reads the web app's tracks, whose
+    // progress types come from a browser store. Every window access there is
+    // behind a typeof check, so nothing browser-only runs here.
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,

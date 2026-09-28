@@ -28,7 +28,7 @@ import { openDb, type Db } from "./db/db.ts";
 import { arenaRepo, type ArenaRepo } from "./db/repo.ts";
 import { createApi } from "./api/api.ts";
 import { verifyAccess } from "./auth/tokens.ts";
-import { ARENA_MODES, createArena, type Arena, type ArenaChallenge, type ArenaMode } from "./arena/service.ts";
+import { ARENA_MODES, createArena, type Arena, type ArenaChallenge, type ArenaMode, type BotPreference } from "./arena/service.ts";
 import { frame, parseClientFrame } from "./ws/protocol.ts";
 import { CHALLENGES } from "../../web/lib/curriculum/challenges";
 import { emptyCircuit } from "../../web/lib/ir/types";
@@ -49,6 +49,10 @@ export interface ArenaServerOptions {
   adminEmails?: string[];
   secureCookies?: boolean;
   authPerMinute?: number;
+  /** Look-before-you-leap before a match clock starts. Default 3s. */
+  countdownMs?: number;
+  /** How long a player waits for a human before a bot steps in. */
+  botAfterMs?: number;
 }
 
 export interface ArenaServer {
@@ -75,9 +79,16 @@ export const ARENA_CHALLENGES: ArenaChallenge[] = CHALLENGES.map((c) => {
   return {
     id: c.id, title: c.title, brief: c.brief, kind: c.kind, qubits: c.qubits,
     target: c.target, allowedGates: c.allowedGates as string[], par: c.par,
-    starter: c.starter, referenceHash: irHashSync(ref),
+    starter: c.starter, referenceHash: irHashSync(ref), reference: ref,
   };
 });
+
+/** Monday 00:00 UTC of this week — when the weekly ladder resets. */
+export function weekStart(now = Date.now()): number {
+  const d = new Date(now);
+  const day = (d.getUTCDay() + 6) % 7;
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day);
+}
 
 export async function startArenaServer(opts: ArenaServerOptions): Promise<ArenaServer> {
   const tickMs = opts.tickMs ?? 1_000;
@@ -103,7 +114,12 @@ export async function startArenaServer(opts: ArenaServerOptions): Promise<ArenaS
 
   const arena = createArena(repo, {
     challenges: ARENA_CHALLENGES,
+    countdownMs: opts.countdownMs ?? 3_000,
+    botAfterMs: opts.botAfterMs,
     events: {
+      emote: (to, p) => send(to, "match.emote", p),
+      opponentEvent: (to, p) => send(to, "match.opponent_event", p),
+      rematchOffered: (to, p) => send(to, "match.rematch_offered", p),
       matchFound: (to, p) => send(to, "match.found", p),
       opponentProgress: (to, p) => send(to, "match.opponent_progress", p),
       matchResult: (to, p) => send(to, "match.result", p),
@@ -147,9 +163,30 @@ export async function startArenaServer(opts: ArenaServerOptions): Promise<ArenaS
 
     if (url.pathname === "/health") return json(200, { ok: true, challenges: ARENA_CHALLENGES.length });
 
+    // The lobby's live counters. Public: they say nothing about anyone.
+    if (url.pathname === "/arena/stats") {
+      const day = new Date();
+      const today = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate());
+      const { queued, live } = arena.stats();
+      return json(200, { online: sockets.size, queued, live, today: await repo.countSince(today), weekEndsAt: weekStart() + 7 * 86_400_000 });
+    }
+
     if (url.pathname === "/leaderboard") {
       const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 20)));
+      if (url.searchParams.get("period") === "week") {
+        return json(200, { since: weekStart(), players: await repo.weekly(weekStart(), limit) });
+      }
       return json(200, { players: await repo.leaderboard(limit) });
+    }
+
+    // A signed-in player's own record: tier, history, streak. Reached through
+    // the web app's same-origin proxy, so it carries the bearer token.
+    if (url.pathname === "/arena/profile") {
+      const auth = req.headers.authorization ?? "";
+      const claims = auth.startsWith("Bearer ") ? verifyAccess(opts.jwtSecret, auth.slice(7)) : null;
+      if (!claims) return json(401, { error: "Sign in to see your record." });
+      const profile = await repo.profile(claims.sub, 20);
+      return json(200, profile ?? { player: null, matches: [], wins: 0, losses: 0, draws: 0, winStreak: 0, bestRating: 1200 });
     }
 
     if (url.pathname === "/history") {
@@ -207,7 +244,8 @@ export async function startArenaServer(opts: ArenaServerOptions): Promise<ArenaS
       switch (type) {
         case "queue.join": {
           const mode: ArenaMode = ARENA_MODES.includes(payload.mode as ArenaMode) ? (payload.mode as ArenaMode) : "blitz";
-          await arena.queue(playerId, displayName, mode);
+          const bots: BotPreference = payload.bots === "now" || payload.bots === "never" ? payload.bots : "auto";
+          await arena.queue(playerId, displayName, mode, Date.now(), bots);
           ws.send(frame("queue.joined", { mode, waiting: 1 }));
           // Pair immediately if an opponent is already waiting, rather than
           // making the first match wait for the next tick.
@@ -221,6 +259,18 @@ export async function startArenaServer(opts: ArenaServerOptions): Promise<ArenaS
 
         case "match.heartbeat":
           arena.heartbeat(playerId);
+          return;
+
+        case "match.emote":
+          arena.emote(playerId, String(payload.emote ?? ""));
+          return;
+
+        case "match.rematch":
+          await arena.rematch(playerId);
+          return;
+
+        case "match.resign":
+          await arena.resign(playerId);
           return;
 
         case "match.progress":

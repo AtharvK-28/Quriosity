@@ -20,7 +20,7 @@ import { freshDb } from "./db.ts";
 let server: ArenaServer;
 
 beforeAll(async () => {
-  server = await startArenaServer({ db: await freshDb(), tickMs: 50, jwtSecret: "test-secret", secureCookies: false, authPerMinute: 1000 });
+  server = await startArenaServer({ db: await freshDb(), tickMs: 50, countdownMs: 0, jwtSecret: "test-secret", secureCookies: false, authPerMinute: 1000 });
 });
 
 /** A real account, made through the real API. */

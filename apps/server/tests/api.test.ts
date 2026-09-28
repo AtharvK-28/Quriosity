@@ -12,6 +12,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startArenaServer, type ArenaServer } from "../src/server.ts";
 import { freshDb } from "./db.ts";
 import { emptyCircuit } from "../../web/lib/ir/types";
+import { TRACKS_BY_ID, trackNodes } from "../../web/lib/curriculum/tracks";
+import { encodeRecord, readRecord } from "../../web/lib/curriculum/record";
+import { dailyChallenge, dayKey } from "../../web/lib/daily";
 
 let server: ArenaServer;
 const url = (p: string) => `http://127.0.0.1:${server.port}${p}`;
@@ -380,5 +383,160 @@ describe("assignments (PRD E10-S4)", () => {
     const made = await call("POST", `/cohorts/${cohort.id}/assignments`, { token: teacher.token, body: { kind: "node", itemId: "u0.n1", dueAt: Date.now() + 86_400_000 } });
     await call("DELETE", `/cohorts/${cohort.id}/assignments/${made.body.assignment.id}`, { token: teacher.token });
     expect((await call("GET", `/cohorts/${cohort.id}/assignments`, { token: teacher.token })).body.assignments).toEqual([]);
+  });
+});
+
+describe("signed completion records (PRD E8-S5)", () => {
+  async function finished(email = "ada@example.com") {
+    const s = await signup(email);
+    const track = TRACKS_BY_ID.get("optimisation")!;
+    const progress = Object.fromEntries(trackNodes(track).map((n) => [n.id, { state: "passed", firstAttemptCorrect: true }]));
+    const challenges = Object.fromEntries(track.capstones.map((id) => [id, { solved: true }]));
+    await call("PUT", "/me/documents/session", { token: s.token, body: { doc: { progress, challenges } } });
+    return s;
+  }
+
+  it("signs a record built from the account's synced progress, under the account's name", async () => {
+    const s = await finished();
+    const signed = await call("POST", "/records/sign", { token: s.token, body: { track: "optimisation" } });
+    expect(signed.status).toBe(200);
+    const reading = readRecord(signed.body.code);
+    expect(reading.status).toBe("intact");
+    if (reading.status !== "intact") return;
+    expect(reading.record.name).toBe("ada");
+    expect(reading.record.firstTry).toBe(100);
+    expect(reading.signature).toBeTruthy();
+
+    const verdict = await call("GET", `/records/verify?code=${encodeURIComponent(signed.body.code)}`);
+    expect(verdict.body).toEqual({ signed: true, valid: true });
+  });
+
+  it("refuses a track the synced progress doesn't complete", async () => {
+    const s = await signup("bo@example.com");
+    const res = await call("POST", "/records/sign", { token: s.token, body: { track: "optimisation" } });
+    expect(res.status).toBe(409);
+    expect((await call("POST", "/records/sign", { body: { track: "optimisation" } })).status).toBe(401);
+  });
+
+  it("fails an edited record, a moved signature, and an unsigned one", async () => {
+    const s = await finished();
+    const { code } = (await call("POST", "/records/sign", { token: s.token, body: { track: "optimisation" } })).body;
+    const [, , sig] = code.split(".");
+    const reading = readRecord(code);
+    if (reading.status !== "intact") throw new Error("expected intact");
+
+    // Someone else's name, re-checksummed so only the signature can catch it.
+    const forged = encodeRecord({ ...reading.record, name: "Mallory" });
+    expect((await call("GET", `/records/verify?code=${encodeURIComponent(`${forged}.${sig}`)}`)).body).toEqual({ signed: true, valid: false });
+    expect((await call("GET", `/records/verify?code=${encodeURIComponent(forged)}`)).body).toEqual({ signed: false, valid: false });
+    expect((await call("GET", "/records/verify?code=nonsense")).body).toEqual({ signed: false, valid: false });
+  });
+
+  it("publishes the public key", async () => {
+    const key = await call("GET", "/records/key");
+    expect(key.body.alg).toBe("Ed25519");
+    expect(key.body.key).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  });
+});
+
+describe("challenges published to a class (PRD E8-S6)", () => {
+  const bell = () => {
+    const c = emptyCircuit(2);
+    c.gates.push({ id: "g1", type: "h", targets: [0], controls: [], params: [], column: 0 });
+    c.gates.push({ id: "g2", type: "cx", targets: [1], controls: [0], params: [], column: 1 });
+    return c;
+  };
+  const challenge = (extra: Record<string, unknown> = {}) => ({
+    title: "Make a Bell pair", brief: "Entangle q0 and q1.", hint: "Superpose first.", kind: "reach",
+    reference: bell(), allowedGates: ["h", "cx", "x", "measure"], ...extra,
+  });
+
+  async function classroom() {
+    const teacher = await signup("t@example.com", { instructorCode: "TEACH-2026" });
+    const student = await signup("s@example.com");
+    const cohort = (await call("POST", "/cohorts", { token: teacher.token, body: { name: "CS-402" } })).body.cohort;
+    await call("POST", "/cohorts/join", { token: student.token, body: { code: cohort.joinCode } });
+    return { teacher, student, cohort };
+  }
+
+  it("publishes to a class, and members see it", async () => {
+    const { teacher, student, cohort } = await classroom();
+    const posted = await call("POST", `/cohorts/${cohort.id}/challenges`, { token: teacher.token, body: { challenge: challenge({ extra: "dropped" }) } });
+    expect(posted.status).toBe(201);
+    expect(posted.body.challenge.id).toMatch(/^class\./);
+    expect(posted.body.challenge.extra).toBeUndefined();
+
+    const mine = await call("GET", "/me/challenges", { token: student.token });
+    expect(mine.body.challenges).toHaveLength(1);
+    expect(mine.body.challenges[0]).toMatchObject({ title: "Make a Bell pair", cohort: "CS-402", kind: "reach" });
+    expect(mine.body.challenges[0].reference.gates).toHaveLength(2);
+
+    const outsider = await signup("x@example.com");
+    expect((await call("GET", "/me/challenges", { token: outsider.token })).body.challenges).toHaveLength(0);
+  });
+
+  it("refuses students, other instructors, and invalid challenges", async () => {
+    const { student, cohort, teacher } = await classroom();
+    expect((await call("POST", `/cohorts/${cohort.id}/challenges`, { token: student.token, body: { challenge: challenge() } })).status).toBe(403);
+    const other = await signup("t2@example.com", { instructorCode: "TEACH-2026" });
+    expect((await call("POST", `/cohorts/${cohort.id}/challenges`, { token: other.token, body: { challenge: challenge() } })).status).toBe(403);
+
+    const broken = bell();
+    broken.gates[1].targets = [0];
+    expect((await call("POST", `/cohorts/${cohort.id}/challenges`, { token: teacher.token, body: { challenge: challenge({ reference: broken }) } })).status).toBe(400);
+    expect((await call("POST", `/cohorts/${cohort.id}/challenges`, { token: teacher.token, body: { challenge: challenge({ allowedGates: ["h", "warp"] }) } })).status).toBe(400);
+    expect((await call("POST", `/cohorts/${cohort.id}/challenges`, { token: teacher.token, body: { challenge: challenge({ kind: "bughunt" }) } })).status).toBe(400);
+  });
+
+  it("can be withdrawn", async () => {
+    const { teacher, student, cohort } = await classroom();
+    const { id } = (await call("POST", `/cohorts/${cohort.id}/challenges`, { token: teacher.token, body: { challenge: challenge() } })).body.challenge;
+    expect((await call("GET", `/cohorts/${cohort.id}/challenges`, { token: teacher.token })).body.challenges).toHaveLength(1);
+    await call("DELETE", `/cohorts/${cohort.id}/challenges/${id}`, { token: teacher.token });
+    expect((await call("GET", "/me/challenges", { token: student.token })).body.challenges).toHaveLength(0);
+  });
+});
+
+describe("the daily puzzle", () => {
+  const todays = () => {
+    const c = dailyChallenge(dayKey());
+    const ir = emptyCircuit(c.qubits);
+    ir.gates = c.reference.map((g, i) => ({ id: `g${i}`, type: g.type, targets: g.targets, controls: g.controls ?? [], params: g.params ?? [], column: i }));
+    return { challenge: c, answer: ir };
+  };
+
+  it("starts a clock, grades on the server, and ranks the first solve", async () => {
+    const s = await signup("ada@example.com");
+    const { challenge, answer } = todays();
+    expect((await call("POST", "/daily/submit", { token: s.token, body: { ir: answer } })).status).toBe(409);
+
+    const start = await call("POST", "/daily/start", { token: s.token });
+    expect(start.body).toMatchObject({ challengeId: challenge.id, solved: false });
+
+    const wrong = await call("POST", "/daily/submit", { token: s.token, body: { ir: emptyCircuit(challenge.qubits) } });
+    // An empty circuit can be right for some targets; only assert a clean grade.
+    expect(typeof wrong.body.passed).toBe("boolean");
+
+    const right = await call("POST", "/daily/submit", { token: s.token, body: { ir: answer } });
+    expect(right.body.passed).toBe(true);
+    expect(right.body.you).toMatchObject({ rank: 1, gates: answer.gates.length });
+
+    const board = await call("GET", "/daily/leaderboard");
+    expect(board.body.solvers).toBe(1);
+    expect(board.body.top[0]).toMatchObject({ name: "ada", rank: 1, you: false });
+    const mine = await call("GET", "/daily/leaderboard", { token: s.token });
+    expect(mine.body.top[0].you).toBe(true);
+  });
+
+  it("keeps the first solve, and refuses a circuit of the wrong width", async () => {
+    const s = await signup("bo@example.com");
+    const { challenge, answer } = todays();
+    await call("POST", "/daily/start", { token: s.token });
+    await call("POST", "/daily/submit", { token: s.token, body: { ir: answer } });
+    const first = (await call("GET", "/daily/leaderboard", { token: s.token })).body.you;
+    await call("POST", "/daily/submit", { token: s.token, body: { ir: answer } });
+    expect((await call("GET", "/daily/leaderboard", { token: s.token })).body.you.ms).toBe(first.ms);
+    const wide = emptyCircuit(challenge.qubits + 1);
+    expect((await call("POST", "/daily/submit", { token: s.token, body: { ir: wide } })).status).toBe(400);
   });
 });

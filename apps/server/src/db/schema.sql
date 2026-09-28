@@ -156,3 +156,37 @@ CREATE TABLE IF NOT EXISTS assignments (
 );
 
 CREATE INDEX IF NOT EXISTS assignments_cohort_idx ON assignments (cohort_id, due_at);
+
+-- A challenge an instructor authored and published to a cohort (E8-S6). The
+-- body is the authored challenge as the web app stores it: a reference
+-- circuit, from which every member's browser derives the target.
+CREATE TABLE IF NOT EXISTS class_challenges (
+  id          TEXT PRIMARY KEY,
+  cohort_id   TEXT NOT NULL REFERENCES cohorts(id) ON DELETE CASCADE,
+  author_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body        JSONB NOT NULL,
+  created_at  BIGINT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS class_challenges_cohort_idx ON class_challenges (cohort_id, created_at DESC);
+
+-- Bot matches (the arena's answer to an empty queue) are recorded but move no
+-- rating. Added after launch, so it is added here rather than in the CREATE.
+ALTER TABLE matches ADD COLUMN IF NOT EXISTS rated BOOLEAN NOT NULL DEFAULT TRUE;
+CREATE INDEX IF NOT EXISTS matches_ended_idx ON matches (ended_at);
+
+-- The daily puzzle (one per UTC day, the same for everyone). The clock starts
+-- when the player opens it (started_at, server time) and stops when the server
+-- grades a passing answer; only the first solve counts.
+CREATE TABLE IF NOT EXISTS daily_results (
+  day         TEXT   NOT NULL,
+  user_id     TEXT   NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  started_at  BIGINT NOT NULL,
+  solved_at   BIGINT,
+  gates       INTEGER,
+  ms          INTEGER,
+  tries       INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS daily_results_board_idx ON daily_results (day, gates, ms);

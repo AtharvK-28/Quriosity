@@ -39,6 +39,9 @@ export type ServerFrame =
       delta: number; opponentRating: number; flagged: boolean; reason: string;
     }> & { type: "match.result" }
   | Frame<{ matchId: string; reason: string }> & { type: "match.abandoned" }
+  | Frame<{ emote: string; from: "opponent" }> & { type: "match.emote" }
+  | Frame<{ from: string }> & { type: "match.rematch_offered" }
+  | Frame<{ kind: "miss" | "scored"; fidelity: number; gates?: number }> & { type: "match.opponent_event" }
   | Frame<{ code: string; message: string }> & { type: "error" };
 
 /* -- Client → server ---------------------------------------------------------- */
@@ -49,6 +52,9 @@ export const CLIENT_FRAMES = [
   "match.progress",
   "match.heartbeat",
   "match.submit",
+  "match.emote",
+  "match.rematch",
+  "match.resign",
 ] as const;
 
 export type ClientFrameType = (typeof CLIENT_FRAMES)[number];
