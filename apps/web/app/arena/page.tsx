@@ -1,36 +1,47 @@
 "use client";
 
 /**
- * The arena — PRD E9.
+ * The arena — PRD E9, rebuilt as a game.
  *
- * Four states, one screen: idle, queued, matched, finished. The match screen is
- * the bench's build loop with two additions — a clock, and a bar showing what
- * the opponent has done. It is deliberately the same canvas and the same tray:
- * a race on unfamiliar controls measures the controls.
+ * Four states, one screen: idle, queued, matched, finished. What changed is
+ * everything a competitive player expects around the race itself, after how
+ * chess sites keep people playing:
+ *
+ *   - a RANK, not just a number: tiers with divisions and a bar to the next
+ *   - a RECORD: rating trend, last matches, win streak, best rating
+ *   - an opponent ALWAYS: after a short wait a bot steps in (unrated, labelled)
+ *   - a COUNTDOWN, so both players read the target before the clock starts
+ *   - EMOTES from a fixed set, so there is someone on the other side
+ *   - a RESULT worth reading: rating and rank movement, XP earned, the other
+ *     player's winning circuit, and a one-press REMATCH
+ *   - TODAY: the streak, quests and daily puzzle, so a match is also progress
  *
  * WHAT IS LOCAL AND WHAT IS NOT. Run is local, exactly as everywhere else in
- * this app — the simulator is on the device and pressing Run during a match
- * costs no network. Submit is the only thing that crosses to the server, and
- * the server re-simulates and re-grades before it decides anything. So the
- * client cannot win by lying, and it also cannot be slowed down by the network
- * while it is thinking.
+ * this app. Submit is the only thing that crosses to the server, and the
+ * server re-simulates and re-grades before it decides anything.
  *
- * WHAT THE OPPONENT SEES. Gate count and run count. Never the circuit — TRD
- * §7.2 is explicit, and `match.progress` is advisory display on both ends.
+ * WHAT THE OPPONENT SEES. Gate count and run count during a match — never the
+ * circuit (TRD §7.2). The circuit is revealed only once the match is over.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { TopBar } from "@/components/chrome/TopBar";
 import { CircuitCanvas } from "@/components/circuit/CircuitCanvas";
 import { GateTray } from "@/components/circuit/GateTray";
 import { Histogram, probabilityMap, toFractions } from "@/components/viz/Histogram";
-import { Button, Chip, Readout, Registration } from "@/components/ui/primitives";
-import { emptyCircuit, gateCount, nextGateId, type GateType } from "@/lib/ir/types";
+import { Button, Registration } from "@/components/ui/primitives";
+import { TierBadge } from "@/components/arena/TierBadge";
+import { TodayPanel } from "@/components/daily/TodayPanel";
+import { BadgeShelf, Feed, LiveStats, Podium, PowerHud, SeasonBanner, SoundToggle, VersusSplash, VictoryBanner } from "@/components/arena/Game";
+import { emptyCircuit, gateCount, nextGateId, type Circuit, type GateType } from "@/lib/ir/types";
 import { targetProbabilities, type Target } from "@/lib/grade/fidelity";
+import { rankFor, PROVISIONAL_GAMES } from "@/lib/arena/tiers";
+import { formatCount } from "@/lib/i18n";
+import { play } from "@/lib/arena/sfx";
 import { useCircuit } from "@/stores/circuitStore";
-import { useSession } from "@/stores/sessionStore";
-import { useArena, type ArenaMode } from "@/stores/arenaStore";
+import { MODE, useSession } from "@/stores/sessionStore";
+import { BOT_AFTER_MS, EMOTE_TEXT, useArena, type ArenaMode, type Emote, type MatchResult, type ProfileMatch } from "@/stores/arenaStore";
 import { useAuth } from "@/stores/authStore";
 import { arenaHttpBase, isLocalPage } from "@/lib/arena/server";
 import { NODES } from "@/lib/curriculum/nodes";
@@ -42,11 +53,21 @@ function unitThreeDone(progress: Record<string, { state?: string }>): boolean {
   return NODES.filter((n) => n.unitId === "u3").every((n) => progress[n.id]?.state === "passed");
 }
 
+function useNow(everyMs: number) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), everyMs);
+    return () => clearInterval(t);
+  }, [everyMs]);
+  return now;
+}
+
+
 export default function ArenaPage() {
-  const { progress, hydrate, hydrated } = useSession();
+  const { progress, hydrate, hydrated, mode: appMode } = useSession();
   const arena = useArena();
   const { circuit, setCircuit, held, pendingControl, selectedGateId, run,
-    hold, place, completeControlled, cancelPending, select, moveGate, removeGate, setParams,
+    hold, place, completeControlled, cancelPending, select, moveGate, dropGate, rewireGate, removeGate, setParams,
     execute, clearRun } = useCircuit();
 
   useEffect(() => { hydrate(); }, [hydrate]);
@@ -114,10 +135,8 @@ export default function ArenaPage() {
    *
    * A `Target` holds Float64Arrays, and JSON turns those into objects keyed by
    * index — so a target sent over the socket arrives looking like a target and
-   * grades like nothing, which showed up as an empty "aiming at" plot. The
-   * server names a challenge and the client looks it up in the same module the
-   * server imported it from, so the two cannot disagree and nothing has to be
-   * rehydrated.
+   * grades like nothing. The server names a challenge and the client looks it
+   * up in the same module the server imported it from.
    */
   const localChallenge = useMemo(() => {
     const id = arena.challenge?.id;
@@ -129,48 +148,69 @@ export default function ArenaPage() {
     execute(localChallenge?.target);
   }, [execute, localChallenge]);
 
+  useEffect(() => {
+    if (arena.phase !== "matched") return;
+    runCount.current = 0;
+  }, [arena.phase, matchId]);
+
   const ladderOpen = hydrated && unitThreeDone(progress);
+  const rank = rankFor(arena.rating);
+  const provisional = arena.gamesPlayed < PROVISIONAL_GAMES;
+  const showToday = arena.phase === "idle" || arena.phase === "signed-out" || arena.phase === "offline";
 
   return (
     <div className="sheet" style={{ minHeight: "100vh" }}>
       <TopBar />
       <main className={s.main}>
-        <header className={s.head}>
-          <div>
-            <span className="label">Arena · ranked</span>
-            <h1 className="statement statement--s" style={{ marginTop: 6, maxWidth: "20ch" }}>
-              {arena.phase === "matched"
-                ? arena.mode === "golf" ? "Same target. Fewest gates wins."
-                  : arena.mode === "bughunt" ? "Same bug. First fix wins."
-                  : "Same target. First correct answer wins."
-                : arena.phase === "queued" ? "Looking for an opponent."
-                : arena.phase === "finished" ? "Match over."
-                : "Race someone to a state."}
-            </h1>
-          </div>
-          {/* A rating belongs to an account; a guest has none to show. */}
-          {arena.phase !== "signed-out" && (
-            <div className={s.stats}>
-              <Readout value={arena.rating} label="rating" tone="measure" />
-              <Readout value={arena.gamesPlayed} label="games" />
+        {arena.phase !== "matched" && (
+          <header className={s.head}>
+            <div>
+              <span className="label">Arena</span>
+              <h1 className="statement statement--s" style={{ marginTop: 6, maxWidth: "22ch" }}>
+                {arena.phase === "queued" ? "Finding you an opponent."
+                  : arena.phase === "finished" ? "Match over."
+                    : "Race someone to a quantum state."}
+              </h1>
             </div>
-          )}
-        </header>
-
-        {arena.problem && (
-          <p className={s.problem} role="status">{arena.problem}</p>
+            <div className={s.headRight}>
+              <div className={s.headTools}>
+                {arena.phase !== "signed-out" && <LiveStats />}
+                <SoundToggle />
+              </div>
+            {arena.phase !== "signed-out" && arena.phase !== "offline" && arena.phase !== "connecting" && (
+              <div className={s.rankChip}>
+                <TierBadge rank={rank} size={44} />
+                <div>
+                  <span className={s.rankLabel}>{rank.label}</span>
+                  <span className={s.rankRating}>{formatCount(arena.rating)}{provisional ? "?" : ""}</span>
+                </div>
+              </div>
+            )}
+            </div>
+          </header>
         )}
+
+        {arena.problem && <p className={s.problem} role="status">{arena.problem}</p>}
 
         {arena.phase === "signed-out" && <SignedOut />}
         {arena.phase === "offline" && <Offline />}
-        {arena.phase === "connecting" && <p className={s.quiet}>Connecting…</p>}
+        {arena.phase === "connecting" && <p className={s.quiet}>Connecting to the arena…</p>}
 
         {arena.phase === "idle" && (
-          <Idle mode={arena.mode} onQueue={(m) => arena.queue(m)} ladderOpen={ladderOpen} />
+          <Idle
+            mode={arena.mode}
+            onQueue={(m, bots) => arena.queue(m, bots)}
+            ladderOpen={ladderOpen}
+          />
         )}
 
         {arena.phase === "queued" && (
-          <Queued onCancel={() => arena.leaveQueue()} />
+          <Queued
+            mode={arena.mode}
+            queuedAt={arena.queuedAt}
+            onBotNow={() => { arena.leaveQueue(); setTimeout(() => arena.queue(arena.mode, "now"), 120); }}
+            onCancel={() => arena.leaveQueue()}
+          />
         )}
 
         {arena.phase === "matched" && arena.challenge && !localChallenge && (
@@ -183,13 +223,6 @@ export default function ArenaPage() {
         {arena.phase === "matched" && arena.challenge && localChallenge && (
           <Match
             challenge={localChallenge}
-            opponent={arena.opponent}
-            opponentProgress={arena.opponentProgress}
-            startedAt={arena.startedAt}
-            lastGrade={arena.lastGrade}
-            mode={arena.mode}
-            capMs={arena.capMs}
-            best={arena.best}
             circuit={circuit}
             held={held}
             pendingControl={pendingControl}
@@ -201,6 +234,8 @@ export default function ArenaPage() {
             onCancelPending={cancelPending}
             onSelect={select}
             onMove={moveGate}
+            onDrop={dropGate}
+            onRewire={rewireGate}
             onRemove={removeGate}
             onParams={setParams}
             onRun={onRun}
@@ -209,8 +244,14 @@ export default function ArenaPage() {
         )}
 
         {arena.phase === "finished" && arena.result && (
-          <Result result={arena.result} mode={arena.mode} you={arena.playerId} onAgain={() => { arena.reset(); arena.queue(); }} onDone={() => arena.reset()} />
+          <Result
+            result={arena.result}
+            challengeQubits={localChallenge?.qubits ?? 2}
+            showXp={MODE[appMode].motivation}
+          />
         )}
+
+        {showToday && arena.phase !== "signed-out" && <TodayPanel />}
       </main>
     </div>
   );
@@ -224,12 +265,14 @@ function SignedOut() {
       <Registration />
       <h2 className={s.panelTitle}>Ranked matches need an account.</h2>
       <p className="prose">
-        A rating has to belong to someone, so it follows you across devices. Practice
-        rounds, challenges and the whole path work without one.
+        A rank has to belong to someone, so it follows you across devices — along
+        with your streak, your quests and your place on the weekly ladder. The
+        path, the challenges and the daily puzzle work without one.
       </p>
-      <div style={{ display: "flex", gap: "var(--s-3)", flexWrap: "wrap", marginTop: "var(--s-4)" }}>
+      <div className={s.actions}>
         <Link href="/auth/signup?next=/arena"><Button variant="primary">Create an account</Button></Link>
         <Link href="/auth/login?next=/arena"><Button variant="ghost">Sign in</Button></Link>
+        <Link href="/daily" className={s.sideLink}>Try today&apos;s puzzle →</Link>
       </div>
     </div>
   );
@@ -266,86 +309,186 @@ function Offline() {
 }
 
 /** PRD E9-S6. One line each: what wins. */
-const MODES: Array<{ id: ArenaMode; name: string; rule: string }> = [
-  { id: "blitz", name: "Blitz", rule: "The first correct circuit wins." },
-  { id: "golf", name: "Circuit golf", rule: "Three minutes. Fewest gates wins." },
-  { id: "bughunt", name: "Bug hunt", rule: "Same broken circuit. First fix wins." },
+const MODES: Array<{ id: ArenaMode; name: string; rule: string; clock: string }> = [
+  { id: "blitz", name: "Blitz", rule: "First correct circuit wins.", clock: "race" },
+  { id: "golf", name: "Circuit golf", rule: "Fewest gates wins.", clock: "3 min" },
+  { id: "bughunt", name: "Bug hunt", rule: "Same broken circuit. First fix wins.", clock: "race" },
 ];
 
-function Idle({ mode, onQueue, ladderOpen }: { mode: ArenaMode; onQueue(m: ArenaMode): void; ladderOpen: boolean }) {
+function Idle({ mode, onQueue, ladderOpen }: { mode: ArenaMode; onQueue(m: ArenaMode, bots: "auto" | "now"): void; ladderOpen: boolean }) {
   const [picked, setPicked] = useState<ArenaMode>(mode);
+  const { rating, gamesPlayed, profile } = useArena();
+  const rank = rankFor(rating);
+  const provisional = gamesPlayed < PROVISIONAL_GAMES;
+
   return (
-    <>
-      <div className={s.panel}>
-        <Registration />
-        <h2 className={s.panelTitle}>One target, two people.</h2>
-        <div className={s.modes} role="radiogroup" aria-label="Match type">
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              role="radio"
-              aria-checked={picked === m.id}
-              className={s.mode}
-              data-on={picked === m.id || undefined}
-              onClick={() => setPicked(m.id)}
-            >
-              <span className={s.modeName}>{m.name}</span>
-              <span className={s.modeRule}>{m.rule}</span>
+    <div className={s.idleGrid}>
+      <div className={s.idleMain}>
+        <SeasonBanner />
+        <section className={s.hero}>
+          <Registration />
+          <div className={s.heroRank}>
+            <TierBadge rank={rank} size={92} />
+            <div className={s.heroRankText}>
+              <span className="label">Your rank</span>
+              <span className={s.heroTier}>{rank.label}</span>
+              <span className={s.heroRating}>
+                {formatCount(rating)} rating{provisional ? ` · provisional (${Math.max(0, PROVISIONAL_GAMES - gamesPlayed)} more games)` : ""}
+              </span>
+            </div>
+          </div>
+          {rank.to !== null && (
+            <div className={s.progress}>
+              <div className={s.progressBar}><span style={{ width: `${rank.progress * 100}%` }} /></div>
+              <span className={s.progressText}>{rank.to - rating} to {rank.next}</span>
+            </div>
+          )}
+          <div className={s.heroStats}>
+            <Stat value={profile ? `${profile.wins}–${profile.losses}–${profile.draws}` : "—"} label="W–L–D, recent" />
+            <Stat value={profile?.winStreak ?? 0} label="win streak" tone={profile && profile.winStreak >= 2 ? "hot" : undefined} />
+            <Stat value={profile ? formatCount(profile.bestRating) : "—"} label="best" />
+            <Spark matches={profile?.matches ?? []} />
+          </div>
+        </section>
+
+        <section className={s.panel}>
+          <h2 className={s.panelTitle}>Pick a match.</h2>
+          <div className={s.modes} role="radiogroup" aria-label="Match type">
+            {MODES.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                role="radio"
+                aria-checked={picked === m.id}
+                className={s.mode}
+                data-on={picked === m.id || undefined}
+                onClick={() => setPicked(m.id)}
+              >
+                <span className={s.modeIcon} data-mode={m.id} aria-hidden />
+                <span className={s.modeName}>{m.name}</span>
+                <span className={s.modeRule}>{m.rule}</span>
+                <span className={s.modeClock}>{m.clock}</span>
+              </button>
+            ))}
+          </div>
+          <div className={s.actions}>
+            <button type="button" className={s.playBtn} onClick={() => onQueue(picked, "auto")}>
+              <span className={s.playShine} aria-hidden />
+              Find a match
             </button>
-          ))}
-        </div>
-        <p className={s.quiet}>
-          The server re-runs everything you send and decides on the state it
-          reaches — never on the gates you chose, except to count them in golf.
-        </p>
-        <div className={s.actions}>
-          <Button variant="primary" size="lg" onClick={() => onQueue(picked)}>Queue for a match</Button>
-          <Link href="/challenges" className={s.sideLink}>Practise instead →</Link>
-        </div>
+            <Button variant="ghost" onClick={() => onQueue(picked, "now")}>Play a bot now</Button>
+          </div>
+          <p className={s.quiet}>
+            Ranked against people. If nobody near your rating is free within {BOT_AFTER_MS / 1000}s,
+            a bot steps in — unrated, but it still counts for your quests and streak.
+            Every win earns XP, and your first win each day earns a bonus.
+          </p>
+        </section>
+        <BadgeShelf />
       </div>
-      <Ladder open={ladderOpen} />
-    </>
+
+      <aside className={s.idleSide}>
+        <Ladder open={ladderOpen} />
+        <Recent matches={profile?.matches ?? []} />
+      </aside>
+    </div>
   );
 }
 
-function Queued({ onCancel }: { onCancel(): void }) {
-  const [waited, setWaited] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setWaited((w) => w + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
+function Stat({ value, label, tone }: { value: ReactNode; label: string; tone?: "hot" }) {
+  return (
+    <div className={s.stat} data-tone={tone}>
+      <span className={s.statValue}>{value}</span>
+      <span className={s.statLabel}>{label}</span>
+    </div>
+  );
+}
+
+/** The rating over the last rated matches, oldest first. */
+function Spark({ matches }: { matches: ProfileMatch[] }) {
+  const points = matches.filter((m) => m.rated).slice(0, 15).reverse().map((m) => m.ratingAfter);
+  if (points.length < 2) return <div className={s.sparkEmpty}>Play a few rated games to see your trend.</div>;
+  const lo = Math.min(...points);
+  const hi = Math.max(...points);
+  const W = 160;
+  const H = 44;
+  const xy = points.map((p, i) => [(i / (points.length - 1)) * W, H - 4 - ((p - lo) / Math.max(1, hi - lo)) * (H - 8)]);
+  const up = points[points.length - 1] >= points[0];
+  return (
+    <div className={s.spark}>
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-label={`Rating trend: ${points[0]} to ${points[points.length - 1]}`}>
+        <polyline points={xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ")} className={s.sparkLine} data-up={up || undefined} />
+        <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="3" className={s.sparkDot} data-up={up || undefined} />
+      </svg>
+      <span className={s.statLabel}>trend</span>
+    </div>
+  );
+}
+
+function Recent({ matches }: { matches: ProfileMatch[] }) {
+  return (
+    <div className={s.panelTight}>
+      <span className="label">Recent matches</span>
+      {matches.length === 0 ? (
+        <p className={s.quiet}>Nothing yet. Your first match shows up here.</p>
+      ) : (
+        <ol className={s.recent}>
+          {matches.slice(0, 8).map((m) => (
+            <li key={m.id} className={s.recentRow} data-result={m.result}>
+              <span className={s.pill}>{m.result === "win" ? "W" : m.result === "loss" ? "L" : "D"}</span>
+              <span className={s.recentName}>
+                {m.opponent}
+                {m.bot && <span className={s.botTag}>bot</span>}
+              </span>
+              <span className={s.recentMode}>{m.mode === "bughunt" ? "bug hunt" : m.mode}</span>
+              <span className={s.recentDelta} data-sign={m.delta > 0 ? "up" : m.delta < 0 ? "down" : undefined}>
+                {m.rated ? `${m.delta > 0 ? "+" : ""}${m.delta}` : "—"}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+function Queued({ mode, queuedAt, onBotNow, onCancel }: { mode: ArenaMode; queuedAt: number | null; onBotNow(): void; onCancel(): void }) {
+  const now = useNow(250);
+  const waited = Math.max(0, Math.floor((now - (queuedAt ?? now)) / 1000));
   // The band the server is using, mirrored so the wait is explicable rather
   // than just slow. TRD §12.1: 50, widening by 50 every 2s, capped at 400.
   const band = Math.min(50 + 50 * Math.floor((waited * 1000) / 2000), 400);
+  const botIn = Math.max(0, Math.ceil((BOT_AFTER_MS - (now - (queuedAt ?? now))) / 1000));
 
   return (
-    <div className={s.panel}>
+    <div className={s.queue}>
       <Registration />
-      <h2 className={s.panelTitle}>Looking for someone near your rating.</h2>
-      <p className="prose">
-        Searching within <b>±{band}</b> points, widening every two seconds up to
-        ±400. After a minute the search gives up rather than pairing you with
-        anyone at all.
-      </p>
-      <p className={s.quiet}>Waiting {waited}s</p>
-      <div className={s.actions}>
-        <Button variant="ghost" onClick={onCancel}>Leave the queue</Button>
+      <div className={s.radar} aria-hidden>
+        <span className={s.radarRing} />
+        <span className={s.radarRing} data-delay="1" />
+        <span className={s.radarRing} data-delay="2" />
+        <span className={s.radarCore}>q</span>
+      </div>
+      <div className={s.queueText}>
+        <span className="label">{MODES.find((m) => m.id === mode)?.name} · searching</span>
+        <p className={s.queueTitle}>Looking within ±{band} of your rating.</p>
+        <p className={s.quiet}>
+          {botIn > 0 ? `Waited ${waited}s. A bot joins in ${botIn}s if nobody turns up.` : "No one yet — bringing in a bot."}
+        </p>
+        <div className={s.actions}>
+          <Button variant="secondary" onClick={onBotNow}>Play a bot now</Button>
+          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+        </div>
       </div>
     </div>
   );
 }
 
+const EMOTES: Emote[] = ["gl", "nice", "wow", "oops", "hurry", "gg"];
+
 function Match(props: {
   challenge: { title: string; brief: string; qubits: number; target: Target; allowedGates: GateType[]; par: number };
-  opponent: { name: string; rating: number } | null;
-  opponentProgress: { gateCount: number; runCount: number };
-  startedAt: number | null;
-  lastGrade: { passed: boolean; fidelity: number } | null;
-  mode: ArenaMode;
-  capMs: number | null;
-  best: number | null;
-  circuit: ReturnType<typeof emptyCircuit>;
+  circuit: Circuit;
   held: unknown; pendingControl: unknown; selectedGateId: string | null; run: unknown;
   onHold(t: GateType): void;
   onPlace(...a: never[]): void;
@@ -353,57 +496,75 @@ function Match(props: {
   onCancelPending(): void;
   onSelect(id: string | null): void;
   onMove(...a: never[]): void;
+  onDrop(...a: never[]): void;
+  onRewire(...a: never[]): void;
   onRemove(id: string): void;
   onParams(...a: never[]): void;
   onRun(): void;
   onSubmit(): void;
 }) {
-  const { challenge, opponent, opponentProgress, startedAt, lastGrade, mode, capMs, best } = props;
+  const { challenge } = props;
+  const arena = useArena();
+  const user = useAuth((a) => a.user);
+  const { opponent, opponentProgress, startedAt, lastGrade, mode, capMs, best, rated, emotes } = arena;
   const golf = mode === "golf";
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setElapsed(Math.floor((Date.now() - (startedAt ?? Date.now())) / 1000)), 250);
-    return () => clearInterval(t);
-  }, [startedAt]);
+  const now = useNow(100);
+  const starting = startedAt !== null && now < startedAt;
+  const elapsed = Math.max(0, Math.floor((now - (startedAt ?? now)) / 1000));
+  const shown = golf && capMs ? Math.max(0, Math.ceil(capMs / 1000) - elapsed) : elapsed;
 
   const targetMap = useMemo(
     () => probabilityMap(targetProbabilities(challenge.target), challenge.qubits),
     [challenge],
   );
   const runResult = props.run as { counts?: { counts: Record<string, number> }; shots?: number } | null;
+  const theirBubble = emotes.theirs && now - emotes.theirs.at < 3500 ? EMOTE_TEXT[emotes.theirs.emote] : null;
+  const myBubble = emotes.mine && now - emotes.mine.at < 2500 ? EMOTE_TEXT[emotes.mine.emote] : null;
+  const oppShare = Math.min(1, opponentProgress.gateCount / Math.max(1, challenge.par));
+  // Your power bar: the best fidelity any of your own runs has reached.
+  const [myPower, setMyPower] = useState(0);
+  const runFidelity = (props.run as { grade?: { fidelity: number } } | null)?.grade?.fidelity ?? null;
+  const lastRunFid = useRef<number | null>(null);
+  useEffect(() => setMyPower(0), [arena.matchId]);
+  useEffect(() => {
+    if (runFidelity === null || runFidelity === lastRunFid.current) return;
+    lastRunFid.current = runFidelity;
+    play("run");
+    setMyPower((p) => Math.max(p, runFidelity));
+  }, [runFidelity]);
+
+  // ⌘↵ runs, as on the bench.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !starting) { e.preventDefault(); props.onRun(); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   return (
     <>
-      <div className={s.matchBar}>
-        <div className={s.vs}>
-          <span className="label label--ink">You</span>
-          <span className={s.vsMark}>vs</span>
-          <span className="label label--ink">{opponent?.name ?? "Opponent"}</span>
-          <Chip>{opponent?.rating ?? "—"}</Chip>
-        </div>
-        {(() => {
-          // Golf counts down to the cap; the races count up.
-          const shown = golf && capMs ? Math.max(0, Math.ceil(capMs / 1000) - elapsed) : elapsed;
-          return (
-            <div
-              className={s.clock}
-              data-low={golf && shown <= 30 ? true : undefined}
-              aria-label={golf ? `${shown} seconds left` : `${shown} seconds elapsed`}
-            >
-              {String(Math.floor(shown / 60)).padStart(2, "0")}:{String(shown % 60).padStart(2, "0")}
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* Counts only. TRD §7.2: never the opponent's IR. */}
-      <div className={s.opponentBar} role="status">
-        <span className="label">Opponent</span>
-        <span className={s.opponentStat}>{opponentProgress.gateCount} {opponentProgress.gateCount === 1 ? "gate" : "gates"}</span>
-        <span className={s.opponentStat}>{opponentProgress.runCount} {opponentProgress.runCount === 1 ? "run" : "runs"}</span>
-        <span className={s.quiet}>You never see their circuit.</span>
-      </div>
+      {startedAt !== null && (
+        <VersusSplash
+          me={{ name: user?.displayName ?? "You", rating: arena.rating }}
+          them={{ name: opponent?.name ?? "Opponent", rating: opponent?.rating ?? 1200, bot: opponent?.bot }}
+          startsAt={startedAt}
+          modeName={MODES.find((m) => m.id === mode)?.name ?? "Match"}
+        />
+      )}
+      <PowerHud
+        me={{ name: user?.displayName ?? "You", rating: arena.rating }}
+        them={{ name: opponent?.name ?? "Opponent", rating: opponent?.rating ?? 1200, bot: opponent?.bot }}
+        myPower={myPower}
+        theirPower={oppShare}
+        theirStats={`${opponentProgress.gateCount} ${opponentProgress.gateCount === 1 ? "gate" : "gates"} · ${opponentProgress.runCount} ${opponentProgress.runCount === 1 ? "run" : "runs"}`}
+        clockSecs={starting ? (golf && capMs ? Math.ceil(capMs / 1000) : 0) : shown}
+        low={golf && !starting && shown <= 30}
+        modeName={MODES.find((m) => m.id === mode)?.name ?? "Match"}
+        rated={rated}
+        myBubble={myBubble}
+        theirBubble={theirBubble}
+      />
 
       <div className={s.taskLine}>
         <b>{challenge.title}.</b> {challenge.brief}
@@ -417,7 +578,7 @@ function Match(props: {
       </div>
 
       <div className={s.arenaGrid}>
-        <div className={s.stage}>
+        <div key={arena.missAt ?? 0} className={s.stage} data-locked={starting || undefined} data-shake={arena.missAt && now - arena.missAt < 600 ? true : undefined}>
           <Registration />
           <div className={s.stageBody}>
             <CircuitCanvas
@@ -426,11 +587,14 @@ function Match(props: {
               selectedGateId={props.selectedGateId}
               held={props.held as never}
               pendingControl={props.pendingControl as never}
+              readOnly={starting}
               onPlace={props.onPlace as never}
               onCompleteControlled={props.onCompleteControlled as never}
               onCancelPending={props.onCancelPending}
               onSelect={props.onSelect}
               onMove={props.onMove as never}
+              onDrop={props.onDrop as never}
+              onRewire={props.onRewire as never}
               onRemove={props.onRemove}
               onParams={props.onParams as never}
             />
@@ -442,8 +606,8 @@ function Match(props: {
               onPick={props.onHold}
             />
             <div className={s.runRow}>
-              <Button variant="secondary" onClick={props.onRun}>Run · ⌘↵</Button>
-              <Button variant="primary" onClick={props.onSubmit}>Submit</Button>
+              <Button variant="secondary" onClick={props.onRun} disabled={starting}>Run · ⌘↵</Button>
+              <Button variant="primary" onClick={props.onSubmit} disabled={starting}>Submit</Button>
             </div>
           </div>
         </div>
@@ -477,44 +641,105 @@ function Match(props: {
                 : `Not yet. The server graded that at ${lastGrade.fidelity.toFixed(3)}.`}
             </p>
           )}
+
+          <Feed items={arena.feed} />
+
+          <Resign />
+
+          <div className={s.emotes} aria-label="Send a message">
+            {EMOTES.map((e) => (
+              <button key={e} type="button" className={s.emote} onClick={() => arena.sendEmote(e)}>
+                {EMOTE_TEXT[e]}
+              </button>
+            ))}
+          </div>
         </aside>
       </div>
     </>
   );
 }
 
-function Result({ result, mode, you, onAgain, onDone }: {
-  result: { winnerId: string | null; delta: number; yourRating: number; opponentRating: number; flagged: boolean; reason: string };
-  mode: ArenaMode;
-  you: string;
-  onAgain(): void;
-  onDone(): void;
-}) {
+/** Two presses, as on chess sites: one to ask, one to mean it. */
+function Resign() {
+  const [asking, setAsking] = useState(false);
+  useEffect(() => {
+    if (!asking) return;
+    const t = setTimeout(() => setAsking(false), 4000);
+    return () => clearTimeout(t);
+  }, [asking]);
+  return (
+    <button
+      type="button"
+      className={s.resign}
+      data-asking={asking || undefined}
+      onClick={() => (asking ? useArena.getState().resign() : setAsking(true))}
+    >
+      {asking ? "Press again to resign" : "Resign"}
+    </button>
+  );
+}
+
+function Result({ result, challengeQubits, showXp }: { result: MatchResult; challengeQubits: number; showXp: boolean }) {
+  const arena = useArena();
+  const you = arena.playerId;
   const won = result.winnerId === you;
   const drew = result.winnerId === null;
-  const golf = mode === "golf";
+  const golf = arena.mode === "golf";
   const title = drew
-    ? result.reason === "nobody reached the target" ? "Nobody got there. A draw." : "A draw."
-    : result.reason === "opponent disconnected" ? (won ? "They left. The match is yours." : "You left the match.")
-    : golf ? (won ? "Fewer gates than them." : "They did it in fewer gates.")
-    : mode === "bughunt" ? (won ? "You found it first." : "They found it first.")
-    : won ? "You got there first." : "They got there first.";
+    ? result.reason === "nobody reached the target" ? "Nobody got there." : "A draw."
+    : result.reason === "opponent disconnected" ? (won ? "They left. It's yours." : "You left the match.")
+      : result.reason === "resigned" ? (won ? "They resigned. It's yours." : "You resigned.")
+      : golf ? (won ? "Fewer gates. Victory." : "They did it in fewer gates.")
+        : arena.mode === "bughunt" ? (won ? "You found the bug first." : "They found it first.")
+          : won ? "Victory." : "They got there first.";
+
+  const before = rankFor(result.ratingBefore);
+  const after = rankFor(result.yourRating);
+  const [bar, setBar] = useState(before.label === after.label ? before.progress : after.progress);
+  useEffect(() => {
+    const t = setTimeout(() => setBar(after.progress), 300);
+    return () => clearTimeout(t);
+  }, [after.progress]);
+  const moved = before.label !== after.label;
+
+  const theirs = result.review?.theirs ?? null;
+  const yours = result.review?.yours ?? null;
+  const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
+  const theirCircuit = useMemo(() => (theirs ? { ...theirs.circuit, qubits: theirs.circuit.qubits || challengeQubits } : null), [theirs, challengeQubits]);
 
   return (
-    <div className={s.panel} data-tone={won ? "win" : drew ? undefined : "loss"}>
-      <Registration />
-      <h2 className={s.panelTitle}>
-        {title}
-      </h2>
+    <div className={s.result} data-tone={won ? "win" : drew ? "draw" : "loss"}>
+      <VictoryBanner result={result} won={won} drew={drew} earned={arena.earned} submits={arena.submits} />
+      <div className={s.resultHead}>
+        <span className={s.resultKicker}>{won ? "Win" : drew ? "Draw" : "Loss"}{result.rated ? "" : " · unrated"}</span>
+        <h2 className={s.resultTitle}>{title}</h2>
+      </div>
 
-      <div className={s.resultStats}>
-        <Readout value={result.yourRating} label="your rating" tone="measure" />
-        <Readout
-          value={`${result.delta > 0 ? "+" : ""}${result.delta}`}
-          label="change"
-          tone={result.delta > 0 ? "measure" : result.delta < 0 ? "flag" : undefined}
-        />
-        <Readout value={result.opponentRating} label="opponent" />
+      <div className={s.resultRank}>
+        <TierBadge rank={after} size={72} />
+        <div className={s.resultRankText}>
+          <span className={s.heroTier}>
+            {after.label}
+            {moved && <span className={s.rankMove} data-up={after.tier.min >= before.tier.min && result.delta > 0 || undefined}>{result.delta > 0 ? "Promoted" : "Dropped"}</span>}
+          </span>
+          <span className={s.heroRating}>
+            {formatCount(result.yourRating)}{" "}
+            {result.rated ? (
+              <b className={s.delta} data-sign={result.delta > 0 ? "up" : result.delta < 0 ? "down" : undefined}>
+                {result.delta > 0 ? "+" : ""}{result.delta}
+              </b>
+            ) : (
+              <span className={s.quiet}>no rating change against a bot</span>
+            )}
+          </span>
+          {after.to !== null && (
+            <div className={s.progress}>
+              <div className={s.progressBar}><span style={{ width: `${bar * 100}%` }} /></div>
+              <span className={s.progressText}>{after.to - result.yourRating} to {after.next}</span>
+            </div>
+          )}
+        </div>
+        {showXp && result.xp > 0 && <span className={s.xpChip}>+{result.xp} XP</span>}
       </div>
 
       {result.flagged ? (
@@ -522,23 +747,42 @@ function Result({ result, mode, you, onAgain, onDone }: {
           This match was flagged for review and no rating was awarded. A pass
           faster than the gates could physically be placed, or the reference
           answer exactly on a first attempt, is recorded rather than quietly
-          reversed — if that was genuinely you, nothing is lost but this one
-          result.
+          reversed — if that was genuinely you, nothing is lost but this one result.
         </p>
       ) : (
-        <p className="prose">
-          {golf
-            ? "Both circuits were checked on the server; only correct ones counted, and then only their gates."
-            : won
-              ? "Your circuit reached the target state first, checked on the server against the same physics your bench runs."
-              : "Grading is on the state, not the gates — their circuit need not look anything like yours."}
-        </p>
+        <div className={s.review}>
+          <div className={s.reviewCol}>
+            <span className="label">Your answer</span>
+            <p className={s.reviewStat}>{yours ? `${yours.gates} gates · ${secs(yours.ms)}` : "Not solved"}</p>
+          </div>
+          <div className={s.reviewCol}>
+            <span className="label">{arena.opponent?.bot ? "The bot's answer" : "Their answer"}</span>
+            <p className={s.reviewStat}>{theirs ? `${theirs.gates} gates · ${secs(theirs.ms)}` : "Not solved"}</p>
+            {theirCircuit && (
+              <div className={s.reviewCanvas}>
+                <CircuitCanvas circuit={theirCircuit} readOnly minColumns={3} />
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       <div className={s.actions}>
-        <Button variant="primary" onClick={onAgain}>Queue again</Button>
-        <Button variant="ghost" onClick={onDone}>Back to the arena</Button>
+        <Button
+          variant="primary"
+          onClick={() => arena.requestRematch()}
+          disabled={arena.rematch.mine}
+        >
+          {arena.rematch.mine ? (arena.opponent?.bot ? "Starting…" : "Waiting for them…") : arena.rematch.theirs ? "Accept rematch" : "Rematch"}
+        </Button>
+        <Button variant="secondary" onClick={() => { arena.reset(); arena.queue(arena.mode, "auto"); }}>New opponent</Button>
+        <Button variant="ghost" onClick={() => arena.reset()}>Back to the arena</Button>
+        <button type="button" className={s.emote} onClick={() => arena.sendEmote("gg")}>Good game</button>
       </div>
+      {arena.rematch.theirs && !arena.rematch.mine && <p className={s.good} role="status">{arena.opponent?.name} wants a rematch.</p>}
+      {arena.emotes.theirs && Date.now() - arena.emotes.theirs.at < 5000 && (
+        <p className={s.quiet} role="status">{arena.opponent?.name}: “{EMOTE_TEXT[arena.emotes.theirs.emote]}”</p>
+      )}
     </div>
   );
 }
@@ -546,26 +790,28 @@ function Result({ result, mode, you, onAgain, onDone }: {
 /* -- The ladder ---------------------------------------------------------------- */
 
 function Ladder({ open }: { open: boolean }) {
-  const [rows, setRows] = useState<Array<{ id: string; displayName: string; rating: number; gamesPlayed: number }> | null>(null);
+  const [period, setPeriod] = useState<"week" | "all">("week");
+  const [rows, setRows] = useState<Array<{ id: string; displayName: string; rating: number; gamesPlayed?: number; points?: number; wins?: number }> | null>(null);
   const me = useArena((st) => st.playerId);
 
   useEffect(() => {
     if (!open) return;
+    setRows(null);
     const base = arenaHttpBase();
-    fetch(`${base}/leaderboard?limit=10`)
+    fetch(`${base}/leaderboard?limit=10${period === "week" ? "&period=week" : ""}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((d) => setRows(d.players ?? []))
       .catch(() => setRows([]));
-  }, [open]);
+  }, [open, period]);
 
   if (!open) {
     return (
       <div className={s.panelTight}>
         <span className="label">Ladder</span>
         <p className="prose prose--tight" style={{ marginTop: 8 }}>
-          The leaderboard opens once you have finished Unit 3. Ranked matches
-          are playable now — the ladder is just not worth reading until the
-          curriculum has stopped teaching you the gates it uses.
+          The ladder opens once you have finished Unit 3. Matches count from
+          now — the ladder is just not worth reading until the curriculum has
+          stopped teaching you the gates it uses.
         </p>
         <Link href="/path" className={s.sideLink}>Back to your path →</Link>
       </div>
@@ -574,17 +820,28 @@ function Ladder({ open }: { open: boolean }) {
 
   return (
     <div className={s.panelTight}>
-      <span className="label">Ladder · top ten</span>
+      <div className={s.ladderHead}>
+        <span className="label">Ladder</span>
+        <div className={s.tabs} role="tablist">
+          <button type="button" role="tab" aria-selected={period === "week"} onClick={() => setPeriod("week")}>This week</button>
+          <button type="button" role="tab" aria-selected={period === "all"} onClick={() => setPeriod("all")}>All time</button>
+        </div>
+      </div>
+      {period === "week" && <p className={s.quiet}>3 points a win, 1 a draw. Resets Monday.</p>}
       {rows === null && <p className={s.quiet}>Loading…</p>}
-      {rows?.length === 0 && <p className={s.quiet}>Nobody has finished a ranked match yet. Be first.</p>}
-      {rows && rows.length > 0 && (
-        <ol className={s.ladder}>
-          {rows.map((p, i) => (
+      {rows?.length === 0 && <p className={s.quiet}>{period === "week" ? "Nobody has scored this week. Take the top spot." : "Nobody has finished a ranked match yet. Be first."}</p>}
+      {rows && rows.length > 0 && <Podium rows={rows} me={me} metric={period} />}
+      {rows && rows.length > 3 && (
+        <ol className={s.ladder} start={4}>
+          {rows.slice(3).map((p, i) => (
             <li key={p.id} className={s.ladderRow} data-you={p.id === me}>
-              <span className={s.rank}>{i + 1}</span>
-              <span className={s.ladderName}>{p.displayName}{p.id === me ? " (you)" : ""}</span>
-              <span className={s.ladderRating}>{p.rating}</span>
-              <span className={s.quiet}>{p.gamesPlayed}g</span>
+              <span className={s.rank}>{i + 4}</span>
+              <span className={s.ladderName}>
+                <TierBadge rank={rankFor(p.rating)} size={20} />
+                {p.displayName}{p.id === me ? " (you)" : ""}
+              </span>
+              <span className={s.ladderRating}>{period === "week" ? `${p.points}` : p.rating}</span>
+              <span className={s.quiet}>{period === "week" ? "pts" : `${p.gamesPlayed}g`}</span>
             </li>
           ))}
         </ol>
@@ -592,3 +849,4 @@ function Ladder({ open }: { open: boolean }) {
     </div>
   );
 }
+

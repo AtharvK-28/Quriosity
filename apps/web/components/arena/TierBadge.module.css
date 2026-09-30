@@ -1,0 +1,26 @@
+.badge {
+  --tier: var(--ink-muted);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+.badge[data-tier="novice"]   { --tier: var(--ink-muted); }
+.badge[data-tier="bronze"]   { --tier: #d08a5b; }
+.badge[data-tier="silver"]   { --tier: #c9cfdc; }
+.badge[data-tier="gold"]     { --tier: var(--cta); }
+.badge[data-tier="platinum"] { --tier: #6fe3d6; }
+.badge[data-tier="diamond"]  { --tier: var(--phase); }
+.badge[data-tier="quantum"]  { --tier: var(--measure); }
+
+.frame { fill: color-mix(in srgb, var(--tier) 16%, transparent); stroke: var(--tier); stroke-width: 2.5; stroke-linejoin: round; }
+.inner { fill: none; stroke: color-mix(in srgb, var(--tier) 45%, transparent); stroke-width: 1; }
+.orbit { fill: none; stroke: var(--tier); stroke-width: 1.2; opacity: 0.8; }
+.axis  { stroke: var(--tier); stroke-width: 1; opacity: 0.5; }
+.core  { fill: var(--tier); }
+.dot   { fill: var(--tier); }
+.halo  { fill: none; stroke: var(--tier); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.8; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .badge[data-tier="quantum"] .halo { transform-origin: 32px 32px; animation: spin 12s linear infinite; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
