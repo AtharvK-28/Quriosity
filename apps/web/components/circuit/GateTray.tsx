@@ -10,11 +10,18 @@
  * teaches the shape of the curriculum for free.
  *
  * In Workbench mode nothing is ever locked.
+ *
+ * A gate is placed two ways: drag it onto the canvas, or click it and then
+ * click a slot (the keyboard has its own grammar on the canvas). A press
+ * that moves a few pixels is a drag; one that does not is a click.
  */
 
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { GATES, type GateSpec } from "@/lib/ir/gates";
 import type { GateType } from "@/lib/ir/types";
 import { NODES, UNITS } from "@/lib/curriculum/nodes";
+import { useDrag } from "@/stores/dragStore";
 import { GateMark } from "./GateMark";
 import styles from "./GateTray.module.css";
 
@@ -43,6 +50,11 @@ const FAMILIES: Array<{ label: string; types: GateType[] }> = [
   { label: "Link two wires", types: ["cx", "cz", "swap", "ccx"] },
   { label: "Read & mark", types: ["measure", "reset", "barrier"] },
 ];
+
+/** Which family a gate belongs to — its colour in the tray, wherever the tray is. */
+export const FAMILY_OF: Partial<Record<GateType, string>> = Object.fromEntries(
+  FAMILIES.flatMap((f, i) => f.types.map((t) => [t, ["flip", "phase", "rotate", "link", "read"][i]])),
+);
 
 export function GateTray({
   available,
@@ -107,6 +119,9 @@ export function GateTray({
   );
 }
 
+/** How far a press travels before it counts as a drag, in CSS pixels. */
+const DRAG_SLOP = 5;
+
 function TrayItem({
   spec,
   held = false,
@@ -119,26 +134,111 @@ function TrayItem({
   onPick?(): void;
 }) {
   const title = locked ? lockedTitle(spec) : `${spec.name} · ${spec.blurb}`;
+  const press = useRef<{ x: number; y: number; id: number } | null>(null);
+  /** Set when a press became a drag, so the click that follows is ignored. */
+  const dragged = useRef(false);
+  const [dragging, setDragging] = useState(false);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (locked || e.button !== 0) return;
+    press.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    dragged.current = false;
+  };
+
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      const p = press.current;
+      if (!p || e.pointerId !== p.id) return;
+      if (!dragged.current) {
+        if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < DRAG_SLOP) return;
+        dragged.current = true;
+        setDragging(true);
+        useDrag.getState().begin(spec.type, e.clientX, e.clientY);
+      }
+      e.preventDefault();
+      useDrag.getState().moveTo(e.clientX, e.clientY);
+    };
+    const up = (e: PointerEvent) => {
+      const p = press.current;
+      if (!p || e.pointerId !== p.id) return;
+      press.current = null;
+      if (dragged.current) {
+        setDragging(false);
+        useDrag.getState().end(e.clientX, e.clientY);
+      }
+    };
+    const cancel = () => {
+      if (!press.current) return;
+      press.current = null;
+      if (dragged.current) {
+        setDragging(false);
+        useDrag.getState().cancel();
+      }
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") cancel();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("keydown", key);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("keydown", key);
+    };
+  }, [spec.type]);
 
   return (
-    <button
-      type="button"
-      className={styles.item}
-      data-held={held}
-      data-locked={locked}
-      disabled={locked}
-      onClick={onPick}
-      title={title}
-      aria-label={title}
+    <>
+      <button
+        type="button"
+        className={styles.item}
+        data-family={FAMILY_OF[spec.type] ?? "flip"}
+        data-held={held}
+        data-locked={locked}
+        data-lifted={dragging || undefined}
+        data-gate={spec.type}
+        disabled={locked}
+        onPointerDown={onPointerDown}
+        onClick={() => {
+          if (dragged.current) {
+            dragged.current = false;
+            return;
+          }
+          onPick?.();
+        }}
+        title={title}
+        aria-label={title}
+      >
+        {locked ? (
+          <span className={styles.lock} aria-hidden>
+            ◌
+          </span>
+        ) : (
+          <GateMark spec={spec} />
+        )}
+      </button>
+      {dragging && <DragGhost spec={spec} />}
+    </>
+  );
+}
+
+/** The gate under the pointer while it is carried to the canvas. */
+function DragGhost({ spec }: { spec: GateSpec }) {
+  const drag = useDrag((s) => s.drag);
+  if (!drag || typeof document === "undefined") return null;
+  return createPortal(
+    <div
+      className={`${styles.item} ${styles.ghost}`}
+      data-family={FAMILY_OF[spec.type] ?? "flip"}
+      style={{ left: drag.x, top: drag.y }}
+      aria-hidden
     >
-      {locked ? (
-        <span className={styles.lock} aria-hidden>
-          ◌
-        </span>
-      ) : (
-        <GateMark spec={spec} />
-      )}
-    </button>
+      <GateMark spec={spec} />
+    </div>,
+    document.body,
   );
 }
 
@@ -223,8 +323,8 @@ export function TrayHint({
   }
   return (
     <p className={styles.hint}>
-      Pick a gate, then click a slot. Or use the keyboard: arrows to move, letter
-      keys to place.
+      Drag a gate onto a wire, or click it and then a slot. Or use the keyboard:
+      arrows to move, letter keys to place.
     </p>
   );
 }

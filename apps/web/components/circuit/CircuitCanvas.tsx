@@ -22,9 +22,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GATES, formatParam, isXTarget } from "@/lib/ir/gates";
 import { circuitDepth, gateQubits, type Circuit, type Gate, type GateType } from "@/lib/ir/types";
+import { dropWires, nextOpenColumn, slotOpen } from "@/lib/ir/drop";
+import { isLocked, ORACLE_PREFIX } from "@/lib/curriculum/oracle";
 import { wireProbabilityOne, type QubitState } from "@/lib/sim/analysis";
 import { simulate } from "@/lib/sim/statevector";
+import { useDrag } from "@/stores/dragStore";
 import { ParameterPopover } from "./ParameterPopover";
+import { Ket } from "@/components/mascot/Ket";
+import { FAMILY_OF } from "./GateTray";
 import styles from "./CircuitCanvas.module.css";
 
 /**
@@ -90,9 +95,31 @@ export interface CircuitCanvasProps {
   onCancelPending?(): void;
   onSelect?(id: string | null): void;
   onMove?(id: string, qubit: number, column: number): void;
+  /**
+   * A gate dragged in from the tray and released on a slot. Unset, the drop
+   * falls back to `onPlace`, which asks for a multi-wire gate's other wires.
+   */
+  onDrop?(type: GateType, qubit: number, column: number): void;
+  /**
+   * One wire of a multi-wire gate dragged to another. Unset, dragging a
+   * control or target moves the whole gate.
+   */
+  onRewire?(id: string, from: number, to: number): void;
   onRemove?(id: string): void;
   /** Set the angle on a parameterised gate. Enables the parameter popover. */
   onParams?(id: string, params: number[]): void;
+  /**
+   * A gate for Ket to point at: the one a failed run's diagnosis is about.
+   * Hosts pass it only where the tutor may speak unasked, and only until the
+   * circuit changes.
+   */
+  pointAt?: string | null;
+  /**
+   * An oracle box over columns `from`–`to`: the function the algorithm is
+   * asked about. Hidden, its gates are covered and the box shows only its
+   * label. No learner gate can go inside it.
+   */
+  box?: { from: number; to: number; label: string; name?: string; hidden: boolean } | null;
 }
 
 export function CircuitCanvas({
@@ -111,14 +138,18 @@ export function CircuitCanvas({
   onCancelPending,
   onSelect,
   onMove,
+  onDrop,
+  onRewire,
   onRemove,
   onParams,
+  pointAt = null,
+  box = null,
 }: CircuitCanvasProps) {
   const depth = circuitDepth(circuit);
   const columns = Math.max(minColumns, depth + 2);
 
   const [cursor, setCursor] = useState<{ q: number; c: number } | null>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<GateDrag | null>(null);
   /** `R` waits for an axis. */
   const [prefix, setPrefix] = useState<"r" | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -321,30 +352,97 @@ export function CircuitCanvas({
 
   /* -- Drag to move --------------------------------------------------------- */
 
+  /** The slot under a viewport point, or null when the point is off the grid. */
+  const slotAt = useCallback(
+    (clientX: number, clientY: number, strict: boolean) => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect) return null;
+      if (strict) {
+        // The visible part only: the grid scrolls sideways inside its frame.
+        const frame = rootRef.current?.parentElement?.getBoundingClientRect() ?? rect;
+        const left = Math.max(rect.left, frame.left);
+        const right = Math.min(rect.right, frame.right);
+        if (clientX < left || clientX > right || clientY < rect.top || clientY > rect.bottom) return null;
+      }
+      const localX = clientX - rect.left;
+      const localY = clientY - rect.top;
+      const c = Math.max(0, Math.min(columns - 1, Math.round((localX - WIRE_LABEL - COL_PITCH / 2) / COL_PITCH)));
+      const q = Math.max(0, Math.min(circuit.qubits - 1, Math.round((localY - TOP_PAD - WIRE_GAP / 2) / WIRE_GAP)));
+      return { q, c };
+    },
+    [columns, circuit.qubits],
+  );
+
+  // The drag handlers read the circuit as it is now, not as it was when the
+  // drag began: a rewire changes which wire the dragged dot sits on.
+  const circuitRef = useRef(circuit);
+  useEffect(() => {
+    circuitRef.current = circuit;
+  }, [circuit]);
+
   useEffect(() => {
     if (!dragging) return;
 
     const move = (e: PointerEvent) => {
-      const rect = rootRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const localX = e.clientX - rect.left;
-      const localY = e.clientY - rect.top;
-      const c = Math.max(0, Math.round((localX - WIRE_LABEL - COL_PITCH / 2) / COL_PITCH));
-      const q = Math.max(
-        0,
-        Math.min(circuit.qubits - 1, Math.round((localY - TOP_PAD - WIRE_GAP / 2) / WIRE_GAP)),
-      );
-      onMove?.(dragging, q, c);
+      const at = slotAt(e.clientX, e.clientY, false);
+      if (!at) return;
+      const g = circuitRef.current.gates.find((x) => x.id === dragging.id);
+      if (!g) return;
+      if (dragging.role && onRewire) {
+        // One end of a multi-wire gate: the column moves the whole gate, the
+        // wire moves only this end.
+        if (at.c !== g.column) onMove?.(g.id, Math.min(...gateQubits(g)), at.c);
+        const from = (dragging.role.kind === "c" ? g.controls : g.targets)[dragging.role.index];
+        if (from !== undefined && at.q !== from) onRewire(g.id, from, at.q);
+        return;
+      }
+      onMove?.(g.id, at.q - dragging.grab, at.c);
     };
     const up = () => setDragging(null);
 
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
     };
-  }, [dragging, circuit.qubits, onMove]);
+  }, [dragging, slotAt, onMove, onRewire]);
+
+  /* -- Drop from the tray ---------------------------------------------------- */
+
+  const trayDrag = useDrag((st) => st.drag);
+
+  useEffect(() => {
+    if (!interactive) return;
+    return useDrag.getState().register((type, px, py) => {
+      const at = slotAt(px, py, true);
+      if (!at) return false;
+      if (onDrop) onDrop(type, at.q, at.c);
+      else onPlace?.(type, at.q, at.c);
+      rootRef.current?.focus({ preventScroll: true });
+      return true;
+    });
+  }, [interactive, slotAt, onDrop, onPlace]);
+
+  /** Where a gate carried over the canvas would land, for the preview. */
+  const landing = useMemo(() => {
+    if (!trayDrag || !interactive) return null;
+    const at = slotAt(trayDrag.x, trayDrag.y, true);
+    if (!at) return null;
+    const wires = onDrop ? dropWires(trayDrag.type, at.q, circuit.qubits) : null;
+    const all = wires ? [...wires.controls, ...wires.targets] : [at.q];
+    const reserved = box ? { from: box.from, to: box.to } : null;
+    const column = slotOpen(circuit, at.c, all, reserved) ? at.c : nextOpenColumn(circuit, all, at.c, reserved);
+    return {
+      type: trayDrag.type,
+      column,
+      top: Math.min(...all),
+      bottom: Math.max(...all),
+      controls: wires?.controls ?? [],
+    };
+  }, [trayDrag, interactive, slotAt, onDrop, circuit, box]);
 
   useEffect(() => {
     if (!editingGate) {
@@ -375,6 +473,15 @@ export function CircuitCanvas({
 
   /* -- Render --------------------------------------------------------------- */
 
+  // A sealed box is described as sealed: what a sighted learner cannot see
+  // inside, a screen reader does not announce either.
+  const summary = useMemo(() => {
+    if (!box?.hidden) return circuitSummary(circuit);
+    const shown = { ...circuit, gates: circuit.gates.filter((g) => !g.id.startsWith(ORACLE_PREFIX)) };
+    const cols = box.from === box.to ? `column ${box.from}` : `columns ${box.from} to ${box.to}`;
+    return `${circuitSummary(shown)} A hidden function ${box.name ?? box.label} sits in ${cols}, across every wire.`;
+  }, [circuit, box]);
+
   const cursorColumn = scrubColumn;
   const showCursor = cursorColumn !== null && cursorColumn >= 0;
   const pairsLeft = WIRE_LABEL + columns * COL_PITCH + 6;
@@ -386,7 +493,7 @@ export function CircuitCanvas({
         className={styles.canvas}
         style={{ width, height }}
         role="application"
-        aria-label={circuitSummary(circuit)}
+        aria-label={summary}
         aria-roledescription="circuit editor"
         tabIndex={interactive ? 0 : -1}
         onKeyDown={onKeyDown}
@@ -430,7 +537,7 @@ export function CircuitCanvas({
         {/* Drop slots */}
         {interactive &&
           Array.from({ length: circuit.qubits }, (_, q) =>
-            Array.from({ length: columns }, (_, c) => (
+            Array.from({ length: columns }, (_, c) => (box && c >= box.from && c <= box.to ? null : (
               <button
                 key={`s${q}-${c}`}
                 type="button"
@@ -442,7 +549,7 @@ export function CircuitCanvas({
                 tabIndex={-1}
                 aria-label={`qubit ${q}, column ${c}${gateAtSlot(circuit, q, c) ? ", occupied" : ", empty"}`}
               />
-            )),
+            ))),
           )}
 
         {/* Wires eligible to receive the next wire of a half-placed gate */}
@@ -486,8 +593,26 @@ export function CircuitCanvas({
           </span>
         )}
 
+        {/* Where a gate dragged from the tray will land. */}
+        {landing && (
+          <div
+            className={styles.landing}
+            style={{
+              left: x(landing.column),
+              top: y(landing.top),
+              height: (landing.bottom - landing.top) * WIRE_GAP,
+            }}
+            data-family={FAMILY_OF[landing.type] ?? "flip"}
+            aria-hidden
+          >
+            {landing.controls.map((q) => (
+              <span key={q} className={styles.landingDot} style={{ top: (q - landing.top) * WIRE_GAP }} />
+            ))}
+          </div>
+        )}
+
         {/* Gates */}
-        {circuit.gates.map((g) => (
+        {circuit.gates.filter((g) => !(box?.hidden && g.id.startsWith(ORACLE_PREFIX))).map((g) => (
           <GateGlyph
             key={g.id}
             gate={g}
@@ -495,13 +620,59 @@ export function CircuitCanvas({
             y={y}
             selected={selectedGateId === g.id}
             highlighted={highlightSet.has(g.id)}
-            dragging={dragging === g.id}
-            interactive={interactive}
+            dragging={dragging?.id === g.id}
+            interactive={interactive && !isLocked(g.id)}
+            locked={isLocked(g.id)}
             midCircuit={midCircuit.has(g.id)}
             onSelect={() => onSelect?.(g.id)}
-            onDragStart={() => setDragging(g.id)}
+            onDragStart={(role, clientY) => {
+              const at = slotAt(0, clientY, false);
+              const lowest = Math.min(...gateQubits(g));
+              setDragging({ id: g.id, role: onRewire ? role : null, grab: at ? at.q - lowest : 0 });
+            }}
           />
         ))}
+
+        {/* The oracle box: one function, hidden, that the circuit is asked about. */}
+        {box && (
+          <div
+            className={styles.oracleBox}
+            data-hidden={box.hidden || undefined}
+            style={{
+              left: x(box.from) - COL_PITCH / 2 + 5,
+              width: (box.to - box.from + 1) * COL_PITCH - 10,
+              top: y(0) - WIRE_GAP / 2 + 4,
+              height: circuit.qubits * WIRE_GAP - 8,
+            }}
+            role="img"
+            aria-label={box.hidden ? `A hidden function ${box.name ?? box.label}` : `The function ${box.name ?? box.label}, shown`}
+          >
+            <span className={styles.oracleLabel}>{box.label}</span>
+            {box.name && <span className={styles.oracleName}>{box.name}</span>}
+          </div>
+        )}
+
+        {/* Ket, pointing at the gate the diagnosis names. It stands on the
+            diagonal above and right of the gate, the gap between columns and
+            wires, so it never covers a gate. */}
+        {(() => {
+          const g = pointAt ? circuit.gates.find((x) => x.id === pointAt) : undefined;
+          if (!g) return null;
+          const top = Math.min(...gateQubits(g));
+          return (
+            <span
+              key={`ket-${g.id}-${g.column}-${top}`}
+              className={styles.ketPoint}
+              style={{ left: x(g.column) + 17, top: y(top) - 45 }}
+              aria-hidden
+            >
+              <Ket mood="curious" size={30} />
+              <svg className={styles.ketArrow} viewBox="0 0 12 12" aria-hidden>
+                <path d="M10 2 L3 9 M3 4 V9 H8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          );
+        })()}
 
         {/* Pairwise entanglement — E5-S6. One bracket per pair, past the end
             of the circuit, because that is where the state it describes is. */}
@@ -532,7 +703,7 @@ export function CircuitCanvas({
         )}
 
         {/* Empty state — the wires are already there, because the qubits are. */}
-        {circuit.gates.length === 0 && interactive && !pendingControl && (
+        {circuit.gates.length === 0 && interactive && !pendingControl && !landing && (
           <span className={styles.emptyHint} style={{ top: y(0) - 34, left: x(0) - 22 }}>
             Drag a gate here, or press H
           </span>
@@ -558,9 +729,22 @@ export function CircuitCanvas({
       )}
 
       {/* Screen readers get the circuit as a sentence, not as a grid to explore. */}
-      <p className="sr-only">{circuitSummary(circuit)}</p>
+      <p className="sr-only">{summary}</p>
     </div>
   );
+}
+
+/* -- Dragging ---------------------------------------------------------------- */
+
+/** One end of a multi-wire gate: its i-th control or i-th target. */
+type EndRole = { kind: "c" | "t"; index: number };
+
+interface GateDrag {
+  id: string;
+  /** The end being dragged, or null when the whole gate moves. */
+  role: EndRole | null;
+  /** How many wires below the gate's top wire it was picked up by. */
+  grab: number;
 }
 
 /* -- Placement copy ---------------------------------------------------------- */
@@ -595,6 +779,7 @@ function GateGlyph({
   highlighted,
   dragging,
   interactive,
+  locked = false,
   midCircuit,
   onSelect,
   onDragStart,
@@ -606,28 +791,37 @@ function GateGlyph({
   highlighted: boolean;
   dragging: boolean;
   interactive: boolean;
+  /** Placed by the lesson: shown, not editable. */
+  locked?: boolean;
   midCircuit: boolean;
   onSelect(): void;
-  onDragStart(): void;
+  /** `role` is the end being dragged, or null for the whole gate. */
+  onDragStart(role: EndRole | null, clientY: number): void;
 }) {
   const spec = GATES[gate.type];
   const wires = gateQubits(gate);
   const top = Math.min(...wires);
   const bottom = Math.max(...wires);
   const cx = x(gate.column);
+  const multi = wires.length > 1 && gate.type !== "barrier";
 
-  const pointer = (e: React.PointerEvent) => {
-    if (!interactive) return;
+  const grab = (role: EndRole | null) => (e: React.PointerEvent) => {
+    if (!interactive || e.button !== 0) return;
     e.stopPropagation();
+    e.preventDefault();
     onSelect();
-    onDragStart();
+    onDragStart(role, e.clientY);
   };
 
   const common = {
-    onPointerDown: pointer,
+    onPointerDown: grab(null),
     "data-highlighted": highlighted,
     "data-dragging": dragging,
+    "data-locked": locked || undefined,
   } as const;
+  /** Props for one end of a multi-wire gate. */
+  const end = (kind: "c" | "t", index: number) =>
+    multi ? { ...common, onPointerDown: grab({ kind, index }), "data-end": true } : common;
 
   if (gate.type === "barrier") {
     return (
@@ -655,31 +849,33 @@ function GateGlyph({
           className={styles.connector}
           style={{ left: cx, top: y(top), height: (bottom - top) * WIRE_GAP }}
           data-highlighted={highlighted}
+          data-grab={interactive || undefined}
+          onPointerDown={grab(null)}
           aria-hidden
         />
       )}
 
       {/* Control dots */}
-      {gate.controls.map((q) => (
+      {gate.controls.map((q, i) => (
         <div
-          key={`c${q}`}
+          key={`c${i}`}
           className={styles.control}
           style={{ left: cx, top: y(q) }}
-          {...common}
+          {...end("c", i)}
           aria-hidden
         />
       ))}
 
       {/* Targets */}
       {gate.type === "swap" ? (
-        gate.targets.map((q) => (
-          <div key={`sw${q}`} className={styles.swapMark} style={{ left: cx, top: y(q) }} {...common} aria-hidden />
+        gate.targets.map((q, i) => (
+          <div key={`sw${i}`} className={styles.swapMark} style={{ left: cx, top: y(q) }} {...end("t", i)} aria-hidden />
         ))
       ) : isXTarget(gate.type) ? (
         <div
           className={styles.xTarget}
           style={{ left: cx, top: y(gate.targets[0]) }}
-          {...common}
+          {...end("t", 0)}
           data-selected={selected}
           role="button"
           tabIndex={interactive ? 0 : -1}
@@ -689,7 +885,8 @@ function GateGlyph({
         <div
           className={styles.gate}
           style={{ left: cx, top: y(gate.targets[0]) }}
-          {...common}
+          {...end("t", 0)}
+          data-family={FAMILY_OF[gate.type] ?? "flip"}
           data-selected={selected}
           data-mid={midCircuit}
           role="button"

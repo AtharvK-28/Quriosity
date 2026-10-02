@@ -24,6 +24,8 @@ import {
 } from "@/lib/ir/types";
 import { GATES } from "@/lib/ir/gates";
 import { firstFreeColumn, slotIsFree, validate } from "@/lib/ir/validate";
+import { dropWires, nextOpenColumn, slotOpen, type Reserved } from "@/lib/ir/drop";
+import { isLocked, ORACLE_PREFIX } from "@/lib/curriculum/oracle";
 import { simulate, type SimResult } from "@/lib/sim/statevector";
 import { grade, type GradeResult, type Target } from "@/lib/grade/fidelity";
 import { diagnose, primaryDiagnosis, type Finding, type SuggestedFix } from "@/lib/tutor/rules";
@@ -101,6 +103,8 @@ interface CircuitState {
 
   /** Where the scrubber sits. -1 is "before any gate"; null means "the end". */
   scrubColumn: number | null;
+  /** Columns an oracle box holds in a lesson; no learner gate goes there. */
+  reserved: Reserved | null;
 
   shots: number;
   noiseLevel: number;
@@ -124,11 +128,28 @@ interface CircuitState {
   beginControlled(type: GateType, control: number, column: number): void;
   completeControlled(target: number): string | null;
   cancelPending(): void;
+  /**
+   * Places a gate dragged from the tray, all of it, where it was released.
+   * A multi-wire gate takes the next wires along (see `dropWires`).
+   */
+  dropGate(type: GateType, qubit: number, column: number): string | null;
 
   moveGate(id: string, qubit: number, column: number): void;
+  /**
+   * Moves one wire of a multi-wire gate. Onto another of its own wires, the
+   * two swap roles, which is how a dragged control dot flips a CNOT.
+   */
+  rewireGate(id: string, from: number, to: number): void;
   removeGate(id: string): void;
   setParams(id: string, params: number[]): void;
   swapControlTarget(id: string): void;
+  /** Reserve (or free) an oracle box's columns. Cleared by setCircuit. */
+  setReserved(r: Reserved | null): void;
+  /**
+   * Puts a different function in the oracle box, keeping the learner's gates
+   * and history. Not an edit: it is which question the circuit is asked.
+   */
+  swapOracle(gates: Gate[]): void;
 
   addQubit(): void;
   removeQubit(): void;
@@ -185,6 +206,7 @@ export const useCircuit = create<CircuitState>((set, get) => {
     selectedGateId: null,
     highlighted: [],
     scrubColumn: null,
+    reserved: null,
     shots: 1024,
     noiseLevel: 0,
     run: null,
@@ -202,6 +224,7 @@ export const useCircuit = create<CircuitState>((set, get) => {
         scrubColumn: null,
         highlighted: [],
         selectedGateId: null,
+        reserved: null,
       });
     },
 
@@ -251,7 +274,8 @@ export const useCircuit = create<CircuitState>((set, get) => {
 
       // PRD §11.1: an occupied slot inserts a new column rather than rejecting
       // the drop. The learner never has to make room by hand.
-      const col = slotIsFree(c, column, [qubit]) ? column : firstFreeColumn(c, [qubit], column);
+      const { reserved } = get();
+      const col = slotOpen(c, column, [qubit], reserved) ? column : nextOpenColumn(c, [qubit], column, reserved);
 
       const id = nextGateId();
       mutate((d) => {
@@ -310,9 +334,10 @@ export const useCircuit = create<CircuitState>((set, get) => {
       }
 
       const wires = [...controls, ...targets];
-      const col = slotIsFree(c, pending.column, wires)
+      const { reserved } = get();
+      const col = slotOpen(c, pending.column, wires, reserved)
         ? pending.column
-        : firstFreeColumn(c, wires, pending.column);
+        : nextOpenColumn(c, wires, pending.column, reserved);
 
       const id = nextGateId();
       mutate((d) => {
@@ -333,19 +358,51 @@ export const useCircuit = create<CircuitState>((set, get) => {
       set({ pendingControl: null, held: null });
     },
 
+    dropGate(type, qubit, column) {
+      const c = get().circuit;
+      const spec = GATES[type];
+      if (spec.controlArity === 0 && spec.targetArity === 1 && type !== "barrier") {
+        return get().place(type, qubit, column);
+      }
+      const wires = dropWires(type, qubit, c.qubits);
+      // Too few wires to hold it: fall back to asking for them one by one.
+      if (!wires) {
+        get().place(type, qubit, column);
+        return null;
+      }
+      const all = [...wires.controls, ...wires.targets];
+      const { reserved } = get();
+      const col = slotOpen(c, column, all, reserved) ? column : nextOpenColumn(c, all, column, reserved);
+      const id = nextGateId();
+      mutate((d) => {
+        d.gates.push({
+          id,
+          type,
+          targets: wires.targets,
+          controls: wires.controls,
+          params: defaultParams(type),
+          column: col,
+        });
+      });
+      set({ held: null, pendingControl: null, selectedGateId: id });
+      return id;
+    },
+
     moveGate(id, qubit, column) {
       const c = get().circuit;
       const g = c.gates.find((x) => x.id === id);
-      if (!g) return;
+      if (!g || isLocked(id)) return;
 
       // Move by the offset applied to the gate's lowest wire, so a two-qubit
       // gate keeps its span rather than collapsing onto one line.
       const wires = gateQubits(g);
       const lowest = Math.min(...wires);
       const delta = qubit - lowest;
+      // A drag reports every pointer move; only a real change is an edit.
+      if (delta === 0 && column === g.column) return;
       const moved = wires.map((w) => w + delta);
       if (moved.some((w) => w < 0 || w >= c.qubits)) return;
-      if (!slotIsFree(c, column, moved, id)) return;
+      if (!slotOpen(c, column, moved, get().reserved, id)) return;
 
       mutate((d) => {
         const t = d.gates.find((x) => x.id === id)!;
@@ -356,7 +413,26 @@ export const useCircuit = create<CircuitState>((set, get) => {
       });
     },
 
+    rewireGate(id, from, to) {
+      const c = get().circuit;
+      const g = c.gates.find((x) => x.id === id);
+      if (!g || g.type === "barrier" || from === to || isLocked(id)) return;
+      if (to < 0 || to >= c.qubits) return;
+      const wires = gateQubits(g);
+      if (!wires.includes(from)) return;
+      const own = wires.includes(to);
+      if (!own && !slotIsFree(c, g.column, [to], id)) return;
+
+      const swap = (w: number) => (w === from ? to : own && w === to ? from : w);
+      mutate((d) => {
+        const t = d.gates.find((x) => x.id === id)!;
+        t.controls = t.controls.map(swap);
+        t.targets = t.targets.map(swap);
+      });
+    },
+
     removeGate(id) {
+      if (isLocked(id)) return;
       mutate((d) => {
         d.gates = d.gates.filter((g) => g.id !== id);
       });
@@ -364,13 +440,38 @@ export const useCircuit = create<CircuitState>((set, get) => {
     },
 
     setParams(id, params) {
+      if (isLocked(id)) return;
       mutate((d) => {
         const g = d.gates.find((x) => x.id === id);
         if (g) g.params = params;
       });
     },
 
+    setReserved(r) {
+      set({ reserved: r });
+    },
+
+    swapOracle(gates) {
+      const swap = (c: Circuit): Circuit => ({
+        ...c,
+        gates: [...c.gates.filter((g) => !g.id.startsWith(ORACLE_PREFIX)), ...gates.map((g) => ({ ...g }))],
+      });
+      const { circuit, past, future, version } = get();
+      // Every snapshot gets the same function, so undo never brings back a
+      // box the lesson is no longer showing.
+      set({
+        circuit: swap(circuit),
+        past: past.map(swap),
+        future: future.map(swap),
+        version: version + 1,
+        run: null,
+        error: null,
+        highlighted: [],
+      });
+    },
+
     swapControlTarget(id) {
+      if (isLocked(id)) return;
       mutate((d) => {
         const g = d.gates.find((x) => x.id === id);
         if (!g || g.controls.length !== 1 || g.targets.length !== 1) return;
@@ -479,6 +580,8 @@ export const useCircuit = create<CircuitState>((set, get) => {
         set({ error: problem, running: false, highlighted: problem.gateId ? [problem.gateId] : [] });
         return;
       }
+      // Counts toward the "run ten circuits" quest; never toward the streak.
+      useSession.getState().logDaily("runs");
 
       set({ running: true, error: null });
 
@@ -521,7 +624,10 @@ export const useCircuit = create<CircuitState>((set, get) => {
         const ctx = target
           ? { circuit, result, target, grade: graded!, noiseLevel }
           : { circuit, result, noiseLevel };
-        const finding = primaryDiagnosis(ctx);
+        const found = primaryDiagnosis(ctx);
+        // A rule that names a locked gate (an oracle's, or one the lesson
+        // placed) would send the learner after something they cannot edit.
+        const finding = found && found.gateIds.some(isLocked) ? null : found;
 
         // Advice only when nothing is wrong, and only where it is cheap: the
         // optimiser re-simulates, and a wide register is not where a learner
@@ -573,7 +679,8 @@ export const useCircuit = create<CircuitState>((set, get) => {
         case "add_gate": {
           const c = get().circuit;
           const wires = [...fix.controls, ...fix.targets];
-          const col = slotIsFree(c, fix.column, wires) ? fix.column : firstFreeColumn(c, wires, fix.column);
+          const { reserved } = get();
+          const col = slotOpen(c, fix.column, wires, reserved) ? fix.column : nextOpenColumn(c, wires, fix.column, reserved);
           const id = nextGateId();
           mutate((d) => {
             d.gates.push({

@@ -407,3 +407,163 @@
   white-space: nowrap;
   pointer-events: none;
 }
+
+/* == Placed gates carry their family's colour, as in the tray. ================== */
+.gate {
+  --g: #b89cff;
+  border-radius: 11px;
+  border-color: color-mix(in srgb, var(--g) 75%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--g) 22%, transparent), color-mix(in srgb, var(--g) 8%, transparent)),
+    var(--paper);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 6px 16px -10px var(--g);
+  font-weight: 700;
+}
+.gate[data-family="phase"]  { --g: var(--phase); }
+.gate[data-family="rotate"] { --g: var(--cta); }
+.gate[data-family="link"]   { --g: var(--error); }
+.gate[data-family="read"]   { --g: var(--measure); }
+.gate:hover { border-color: var(--g); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.15), 0 10px 20px -8px var(--g); }
+
+/* == Drag and drop ============================================================== */
+
+/* Where a gate carried from the tray will land: the slot, or the span of
+   wires a multi-wire gate will take, outlined in the gate's family colour. */
+.landing {
+  --g: #b89cff;
+  position: absolute;
+  width: var(--gate-size);
+  margin: calc(var(--gate-size) / -2) 0 0 calc(var(--gate-size) / -2);
+  padding-bottom: var(--gate-size);
+  box-sizing: content-box;
+  border: 2px dashed var(--g);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--g) 14%, transparent);
+  pointer-events: none;
+}
+.landing[data-family="phase"]  { --g: var(--phase); }
+.landing[data-family="rotate"] { --g: var(--cta); }
+.landing[data-family="link"]   { --g: var(--error); }
+.landing[data-family="read"]   { --g: var(--measure); }
+
+.landingDot {
+  position: absolute;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  margin: calc(var(--gate-size) / 2 - 5.5px) 0 0 -5.5px;
+  border-radius: var(--r-full);
+  background: var(--g);
+}
+
+/* The line joining a multi-wire gate is how you move all of it; each end on
+   its own re-wires just that end. A wider invisible grip makes it catchable. */
+.connector[data-grab]::before {
+  content: "";
+  position: absolute;
+  inset: 0 -7px;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.control[data-dragging="true"],
+.xTarget[data-dragging="true"],
+.swapMark[data-dragging="true"],
+.gate[data-end][data-dragging="true"] { cursor: grabbing; }
+
+/* A gate that has just landed settles into its slot. */
+@keyframes gateIn {
+  from { transform: scale(0.72); opacity: 0.4; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.gate, .xTarget, .control, .swapMark {
+  animation: gateIn 220ms var(--e-out, ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gate, .xTarget, .control, .swapMark { animation: none; }
+}
+
+/* == Ket points at the gate =================================================== */
+.ketPoint {
+  position: absolute;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  animation: ketArrive 420ms var(--e-settle, ease-out) both;
+}
+.ketArrow {
+  position: absolute;
+  left: -9px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  color: var(--cta);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--cta) 60%, transparent));
+}
+/* It hops in from the upper right and nudges toward the gate, once. */
+@keyframes ketArrive {
+  0%   { transform: translate(10px, -10px) scale(0.6); opacity: 0; }
+  60%  { transform: translate(-3px, 3px) scale(1.05); opacity: 1; }
+  100% { transform: translate(0, 0) scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ketPoint { animation: none; }
+}
+
+/* == Oracle box ================================================================
+   The function an algorithm is asked about. Hidden, it is a sealed box with a
+   label: the algorithm is not allowed to look inside, only to query it. */
+.oracleBox {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 2px solid color-mix(in srgb, var(--cta) 70%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--cta) 8%, transparent);
+  pointer-events: none;
+}
+.oracleBox[data-hidden] {
+  background:
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--cta) 10%, transparent) 0 8px, transparent 8px 16px),
+    var(--paper-raised);
+  box-shadow: var(--shadow-card), 0 0 24px -8px var(--cta);
+}
+.oracleLabel {
+  font-family: var(--font-statement);
+  font-style: italic;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--ink);
+}
+.oracleBox:not([data-hidden]) .oracleLabel {
+  position: absolute;
+  top: -26px;
+  font-size: 20px;
+}
+.oracleName {
+  padding: 1px 8px;
+  border-radius: var(--r-full);
+  background: var(--cta);
+  color: var(--cta-ink);
+  font-family: var(--font-label);
+  font-size: var(--t-micro);
+  font-weight: 700;
+}
+.oracleBox:not([data-hidden]) .oracleName { position: absolute; bottom: -12px; }
+
+/* Gates the lesson placed: shown, not editable. */
+.gate[data-locked],
+.xTarget[data-locked],
+.control[data-locked],
+.swapMark[data-locked] {
+  cursor: not-allowed;
+}
+.gate[data-locked] {
+  border-style: dashed;
+  opacity: 0.85;
+}

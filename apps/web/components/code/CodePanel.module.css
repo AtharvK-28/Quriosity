@@ -139,3 +139,38 @@
 .apply:hover { background: var(--cta); border-color: var(--cta); color: var(--cta-ink); }
 .discard { color: var(--ink); }
 .discard:hover { background: var(--paper-inset); }
+
+/* -- Live marks ---------------------------------------------------------------
+   The line a canvas edit just wrote flashes once; a line the tutor points at
+   stays marked in the error colour until the circuit changes. In the editable
+   view the marks sit on the line numbers, since a textarea has no lines. */
+.line {
+  display: block;
+  margin: 0 calc(var(--s-4) * -1);
+  padding: 0 var(--s-4);
+}
+
+@keyframes lineIn {
+  from { background: color-mix(in srgb, var(--cta) 30%, transparent); }
+  to   { background: transparent; }
+}
+
+.line[data-fresh],
+.gutter span[data-fresh] {
+  animation: lineIn 1.2s var(--e-out, ease-out);
+}
+
+.line[data-flag] {
+  background: var(--error-wash);
+  box-shadow: inset 3px 0 0 var(--error);
+}
+
+.gutter span[data-flag] {
+  color: var(--error);
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line[data-fresh],
+  .gutter span[data-fresh] { animation: none; }
+}

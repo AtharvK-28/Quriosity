@@ -11,7 +11,7 @@
   gap: 4px;
   height: var(--plot-h, 150px);
   padding-left: 32px;
-  border-bottom: 2px solid var(--ink);
+  border-bottom: 2px solid color-mix(in srgb, var(--ink) 70%, transparent);
 }
 
 /* Fixed 0–1 scale, always. Auto-scaling makes a 4% outcome look large, and
@@ -62,10 +62,10 @@
   position: relative;
   width: 100%;
   max-width: 52px;
-  background: var(--ink);
-  /* A 2px cap, inside the system's 0–3px range. A perfectly square column of
-     ink reads as a block; two pixels of relief reads as a drawn bar. */
-  border-radius: 2px 2px 0 0;
+  /* Probability, lit: a column of light rather than a block of ink. */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--phase) 80%, white 20%) 0%, color-mix(in srgb, var(--phase) 55%, #9d7fd6) 100%);
+  box-shadow: 0 0 20px -6px color-mix(in srgb, var(--phase) 70%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.35);
+  border-radius: 6px 6px 0 0;
   transition: height var(--m-settle) var(--e-settle),
               background var(--m-instant) linear;
 }
@@ -84,7 +84,7 @@
   background: var(--rule-2);
 }
 
-.col:hover .bar { background: var(--measure); }
+.col:hover .bar { background: linear-gradient(180deg, var(--measure), color-mix(in srgb, var(--measure) 55%, var(--phase))); box-shadow: 0 0 22px -4px color-mix(in srgb, var(--measure) 70%, transparent); }
 .col:hover .value { color: var(--measure); }
 
 .bar[data-series="target"] {
@@ -106,8 +106,8 @@
 }
 
 /* The outcome the tutor is pointing at. */
-.bar[data-flagged="true"] { background: var(--error); }
-.bar[data-hit="true"] { background: var(--measure); }
+.bar[data-flagged="true"] { background: linear-gradient(180deg, var(--error), color-mix(in srgb, var(--error) 60%, var(--flag))); box-shadow: 0 0 20px -6px var(--error); }
+.bar[data-hit="true"] { background: linear-gradient(180deg, var(--measure), color-mix(in srgb, var(--measure) 55%, var(--phase))); box-shadow: 0 0 22px -6px var(--measure); }
 
 .value {
   position: absolute;
@@ -125,7 +125,8 @@
 .value[data-inside="true"] {
   bottom: auto;
   top: 5px;
-  color: var(--paper);
+  color: var(--paper-inset);
+  font-weight: 600;
 }
 
 .col:hover .value[data-inside="true"] { color: var(--paper); }
@@ -198,7 +199,7 @@
 
 .col { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
 
-.col[data-active="true"] .bar { background: var(--measure); }
+.col[data-active="true"] .bar { background: linear-gradient(180deg, var(--measure), color-mix(in srgb, var(--measure) 55%, var(--phase))); }
 .col[data-active="true"] .value { color: var(--measure); }
 .col[data-active="true"] .value[data-inside="true"] { color: var(--paper); }
 

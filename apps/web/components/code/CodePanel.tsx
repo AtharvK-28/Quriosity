@@ -11,6 +11,10 @@
  * never overwrites an edit in progress (E3-S6: "Never overwrite without
  * asking") — the notice holds both until one is chosen. A parse failure keeps
  * the previous IR and marks the line.
+ *
+ * The lines an edit on the canvas just wrote flash once, so dropping a gate
+ * visibly writes its line of code. The lines of any gate the tutor is
+ * pointing at stay marked, so "column 2 is wrong" is also "this line".
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +23,7 @@ import { GATES } from "@/lib/ir/gates";
 import type { Circuit, GateType } from "@/lib/ir/types";
 import { canonicalJson } from "@/lib/ir/hash";
 import { render, SDK_LABELS, type Sdk } from "@/lib/render";
+import { addedLines, linesForGates } from "@/lib/render/diff";
 import { parseQasm } from "@/lib/io/qasm";
 import { parseQiskit } from "@/lib/io/qiskit";
 import type { ParseError } from "@/lib/io/parse";
@@ -43,10 +48,28 @@ export interface CodePanelProps {
   allowedGates?: GateType[];
   /** A lesson's wire count is fixed; an edit that changes it is refused. */
   requiredQubits?: number;
+  /** Gate ids the tutor is pointing at; their lines are marked. */
+  highlighted?: readonly string[];
 }
 
-export function CodePanel({ circuit, sdk, onSdk, onApply, allowedGates, requiredQubits }: CodePanelProps) {
+export function CodePanel({ circuit, sdk, onSdk, onApply, allowedGates, requiredQubits, highlighted = [] }: CodePanelProps) {
   const rendered = useMemo(() => render(circuit, sdk), [circuit, sdk]);
+  const flagged = useMemo(
+    () => new Set(linesForGates(circuit, sdk, highlighted)),
+    [circuit, sdk, highlighted],
+  );
+
+  /** Lines the last canvas edit wrote. `stamp` restarts the flash. */
+  const [fresh, setFresh] = useState<{ lines: Set<number>; stamp: number }>({ lines: new Set(), stamp: 0 });
+  const lastRef = useRef<{ sdk: Sdk; text: string } | null>(null);
+  useEffect(() => {
+    const last = lastRef.current;
+    lastRef.current = { sdk, text: rendered };
+    // A new dialect is not an edit; nor is the first render.
+    if (!last || last.sdk !== sdk || last.text === rendered) return;
+    const lines = addedLines(last.text, rendered);
+    if (lines.length > 0) setFresh((f) => ({ lines: new Set(lines), stamp: f.stamp + 1 }));
+  }, [rendered, sdk]);
   const editable = Boolean(onApply) && EDITABLE.has(sdk);
 
   /** Null while the panel simply shows the canvas. */
@@ -79,6 +102,15 @@ export function CodePanel({ circuit, sdk, onSdk, onApply, allowedGates, required
 
   const text = draft ?? rendered;
   const lineCount = text.split("\n").length;
+  /** Marks for line i, which only describe the code while it is the canvas's. */
+  const mark = (i: number) =>
+    draft !== null
+      ? {}
+      : {
+          "data-fresh": fresh.lines.has(i) || undefined,
+          "data-flag": flagged.has(i) || undefined,
+        };
+  const lineKey = (i: number) => (fresh.lines.has(i) ? `${i}.${fresh.stamp}` : `${i}`);
 
   function switchSdk(next: Sdk) {
     if (next === sdk) return;
@@ -170,7 +202,7 @@ export function CodePanel({ circuit, sdk, onSdk, onApply, allowedGates, required
         <div className={s.editor} data-error={Boolean(error)}>
           <pre ref={gutterRef} className={s.gutter} aria-hidden>
             {Array.from({ length: lineCount }, (_, i) => (
-              <span key={i} data-error={error?.line === i + 1}>{i + 1}{"\n"}</span>
+              <span key={lineKey(i)} data-error={error?.line === i + 1} {...mark(i)}>{i + 1}{"\n"}</span>
             ))}
           </pre>
           <textarea
@@ -200,7 +232,11 @@ export function CodePanel({ circuit, sdk, onSdk, onApply, allowedGates, required
           />
         </div>
       ) : (
-        <pre className={s.readonly}>{rendered}</pre>
+        <pre className={s.readonly}>
+          {rendered.split("\n").map((line, i) => (
+            <span key={lineKey(i)} className={s.line} {...mark(i)}>{line || " "}</span>
+          ))}
+        </pre>
       )}
 
       {onApply && !EDITABLE.has(sdk) && (

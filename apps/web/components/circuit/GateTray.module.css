@@ -67,7 +67,7 @@
 }
 
 .groupLabel {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
@@ -121,10 +121,70 @@
 }
 
 .familyLabel {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
   color: var(--ink-faint);
   white-space: nowrap;
+}
+
+/* == Gate families, lit ===========================================================
+   A colour per family — flips violet, phase blue, rotations gold, two-wire gates
+   pink, measurement teal — so the tray reads as a palette, and a learner
+   starts to recognise what kind of move a gate is before reading it. */
+
+.item {
+  --g: #b89cff;
+  border: 2px solid color-mix(in srgb, var(--g) 70%, transparent);
+  border-radius: 11px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--g) 20%, transparent), color-mix(in srgb, var(--g) 6%, transparent)),
+    var(--paper);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 4px 12px -8px var(--g);
+  font-weight: 700;
+  transition: transform var(--m-quick) var(--e-out), box-shadow var(--m-quick) var(--e-out);
+}
+.item[data-family="phase"]  { --g: var(--phase); }
+.item[data-family="rotate"] { --g: var(--cta); }
+.item[data-family="link"]   { --g: var(--error); }
+.item[data-family="read"]   { --g: var(--measure); }
+
+.item:hover:not([data-locked="true"]) {
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.15), 0 10px 20px -8px var(--g);
+}
+.item[data-held="true"] {
+  background: var(--g);
+  border-color: var(--g);
+  color: var(--page);
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--g) 30%, transparent), 0 10px 22px -6px var(--g);
+}
+.item[data-locked="true"] { box-shadow: none; background: var(--paper-inset); }
+
+.familyLabel { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-muted); }
+
+/* -- Dragging ------------------------------------------------------------------
+   A tray gate is dragged onto the canvas. Horizontal swipes still scroll a tray
+   that overflows on a phone; any other movement from a gate is a drag. */
+.item:not([data-locked="true"]) {
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* The tray copy stays put, faded, while its twin is carried. */
+.item[data-lifted] {
+  opacity: 0.4;
+}
+
+.ghost {
+  position: fixed;
+  z-index: 1000;
+  margin: calc(var(--gate-size) / -2) 0 0 calc(var(--gate-size) / -2);
+  pointer-events: none;
+  transform: scale(1.08) rotate(-4deg);
+  box-shadow: 0 14px 30px -10px rgb(0 0 0 / 0.55);
+  cursor: grabbing;
 }
