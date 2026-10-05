@@ -66,11 +66,12 @@
 }
 
 .targetCard {
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   padding: var(--s-5);
   position: relative;
+  box-shadow: var(--shadow-card);
 }
 
 .targetHead {
@@ -115,10 +116,11 @@
 }
 
 .stage {
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   position: relative;
+  box-shadow: var(--shadow-card);
 }
 
 /* The circuit scrolls inside its frame rather than widening the page. */
@@ -238,11 +240,12 @@
 }
 
 .passPlot {
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   padding: var(--s-5);
   position: relative;
+  box-shadow: var(--shadow-card);
 }
 
 .passActions {
@@ -254,7 +257,7 @@
 }
 
 .parLine {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -320,7 +323,7 @@
 .scrubTrack { flex: 1; }
 
 .scrubLabel {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -353,3 +356,147 @@
   padding-top: 0;
   margin-top: var(--s-3);
 }
+
+/* == The opening screen, lit ======================================================
+   The unit's colour (--u), a Bloch sphere turning slowly behind the question,
+   and a peek at the gates you are about to be handed. */
+
+.brief { --u: var(--unit-0); position: relative; isolation: isolate; }
+.briefText { position: relative; }
+
+.orbitArt {
+  position: absolute;
+  z-index: -1;
+  left: -240px;
+  top: 50%;
+  width: min(560px, 90vw);
+  transform: translateY(-50%);
+  color: var(--u);
+  opacity: 0.42;
+  pointer-events: none;
+  /* Fades out toward its rim, so wherever it meets an edge it dissolves. */
+  -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+}
+.orbitLine { fill: none; stroke: currentColor; stroke-width: 1.2; opacity: 0.45; }
+.orbitLine[data-faint] { opacity: 0.25; }
+.orbitDot { fill: currentColor; filter: drop-shadow(0 0 6px currentColor); }
+.orbitVector { stroke: currentColor; stroke-width: 2; stroke-linecap: round; opacity: 0.7; }
+.orbitSpin, .orbitSpinSlow { transform-origin: 200px 200px; }
+.orbitSpin { animation: orbit 38s linear infinite; }
+.orbitSpinSlow { animation: orbit 64s linear infinite reverse; }
+@keyframes orbit { to { transform: rotate(360deg); } }
+
+.unitPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--s-4);
+  padding: 5px 12px 5px 9px;
+  border-radius: var(--r-full);
+  border: 1px solid color-mix(in srgb, var(--u) 50%, transparent);
+  background: color-mix(in srgb, var(--u) 12%, transparent);
+  font-family: var(--font-label);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--u);
+}
+.unitDot { width: 8px; height: 8px; border-radius: var(--r-full); background: var(--u); box-shadow: 0 0 8px var(--u); }
+
+.briefActions { display: flex; align-items: center; gap: var(--s-5); flex-wrap: wrap; }
+.trayPeek { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.trayLabel {
+  margin-right: 4px;
+  font-family: var(--font-label);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.trayGate {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1.5px solid color-mix(in srgb, var(--u) 55%, var(--rule-3));
+  background: color-mix(in srgb, var(--u) 8%, var(--paper));
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  transition: transform var(--m-quick) var(--e-out);
+}
+.trayGate:hover { transform: translateY(-2px) rotate(-4deg); }
+.trayGate svg { width: 100%; height: 100%; }
+
+.targetCard {
+  border: 1px solid color-mix(in srgb, var(--u) 45%, var(--rule-2));
+  background:
+    radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--u) 14%, transparent), transparent 60%),
+    var(--surface);
+  box-shadow: var(--shadow-card), 0 0 60px -30px var(--u);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbitSpin, .orbitSpinSlow { animation: none; }
+}
+@media (max-width: 860px) {
+  .orbitArt { left: auto; right: -140px; top: 120px; transform: none; opacity: 0.35; }
+}
+
+/* The art leans out of the column into the margin. Only the page clips it
+   (app/lesson/[nodeId]/page.tsx): clipping the column here cut the orbit off
+   at the column's edge in a hard vertical line. */
+
+/* == Oracle nodes ===============================================================
+   Which function the box holds, and how the last run did on every one. */
+.oracleBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px dashed color-mix(in srgb, var(--cta) 55%, var(--rule-2));
+  border-radius: var(--r-panel);
+}
+.oracleChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.oracleChip {
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--rule-3);
+  font-family: var(--font-statement);
+  font-size: 18px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.oracleChip[aria-pressed="true"] {
+  border-color: var(--cta);
+  background: color-mix(in srgb, var(--cta) 16%, transparent);
+  color: var(--ink);
+}
+.oracleChip[data-result="pass"] span { color: var(--measure); }
+.oracleChip[data-result="fail"] span { color: var(--error); }
+.oracleChip[data-result="fail"] { border-color: color-mix(in srgb, var(--error) 60%, transparent); }
+.oracleNote { font-size: var(--t-body); color: var(--ink-3); }
+
+.oracleRule {
+  font-family: var(--font-statement);
+  font-size: 21px;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.reveal {
+  margin-top: var(--s-5);
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+}
+.reveal ul { margin-top: var(--s-2); display: grid; gap: 6px; }
+.reveal li { font-size: var(--t-body); color: var(--ink-2); }
+.reveal b { font-family: var(--font-statement); font-size: 18px; color: var(--ink); margin-right: 6px; }
+.revealOk { color: var(--measure); font-weight: 600; margin-left: 6px; }

@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Chip, Input, Readout, Registration } from "@/components/ui/primitives";
 import { TRACKS_BY_ID, capstoneChallenges, trackHours, trackProgress } from "@/lib/curriculum/tracks";
 import { buildRecord, encodeRecord } from "@/lib/curriculum/record";
+import { api, ApiError, useAuth } from "@/stores/authStore";
 import { KIND_COPY } from "@/lib/curriculum/challenges";
 import {
   NODES_BY_ID, UNITS, challengeOpen, currentNodeId, nodesInUnit, unitProgress, useSession,
@@ -29,6 +30,10 @@ export function TrackView({ trackId }: { trackId: string }) {
   const [name, setName] = useState("");
   const [recordUrl, setRecordUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [issueError, setIssueError] = useState<string | null>(null);
+  const user = useAuth((a) => a.user);
+  const signedIn = useAuth((a) => a.status === "signed-in");
 
   useEffect(() => { hydrate(); }, [hydrate]);
   useEffect(() => {
@@ -43,7 +48,22 @@ export function TrackView({ trackId }: { trackId: string }) {
 
   if (!hydrated) return null;
 
-  function issue() {
+  async function issue() {
+    setIssueError(null);
+    if (signedIn) {
+      // The server rebuilds the record from the account's synced progress and
+      // signs it, so the name on it is the account's and nothing is self-reported.
+      setSigning(true);
+      try {
+        const { code } = await api<{ code: string }>("/records/sign", { method: "POST", body: { track: track.id } });
+        setRecordUrl(`${window.location.origin}/record/${code}`);
+      } catch (e) {
+        setIssueError(e instanceof ApiError ? e.message : "Couldn't reach the server to sign the record.");
+      } finally {
+        setSigning(false);
+      }
+      return;
+    }
     const clean = name.trim();
     if (clean) setDisplayName(clean);
     const code = encodeRecord(buildRecord(track, clean, progress));
@@ -174,16 +194,22 @@ export function TrackView({ trackId }: { trackId: string }) {
         ) : (
           <div className={`${p.panel} ${p.stack}`}>
             <p className={p.body}>
-              Every node and capstone is done. Put a name on the record and send the
-              link to whoever asked for it.
+              {signedIn && user
+                ? <>Every node and capstone is done. The record is issued in your account&apos;s name, <b>{user.displayName}</b>, and signed by the server.</>
+                : "Every node and capstone is done. Put a name on the record and send the link to whoever asked for it."}
             </p>
-            <form className={p.row} onSubmit={(e) => { e.preventDefault(); issue(); }}>
-              <label className={p.field} style={{ minWidth: "min(100%, 280px)" }}>
-                <span className="label">Name on the record</span>
-                <Input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} placeholder="As your manager knows you" />
-              </label>
-              <Button variant="primary" size="sm" type="submit" style={{ alignSelf: "flex-end" }}>Issue the record</Button>
+            <form className={p.row} onSubmit={(e) => { e.preventDefault(); void issue(); }}>
+              {!signedIn && (
+                <label className={p.field} style={{ minWidth: "min(100%, 280px)" }}>
+                  <span className="label">Name on the record</span>
+                  <Input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} placeholder="As your manager knows you" />
+                </label>
+              )}
+              <Button variant="primary" size="sm" type="submit" disabled={signing} style={{ alignSelf: "flex-end" }}>
+                {signedIn ? (signing ? "Signing…" : "Issue a signed record") : "Issue the record"}
+              </Button>
             </form>
+            {issueError && <p className={p.bad} role="alert">{issueError}</p>}
             {recordUrl && (
               <div className={p.good} role="status">
                 <p style={{ overflowWrap: "anywhere" }}>
@@ -195,9 +221,14 @@ export function TrackView({ trackId }: { trackId: string }) {
               </div>
             )}
             <p className={p.muted}>
-              The link checks that the record hasn&apos;t been edited since it was issued.
-              It can&apos;t prove who earned it — there are no accounts yet — and the
-              record page says so.
+              {signedIn ? (
+                <>The link carries a signature the server made from your synced progress, so
+                it proves both that nothing was edited and whose account did the work.</>
+              ) : (
+                <>The link checks that the record hasn&apos;t been edited since it was issued,
+                but can&apos;t prove who earned it — the record page says so.{" "}
+                <Link href="/auth/login?next=%2Ftracks">Sign in</Link> to issue a signed one.</>
+              )}
             </p>
           </div>
         )}

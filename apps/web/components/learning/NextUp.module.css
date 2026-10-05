@@ -6,9 +6,10 @@
   align-items: center;
   padding: var(--s-5) var(--s-6);
   margin-bottom: clamp(24px, 4vw, 40px);
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .card[data-compact="true"] {

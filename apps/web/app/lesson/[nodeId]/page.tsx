@@ -18,7 +18,9 @@ export default async function LessonPage({
   if (!node) notFound();
 
   return (
-    <div className="sheet" style={{ minHeight: "100vh" }}>
+    // The lesson's orbit art leans past its column; the page, not the column,
+    // keeps it from causing a sideways scroll.
+    <div className="sheet" style={{ minHeight: "100vh", overflowX: "clip" }}>
       <TopBar />
       <LessonPlayer node={node} />
       <TutorDock where={{ surface: "lesson", nodeId }} />

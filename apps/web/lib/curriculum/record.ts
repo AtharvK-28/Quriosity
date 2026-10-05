@@ -6,11 +6,12 @@
  * a checksum over them, and the record page recomputes the checksum and says
  * whether the two agree.
  *
- * What that proves, stated plainly on the page itself: that the record has not
- * been edited since it was issued. It does not prove who earned it, because
- * nothing in a browser can — there is no account and no signing key. When the
- * server exists it signs the same payload and this module swaps its checksum
- * for a signature; the link shape and the page stay the same.
+ * What the checksum proves, stated plainly on the page itself: that the record
+ * has not been edited since it was issued. It does not prove who earned it,
+ * because nothing in a browser can. A signed-in learner can have the server
+ * issue it instead (apps/server/src/records): the server rebuilds the record
+ * from the account's synced progress and appends an Ed25519 signature, so the
+ * link gains a third part and the page can say whose work it is.
  */
 
 import { TRACKS_BY_ID, trackNodes, type Track } from "./tracks";
@@ -86,14 +87,24 @@ export function encodeRecord(r: CompletionRecord): string {
   return `${b64url(body)}.${fnv(DOMAIN + body)}`;
 }
 
+/**
+ * A record code is `body.checksum`, or `body.checksum.signature` once the
+ * server has signed it. The signature covers `body`, which is the record
+ * itself, so a signed record is also a checksummed one.
+ */
+export function splitRecordCode(code: string): { body: string; sum: string; signature: string | null } {
+  const [body = "", sum = "", signature] = code.split(".");
+  return { body, sum, signature: signature || null };
+}
+
 export type RecordReading =
-  | { status: "intact"; record: CompletionRecord; track: Track }
-  | { status: "altered"; record: CompletionRecord; track: Track | null }
+  | { status: "intact"; record: CompletionRecord; track: Track; signature: string | null }
+  | { status: "altered"; record: CompletionRecord; track: Track | null; signature: string | null }
   | { status: "unreadable" };
 
 export function readRecord(code: string): RecordReading {
-  const [body, sum] = code.split(".");
-  if (!body || !sum || code.length > 4000) return { status: "unreadable" };
+  const { body, sum, signature } = splitRecordCode(code);
+  if (!body || !sum || code.length > 4000 || code.split(".").length > 3) return { status: "unreadable" };
 
   let parsed: unknown;
   let text: string;
@@ -114,5 +125,7 @@ export function readRecord(code: string): RecordReading {
   const record: CompletionRecord = { v: 1, track, name, issued, nodes, capstones, firstTry };
   const t = TRACKS_BY_ID.get(track) ?? null;
   const intact = fnv(DOMAIN + text) === sum && canonical(record) === text && t !== null;
-  return intact ? { status: "intact", record, track: t! } : { status: "altered", record, track: t };
+  return intact
+    ? { status: "intact", record, track: t!, signature }
+    : { status: "altered", record, track: t, signature };
 }

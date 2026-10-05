@@ -49,19 +49,20 @@ describe("glossary data", () => {
 
 describe("pop-ups", () => {
   afterEach(() => {
-    usePop.getState().dismiss();
+    usePop.getState().clear();
     useTutor.setState({ open: false });
   });
 
-  it("appear in Guided mode, from a side", () => {
+  it("appear in Guided mode", () => {
     useSession.setState({ mode: "guided" });
     expect(usePop.getState().show({ kind: "hint", title: "Not quite yet." })).toBe(true);
-    expect(["right", "top", "bottom"]).toContain(usePop.getState().pop?.side);
+    expect(usePop.getState().pop?.title).toBe("Not quite yet.");
   });
 
-  it("never appear in Workbench mode", () => {
+  it("never appear in Workbench mode, rewards included", () => {
     useSession.setState({ mode: "workbench" });
     expect(usePop.getState().show({ kind: "win", title: "Nailed it!" })).toBe(false);
+    expect(usePop.getState().show({ kind: "reward", title: "Quest complete" })).toBe(false);
     expect(usePop.getState().pop).toBeNull();
   });
 
@@ -71,15 +72,35 @@ describe("pop-ups", () => {
     expect(usePop.getState().show({ kind: "hint", title: "Not quite yet." })).toBe(false);
   });
 
-  it("replace one another, and never come from the same side twice running", () => {
+  it("let a fresh hint or cheer replace a stale one", () => {
     useSession.setState({ mode: "track" });
-    let side = null;
-    for (let i = 0; i < 20; i++) {
-      usePop.getState().show({ kind: "hint", title: `${i}` });
-      const pop = usePop.getState().pop!;
-      expect(pop.title).toBe(`${i}`);
-      expect(pop.side).not.toBe(side);
-      side = pop.side;
-    }
+    for (let i = 0; i < 5; i++) usePop.getState().show({ kind: "hint", title: `${i}` });
+    usePop.getState().show({ kind: "win", title: "Nailed it!" });
+    expect(usePop.getState().pop?.title).toBe("Nailed it!");
+    expect(usePop.getState().queue).toHaveLength(0);
+  });
+
+  it("put the run's own cheer before what the run earned", () => {
+    useSession.setState({ mode: "guided" });
+    usePop.getState().show({ kind: "reward", title: "Day one of your streak" });
+    usePop.getState().show({ kind: "win", title: "Nailed it!" });
+    expect(usePop.getState().pop?.title).toBe("Nailed it!");
+    usePop.getState().dismiss();
+    expect(usePop.getState().pop?.title).toBe("Day one of your streak");
+  });
+
+  it("never throw away a new word: what comes after waits its turn", () => {
+    useSession.setState({ mode: "guided" });
+    usePop.getState().show({ kind: "new", title: "New words" });
+    usePop.getState().show({ kind: "hint", title: "old hint" });
+    usePop.getState().show({ kind: "hint", title: "fresh hint" });
+    usePop.getState().show({ kind: "reward", title: "Quest complete" });
+    expect(usePop.getState().pop?.kind).toBe("new");
+    // The stale hint was dropped from the line; the fresh one and the reward wait.
+    expect(usePop.getState().queue.map((p) => p.title)).toEqual(["fresh hint", "Quest complete"]);
+    usePop.getState().dismiss();
+    expect(usePop.getState().pop?.title).toBe("fresh hint");
+    usePop.getState().dismiss();
+    expect(usePop.getState().pop?.title).toBe("Quest complete");
   });
 });

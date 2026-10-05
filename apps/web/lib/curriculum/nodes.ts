@@ -1,5 +1,6 @@
 /**
- * The curriculum spine — U0 to U3, nineteen nodes.
+ * The curriculum spine — U0 to U4: what a qubit is, one qubit, phase, two
+ * qubits, and the first algorithms.
  *
  * Ideation §9 fixes the node anatomy, and every node here follows it:
  *   hook → attempt → diagnosis → instruction → completion → build → retrieval
@@ -22,6 +23,7 @@ import type { GateType } from "@/lib/ir/types";
 import { TARGETS, distributionTarget, stateTarget, type Target } from "@/lib/grade/fidelity";
 import type { MisconceptionId } from "@/lib/tutor/rules";
 import type { Circuit } from "@/lib/ir/types";
+import { kickbackTarget, type OracleSpec, type PlacedGate } from "./oracle";
 
 const R2 = Math.SQRT1_2;
 
@@ -61,8 +63,22 @@ export interface LessonNode {
   target: Target;
   /** The palette for this node. Locked gates are visible but ghosted. */
   allowedGates: GateType[];
-  /** Gates pre-placed on the canvas — the worked-example half of the fade. */
-  starter?: Array<{ type: GateType; targets: number[]; controls?: number[]; params?: number[]; column: number }>;
+  /**
+   * Gates pre-placed on the canvas — the worked-example half of the fade.
+   * `locked` ones are the lesson's (say, preparing a helper qubit) and cannot
+   * be edited.
+   */
+  starter?: Array<PlacedGate & { locked?: boolean }>;
+  /**
+   * A function hidden in a box (lib/curriculum/oracle.ts). The node passes
+   * only when one circuit is right for every function the box can hide.
+   */
+  oracle?: OracleSpec;
+  /**
+   * One intended solution: the learner's own gates, with columns. Tests run it
+   * against every variant, and use it to check par where a search is too big.
+   */
+  reference?: PlacedGate[];
   /** Fewest gates a correct answer needs. Shown after a pass, never before. */
   par: number;
   /**
@@ -115,7 +131,83 @@ export const UNITS: Unit[] = [
     title: "Two qubits",
     terminalSkill: "Build Bell and GHZ states, and explain why the Bloch sphere stops working",
   },
+  {
+    id: "u4",
+    ordinal: 4,
+    title: "Interference computes",
+    terminalSkill: "Use phase kickback to learn about a hidden function in one query, and say what that does and does not beat",
+  },
 ];
+
+/* -- Unit 4's hidden functions -----------------------------------------------
+   Each box computes f into the helper wire: |x⟩|y⟩ → |x⟩|y ⊕ f(x)⟩. With the
+   helper in |−⟩ that becomes a phase, (−1)^f(x), on the input: kickback.
+   The helper is prepared by the lesson (X then H, locked), so the learner's
+   whole job is the algorithm around the box. Targets are the state a correct
+   algorithm leaves: the inputs in one basis state, the helper still in |−⟩.
+   tests/algorithms.test.ts checks the algorithms themselves, independently.
+   ------------------------------------------------------------------------- */
+
+/** X then H on the helper wire: |−⟩, locked, in columns 0 and 1. */
+const helperMinus = (wire: number) => [
+  { type: "x" as GateType, targets: [wire], column: 0, locked: true },
+  { type: "h" as GateType, targets: [wire], column: 1, locked: true },
+];
+
+const DEUTSCH: OracleSpec = {
+  label: "f",
+  rule: "q0 reads 0 when f is constant and 1 when it is balanced, for every f the box can hide.",
+  column: 2,
+  width: 2,
+  variants: [
+    { name: "f₁", reveal: "constant: always 0", gates: [], target: kickbackTarget(2, 1, 0) },
+    { name: "f₂", reveal: "balanced: f(x) = x", gates: [{ type: "cx", controls: [0], targets: [1], column: 0 }], target: kickbackTarget(2, 1, 1) },
+    { name: "f₃", reveal: "constant: always 1", gates: [{ type: "x", targets: [1], column: 0 }], target: kickbackTarget(2, 1, 0) },
+    {
+      name: "f₄",
+      reveal: "balanced: f(x) = not x",
+      gates: [{ type: "cx", controls: [0], targets: [1], column: 0 }, { type: "x", targets: [1], column: 1 }],
+      target: kickbackTarget(2, 1, 1),
+    },
+  ],
+};
+
+const DEUTSCH_JOZSA: OracleSpec = {
+  label: "f",
+  rule: "q1 q0 read 00 when f is constant, and anything else when it is balanced, for every f.",
+  column: 2,
+  width: 2,
+  variants: [
+    {
+      name: "f₁",
+      reveal: "balanced: x₀ ⊕ x₁",
+      gates: [{ type: "cx", controls: [0], targets: [2], column: 0 }, { type: "cx", controls: [1], targets: [2], column: 1 }],
+      target: kickbackTarget(3, 2, 0b11),
+    },
+    { name: "f₂", reveal: "constant: always 1", gates: [{ type: "x", targets: [2], column: 0 }], target: kickbackTarget(3, 2, 0) },
+    { name: "f₃", reveal: "balanced: x₁", gates: [{ type: "cx", controls: [1], targets: [2], column: 0 }], target: kickbackTarget(3, 2, 0b10) },
+    { name: "f₄", reveal: "constant: always 0", gates: [], target: kickbackTarget(3, 2, 0) },
+  ],
+};
+
+/** f(x) = s · x mod 2, as one CNOT from each input where s has a 1. */
+function secret(bits: number, name: string): OracleSpec["variants"][number] {
+  const wires = [0, 1, 2].filter((w) => (bits >> w) & 1);
+  return {
+    name,
+    reveal: `secret s = ${[2, 1, 0].map((w) => (bits >> w) & 1).join("")}`,
+    gates: wires.map((w, i) => ({ type: "cx" as GateType, controls: [w], targets: [3], column: i })),
+    target: kickbackTarget(4, 3, bits),
+  };
+}
+
+const BERNSTEIN_VAZIRANI: OracleSpec = {
+  label: "f",
+  rule: "The input wires, read q2 q1 q0, spell the secret s, for every s the box can hide.",
+  column: 2,
+  width: 3,
+  variants: [secret(0b101, "f₁"), secret(0b011, "f₂"), secret(0b110, "f₃"), secret(0b111, "f₄")],
+};
 
 /* -- Nodes ------------------------------------------------------------------- */
 
@@ -664,6 +756,146 @@ export const NODES: LessonNode[] = [
       because: "The state has only two branches. Learning which one you are in fixes all three wires at once.",
     },
     misconceptions: ["M3", "M8"],
+  },
+
+  /* ===== U4 — Interference computes ======================================== */
+  {
+    id: "u4.n1",
+    unitId: "u4",
+    ordinal: 1,
+    title: "The control changes",
+    prerequisites: ["u3.n5"],
+    estMinutes: 5,
+    hook: "A CNOT flips its target. This one is going to change its control instead.",
+    task: "q1 is already in |−⟩. With H and one CNOT, make q0 read 1 every time, without touching q1.",
+    taskNote: "The dashed gates on q1 are the lesson's, and stay put.",
+    qubits: 2,
+    target: kickbackTarget(2, 1, 1, "q0 = |1⟩"),
+    allowedGates: ["h", "cx", "measure"],
+    starter: helperMinus(1),
+    par: 3,
+    reference: [
+      { type: "h", targets: [0], column: 0 },
+      { type: "cx", controls: [0], targets: [1], column: 2 },
+      { type: "h", targets: [0], column: 3 },
+    ],
+    instructionTitle: "The phase kicks back",
+    instruction:
+      "A flip leaves |−⟩ alone except for a minus sign. With q0 in |+⟩, that sign lands on q0's |1⟩ half and turns q0 into |−⟩. One H reads it: 1.",
+    passNote:
+      "That is phase kickback, the engine of every algorithm in this unit. Ask a question with a controlled gate, and the answer comes back as phase on the control.",
+    retrieval: {
+      question: "A CNOT's target is in |−⟩ and its control is in |+⟩. Afterwards:",
+      options: ["The control is in |−⟩", "The target is in |+⟩", "Nothing has changed"],
+      answerIndex: 0,
+      because: "The flip only multiplies |−⟩ by −1, and that sign belongs to the control's |1⟩ branch. The control goes from |+⟩ to |−⟩.",
+    },
+    misconceptions: ["M9"],
+  },
+  {
+    id: "u4.n2",
+    unitId: "u4",
+    ordinal: 2,
+    title: "One question, not two",
+    prerequisites: ["u4.n1"],
+    estMinutes: 6,
+    hook: "A box hides a function of one bit. Constant, or balanced? A classical computer has to ask it twice.",
+    task: "Build one circuit that makes q0 read 0 when f is constant and 1 when it is balanced, for all four functions the box can hide.",
+    taskNote: "Switch between f₁ to f₄ to test each. It passes when all four come out right.",
+    qubits: 2,
+    target: DEUTSCH.variants[0].target,
+    allowedGates: ["h", "x", "measure"],
+    starter: helperMinus(1),
+    oracle: DEUTSCH,
+    par: 2,
+    reference: [
+      { type: "h", targets: [0], column: 0 },
+      { type: "h", targets: [0], column: 4 },
+    ],
+    instructionTitle: "Ask in superposition, read the phase",
+    instruction:
+      "q0 in |+⟩ asks about f(0) and f(1) together, and kickback writes (−1)^f(x) on each half. Matching signs give |+⟩, opposite signs |−⟩. One more H reads which.",
+    passNote:
+      "That is Deutsch's algorithm: the first proof that a quantum computer can answer a question in fewer queries than any classical one. It never learns f(0) or f(1), only whether they match.",
+    retrieval: {
+      question: "Deutsch's algorithm tells you:",
+      options: ["Whether f(0) equals f(1)", "Both f(0) and f(1)", "f(0), faster"],
+      answerIndex: 0,
+      because: "Only the relation survives the interference. The values themselves are never read, which is why this is not trying every input in parallel.",
+    },
+    misconceptions: ["M2", "M9"],
+  },
+  {
+    id: "u4.n3",
+    unitId: "u4",
+    ordinal: 3,
+    title: "Constant leaves no trace",
+    prerequisites: ["u4.n2"],
+    estMinutes: 6,
+    hook: "Two input bits now. To be certain a function is constant, a classical checker may need three calls. You get one.",
+    task: "Make q1 q0 read 00 when f is constant, and anything but 00 when it is balanced, for all four functions.",
+    taskNote: "The same move as the last node, on every input wire.",
+    qubits: 3,
+    target: DEUTSCH_JOZSA.variants[0].target,
+    allowedGates: ["h", "x", "measure"],
+    starter: helperMinus(2),
+    oracle: DEUTSCH_JOZSA,
+    par: 4,
+    reference: [
+      { type: "h", targets: [0], column: 0 },
+      { type: "h", targets: [1], column: 0 },
+      { type: "h", targets: [0], column: 4 },
+      { type: "h", targets: [1], column: 4 },
+    ],
+    instructionTitle: "Balanced functions cancel |00⟩",
+    instruction:
+      "H on every input queries all four inputs at once. A constant f gives every branch the same sign, so the last H's return exactly |00⟩. A balanced f flips half the signs, and |00⟩ cancels out completely.",
+    passNote:
+      "That is Deutsch–Jozsa. With n input bits, a classical checker that must be certain can need 2ⁿ⁻¹ + 1 calls; this needs one. A classical guesser allowed a small error needs only a few, so this is a lesson, not a product.",
+    retrieval: {
+      question: "Deutsch–Jozsa's inputs read 00 at the end. The function is:",
+      options: ["Constant", "Balanced", "Could be either"],
+      answerIndex: 0,
+      because: "Only a constant function sends every amplitude back to |00⟩. A balanced one cancels |00⟩ exactly, so it can never read 00.",
+    },
+    misconceptions: ["M2"],
+  },
+  {
+    id: "u4.n4",
+    unitId: "u4",
+    ordinal: 4,
+    title: "The secret string",
+    prerequisites: ["u4.n3"],
+    estMinutes: 7,
+    hook: "The box computes s · x: the parity of the input bits where a secret string s has a 1. Find s. Classically that takes one call per bit.",
+    task: "Make the input wires read the secret s, for all four secrets the box can hide.",
+    taskNote: "Three input wires, one query. Read q2 q1 q0 as s.",
+    qubits: 4,
+    target: BERNSTEIN_VAZIRANI.variants[0].target,
+    allowedGates: ["h", "x", "measure"],
+    starter: helperMinus(3),
+    oracle: BERNSTEIN_VAZIRANI,
+    par: 6,
+    reference: [
+      { type: "h", targets: [0], column: 0 },
+      { type: "h", targets: [1], column: 0 },
+      { type: "h", targets: [2], column: 0 },
+      { type: "h", targets: [0], column: 5 },
+      { type: "h", targets: [1], column: 5 },
+      { type: "h", targets: [2], column: 5 },
+    ],
+    instructionTitle: "The answer is the pattern of signs",
+    instruction:
+      "Kickback puts (−1)^(s·x) on every input x at once. That pattern of signs is exactly what H on every wire turns back into the one string s.",
+    passNote:
+      "That is Bernstein–Vazirani: n bits of secret in one query, where any classical method needs n. The same circuit as Deutsch–Jozsa, with a different question asked of the same interference.",
+    retrieval: {
+      question: "Bernstein–Vazirani finds a 3-bit secret with how many queries?",
+      options: ["One", "Three", "Eight"],
+      answerIndex: 0,
+      because: "Every input is queried in superposition, and the pattern of signs that comes back spells s. Each classical call reveals one bit, so three.",
+    },
+    misconceptions: ["M2"],
   },
 ];
 

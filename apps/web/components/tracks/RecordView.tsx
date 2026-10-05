@@ -10,7 +10,7 @@
  */
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Registration } from "@/components/ui/primitives";
 import { readRecord } from "@/lib/curriculum/record";
 import { trackHours } from "@/lib/curriculum/tracks";
@@ -19,8 +19,26 @@ import { NODES_BY_ID, UNITS } from "@/lib/curriculum/nodes";
 import p from "@/components/ui/page.module.css";
 import s from "./RecordView.module.css";
 
+type Seal = "none" | "checking" | "valid" | "invalid" | "unreachable";
+
+/** Asks the server whether the signature on a record is its own. */
+function useSeal(code: string, signed: boolean): Seal {
+  const [seal, setSeal] = useState<Seal>(signed ? "checking" : "none");
+  useEffect(() => {
+    if (!signed) return;
+    let live = true;
+    fetch(`/api/server/records/verify?code=${encodeURIComponent(code)}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((v: { signed: boolean; valid: boolean }) => live && setSeal(v.signed && v.valid ? "valid" : "invalid"))
+      .catch(() => live && setSeal("unreachable"));
+    return () => { live = false; };
+  }, [code, signed]);
+  return seal;
+}
+
 export function RecordView({ code }: { code: string }) {
   const reading = useMemo(() => readRecord(code), [code]);
+  const seal = useSeal(code, reading.status !== "unreadable" && Boolean(reading.signature));
 
   if (reading.status === "unreadable") {
     return (
@@ -35,7 +53,8 @@ export function RecordView({ code }: { code: string }) {
 
   const { record } = reading;
   const track = reading.track;
-  const intact = reading.status === "intact";
+  const intact = reading.status === "intact" && seal !== "invalid";
+  const verdict = !intact ? "Altered" : seal === "valid" ? "Signed" : "Intact";
   // Formatted by hand: this renders on the server and in the browser, and a
   // locale-dependent date would differ between the two.
   const [year, month, day] = record.issued.split("-").map((x) => parseInt(x, 10));
@@ -46,12 +65,18 @@ export function RecordView({ code }: { code: string }) {
     <main className={`${p.main} ${p.narrow}`}>
       <div className={intact ? p.good : p.bad} role="status" style={{ marginBottom: "var(--s-5)" }}>
         <span className="label" style={{ color: intact ? "var(--measure)" : "var(--error)" }}>
-          {intact ? "Intact" : "Altered"}
+          {verdict}
         </span>
         <p style={{ marginTop: 4 }}>
-          {intact
-            ? "This record matches its checksum: nothing on it has been edited since it was issued."
-            : "This record does not match its checksum. Something on it was changed after it was issued, so treat every line below as unverified."}
+          {seal === "valid"
+            ? "Signed by Quriosity. The server built this record from the account's own synced progress and signed it: nothing on it has been edited, and the name is the account that did the work."
+            : seal === "invalid"
+              ? "This record carries a signature that doesn't match it. Something was changed after it was signed, so treat every line below as unverified."
+              : intact
+                ? "This record matches its checksum: nothing on it has been edited since it was issued."
+                : "This record does not match its checksum. Something on it was changed after it was issued, so treat every line below as unverified."}
+          {seal === "checking" && " Checking the signature…"}
+          {seal === "unreachable" && " It is also signed, but the server couldn't be reached to check the signature just now."}
         </p>
       </div>
 
@@ -97,8 +122,10 @@ export function RecordView({ code }: { code: string }) {
 
       <p className={p.muted} style={{ marginTop: "var(--s-5)" }}>
         What this checks, and what it can&apos;t: the record carries its own contents and a
-        checksum over them, so editing any line breaks the match. It is not signed by a
-        server and it is not tied to an account, so it cannot prove who did the work.
+        checksum over them, so editing any line breaks the match.{" "}
+        {reading.signature
+          ? <>It also carries an Ed25519 signature the server made from the account&apos;s synced progress, checkable against the key at <code>/api/server/records/key</code>.</>
+          : <>It is not signed by a server and it is not tied to an account, so it cannot prove who did the work.</>}
         Every node on it is graded on the state a circuit produces, never on multiple choice.{" "}
         <Link href="/tracks">See the tracks →</Link>
       </p>

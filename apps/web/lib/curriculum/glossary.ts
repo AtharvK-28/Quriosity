@@ -242,6 +242,37 @@ export const GLOSSARY: Term[] = [
     short: "IBM's Python toolkit for quantum circuits. The code panel writes it for you.",
     more: "Cirq, PennyLane, Q# and OpenQASM are other ways to spell the same circuit.",
   },
+  {
+    id: "phase-kickback",
+    term: "Phase kickback",
+    mark: { text: "(−1)ᶠ" },
+    short: "A controlled gate's effect landing as phase on its control, not its target.",
+    more: "It happens when the target is in a state the gate only multiplies by a sign, like |−⟩.",
+    introducedIn: "u4.n1",
+  },
+  {
+    id: "oracle",
+    term: "Oracle",
+    mark: { text: "f" },
+    short: "A box computing a function f, which an algorithm may query but not open.",
+    more: "It maps |x⟩|y⟩ to |x⟩|y ⊕ f(x)⟩. Algorithms are judged by how many times they use it.",
+    introducedIn: "u4.n2",
+  },
+  {
+    id: "query",
+    term: "Query",
+    mark: { text: "1×" },
+    short: "One use of an oracle. Quantum and classical algorithms are compared by how many they need.",
+    introducedIn: "u4.n2",
+  },
+  {
+    id: "balanced-function",
+    term: "Balanced function",
+    mark: { text: "½" },
+    short: "A function that returns 0 for exactly half its inputs and 1 for the rest.",
+    more: "Deutsch–Jozsa is promised f is either this or constant, and tells which in one query.",
+    introducedIn: "u4.n2",
+  },
 ];
 
 export const TERMS_BY_ID = new Map(GLOSSARY.map((t) => [t.id, t]));

@@ -8,8 +8,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { recommendNext } from "@/lib/curriculum/recommend";
 import { TRACKS, capstoneChallenges, trackHours, trackNodes, trackProgress } from "@/lib/curriculum/tracks";
-import { buildRecord, encodeRecord, readRecord } from "@/lib/curriculum/record";
-import { NODES, nodesInUnit } from "@/lib/curriculum/nodes";
+import { buildRecord, encodeRecord, readRecord, splitRecordCode } from "@/lib/curriculum/record";
+import { NODES, UNITS, nodesInUnit } from "@/lib/curriculum/nodes";
 import { CHALLENGES } from "@/lib/curriculum/challenges";
 import { useSession } from "@/stores/sessionStore";
 
@@ -29,6 +29,9 @@ beforeEach(() => {
   useSession.setState({ hydrated: true });
   session().reset();
 });
+
+/** The whole path, however many units it has. */
+const LAST_UNIT = UNITS[UNITS.length - 1].id;
 
 describe("what to do next — E7-S7", () => {
   it("starts a fresh learner at the first node, and says why", () => {
@@ -88,7 +91,7 @@ describe("what to do next — E7-S7", () => {
   });
 
   it("offers practice once the path is done, then says there is nothing left", () => {
-    session().seedThrough("u3");
+    session().seedThrough(LAST_UNIT);
     const later = Date.now();
     useSession.setState({
       progress: Object.fromEntries(Object.entries(session().progress).map(([k, v]) => [k, { ...v, nextReviewAt: later + 30 * DAY }])),
@@ -105,7 +108,7 @@ describe("what to do next — E7-S7", () => {
 describe("tracks — E6-S6", () => {
   it("every track covers every unit, frames each one, and has real capstones", () => {
     for (const t of TRACKS) {
-      expect(t.units.map((u) => u.unitId)).toEqual(["u0", "u1", "u2", "u3"]);
+      expect(t.units.map((u) => u.unitId)).toEqual(UNITS.map((u) => u.id));
       expect(t.units.every((u) => u.framing.length > 40)).toBe(true);
       expect(capstoneChallenges(t)).toHaveLength(t.capstones.length);
       expect(trackNodes(t)).toHaveLength(NODES.length);
@@ -122,7 +125,7 @@ describe("tracks — E6-S6", () => {
 
   it("is complete only with every node and every capstone", () => {
     const t = TRACKS[0];
-    session().seedThrough("u3");
+    session().seedThrough(LAST_UNIT);
     const before = trackProgress(t, session().progress, session().challenges);
     expect(before.nodesPassed).toBe(NODES.length);
     expect(before.complete).toBe(false);
@@ -134,7 +137,7 @@ describe("tracks — E6-S6", () => {
 
 describe("completion records — E8-S5", () => {
   it("round-trip intact, with track, date and node list", () => {
-    session().seedThrough("u3");
+    session().seedThrough(LAST_UNIT);
     const record = buildRecord(TRACKS[1], "  Ravi K.  ", session().progress, new Date(NOW));
     const reading = readRecord(encodeRecord(record));
     expect(reading.status).toBe("intact");
@@ -147,7 +150,7 @@ describe("completion records — E8-S5", () => {
   });
 
   it("reads as altered when anything in it is changed", () => {
-    session().seedThrough("u3");
+    session().seedThrough(LAST_UNIT);
     const code = encodeRecord(buildRecord(TRACKS[0], "Ravi", session().progress, new Date(NOW)));
     const [body, sum] = code.split(".");
     const forged = btoa(atob(body.replace(/-/g, "+").replace(/_/g, "/") + "==".slice(0, (4 - (body.length % 4)) % 4)).replace("Ravi", "Meera"))
@@ -155,5 +158,17 @@ describe("completion records — E8-S5", () => {
     expect(readRecord(`${forged}.${sum}`).status).toBe("altered");
     expect(readRecord(`${body}.0000`).status).toBe("altered");
     expect(readRecord("nonsense").status).toBe("unreadable");
+  });
+
+  it("carries a server signature as a third part, without changing what the checksum covers", () => {
+    session().seedThrough(LAST_UNIT);
+    const code = encodeRecord(buildRecord(TRACKS[0], "Ravi", session().progress, new Date(NOW)));
+    const unsigned = readRecord(code);
+    const signed = readRecord(`${code}.c2lnbmF0dXJl`);
+    expect(unsigned.status === "intact" && unsigned.signature).toBe(null);
+    expect(signed.status).toBe("intact");
+    expect(signed.status === "intact" && signed.signature).toBe("c2lnbmF0dXJl");
+    expect(splitRecordCode(`${code}.sig`).body).toBe(code.split(".")[0]);
+    expect(readRecord(`${code}.sig.extra`).status).toBe("unreadable");
   });
 });

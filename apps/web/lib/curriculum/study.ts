@@ -541,6 +541,125 @@ export const STUDY: Record<string, StudyPack> = {
     ],
   },
 
+  "u4.n1": {
+    notes: [
+      "|−⟩ is the one state a bit flip leaves alone, apart from an overall minus sign: X|−⟩ = −|−⟩.",
+      "A CNOT onto |−⟩ therefore multiplies the control's |1⟩ branch by −1 and does nothing else.",
+      "That sign is a relative phase on the control: |+⟩ becomes |−⟩, and one H reads it as 1.",
+      "The target does not change at all. The information moved the other way, onto the control.",
+      "This is phase kickback, and it is how every algorithm in this unit reads a function.",
+    ],
+    cards: [
+      {
+        question: "Why does a CNOT leave a |−⟩ target unchanged?",
+        options: [
+          "Flipping |−⟩ only multiplies it by −1",
+          "A CNOT never acts on a superposition",
+          "The control was |0⟩",
+        ],
+        answerIndex: 0,
+        because: "X swaps |0⟩ and |1⟩, which turns |0⟩ − |1⟩ into |1⟩ − |0⟩: the same state times −1. The sign is all that is left, and it lands on the control.",
+      },
+      {
+        question: "After kickback, where does the answer to the controlled question live?",
+        options: [
+          "In the phase of the control qubit",
+          "In the target's measurement result",
+          "Nowhere: the phase is global",
+        ],
+        answerIndex: 0,
+        because: "The −1 attaches only to the control's |1⟩ branch, so it is a relative phase, and an H on the control makes it readable.",
+      },
+    ],
+  },
+
+  "u4.n2": {
+    notes: [
+      "The box computes |x⟩|y⟩ → |x⟩|y ⊕ f(x)⟩. With the helper in |−⟩, that is a phase (−1)^f(x) on the input.",
+      "With the input in |+⟩, both f(0) and f(1) are written onto one qubit, as signs on its two halves.",
+      "Equal signs (a constant f) leave |+⟩; opposite signs (a balanced f) make |−⟩.",
+      "The final H turns |+⟩ into 0 and |−⟩ into 1, so one run tells constant from balanced.",
+      "Neither f(0) nor f(1) is ever learned. Only whether they are equal survives the interference.",
+      "A classical computer has to evaluate f twice to answer the same question.",
+    ],
+    cards: [
+      {
+        question: "For a constant f, the input qubit just before the last H is in:",
+        options: ["|+⟩", "|−⟩", "|1⟩"],
+        answerIndex: 0,
+        because: "Both halves pick up the same sign, which is a global phase. The input stays |+⟩, and H sends it to 0.",
+      },
+      {
+        question: "Why does the helper qubit start in |−⟩ rather than |0⟩?",
+        options: [
+          "So the box writes f(x) as a phase instead of a bit",
+          "So the helper can be measured for the answer",
+          "Because the box needs an empty wire",
+        ],
+        answerIndex: 0,
+        because: "Starting in |0⟩, the box would write f(x) into the helper as a bit and entangle it. In |−⟩ the flip only adds a sign, which kicks back onto the input.",
+      },
+    ],
+  },
+
+  "u4.n3": {
+    notes: [
+      "H on both input wires puts all four inputs in equal superposition with one gate layer.",
+      "The box writes (−1)^f(x) on each of the four branches in a single query.",
+      "For a constant f every sign matches, and the last H's return exactly |00⟩.",
+      "For a balanced f the signs cancel on |00⟩ completely, so 00 never appears.",
+      "Classically, being certain can take 2ⁿ⁻¹ + 1 queries; a random-sampling classical check needs only a few for high confidence.",
+      "Deutsch–Jozsa was a proof of principle, not a practical speedup: it separates quantum from deterministic classical computing.",
+    ],
+    cards: [
+      {
+        question: "For a balanced f on two bits, how likely is the result 00?",
+        options: ["Never", "One time in four", "Half the time"],
+        answerIndex: 0,
+        because: "The amplitude of |00⟩ is the average of all the signs, and a balanced function has as many + as −. They cancel to exactly zero.",
+      },
+      {
+        question: "Does Deutsch–Jozsa beat a classical computer allowed a small chance of error?",
+        options: [
+          "Not by much: a few random queries already give high confidence",
+          "Yes, exponentially",
+          "Yes, but only for two input bits",
+        ],
+        answerIndex: 0,
+        because: "The exponential gap is against a classical method that must be certain. Allow sampling and a handful of calls suffices, which is why this is taught as a principle, not sold as a product.",
+      },
+    ],
+  },
+
+  "u4.n4": {
+    notes: [
+      "The box computes f(x) = s · x mod 2: the parity of the input bits where the secret s has a 1.",
+      "Its oracle is one CNOT from each input wire where s has a 1, into the helper.",
+      "After kickback the inputs carry the sign pattern (−1)^(s·x) across all eight inputs at once.",
+      "H on every wire turns exactly that pattern into the single basis state |s⟩.",
+      "The circuit is identical to Deutsch–Jozsa; only the question asked of the result changes.",
+      "Classically, each query of f reveals at most one bit of s, so n bits need n queries.",
+    ],
+    cards: [
+      {
+        question: "In Bernstein–Vazirani, which gates build the box for the secret s = 101?",
+        options: [
+          "CNOTs from q0 and q2 into the helper",
+          "CNOTs from q1 into the helper",
+          "An X on q0 and q2",
+        ],
+        answerIndex: 0,
+        because: "s · x counts the inputs where s has a 1, mod 2. q0 and q2 are those wires, so each needs one CNOT into the helper.",
+      },
+      {
+        question: "Bernstein–Vazirani and Deutsch–Jozsa use:",
+        options: ["The same circuit", "Different gates before the box", "Different numbers of queries"],
+        answerIndex: 0,
+        because: "H on every input, one query, H on every input. Deutsch–Jozsa asks whether the result is 00; Bernstein–Vazirani reads the result as s.",
+      },
+    ],
+  },
+
   "u3.n4": {
     notes: [
       "Open the Bloch sphere on one qubit of a Bell pair and the arrow is a dot at the dead centre.",

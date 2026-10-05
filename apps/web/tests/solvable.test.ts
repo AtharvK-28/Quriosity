@@ -18,6 +18,8 @@ import { emptyCircuit, nextGateId, type Circuit, type Gate, type GateType } from
 import { GATES } from "@/lib/ir/gates";
 import { simulate } from "@/lib/sim/statevector";
 import { grade } from "@/lib/grade/fidelity";
+import { validate } from "@/lib/ir/validate";
+import { lockedGates, oracleGates, oracleResults, type OracleSpec } from "@/lib/curriculum/oracle";
 
 /**
  * Angles a learner can actually produce, quantised to whole degrees.
@@ -56,7 +58,7 @@ interface Move {
 
 /** Every single placement a learner could make on this node, in one column. */
 /** Nodes and challenges share the shape the search needs. */
-type Solvable = Pick<LessonNode, "qubits" | "target" | "allowedGates" | "par" | "starter">;
+type Solvable = Pick<LessonNode, "qubits" | "target" | "allowedGates" | "par" | "starter"> & { oracle?: OracleSpec };
 
 function moves(node: Solvable): Move[] {
   const out: Move[] = [];
@@ -112,19 +114,51 @@ function build(node: Solvable, sequence: Move[]): Circuit {
   return c;
 }
 
+/**
+ * An oracle node's circuit for a search: the lesson's gates, `before`, the box
+ * (placed after them, since only the order matters to the simulator), then
+ * `after`. The real columns are checked separately, on the node's reference.
+ */
+function buildAround(node: Solvable, before: Move[], after: Move[]): { circuit: Circuit; box: number } {
+  const spec = node.oracle!;
+  const c = emptyCircuit(node.qubits);
+  const gates: Gate[] = lockedGates(node.starter ?? []);
+  let col = Math.max(0, ...gates.map((g) => g.column + 1));
+  for (const m of before) gates.push({ id: nextGateId(), ...m, column: col++ });
+  const box = oracleGates({ ...spec, column: col }, 0);
+  gates.push(...box);
+  col += spec.width;
+  const boxAt = col - spec.width;
+  for (const m of after) gates.push({ id: nextGateId(), ...m, column: col++ });
+  c.gates = gates;
+  return { circuit: c, box: boxAt };
+}
+
+/** Passes the node: every hidden function, for an oracle node; the target otherwise. */
+function passes(node: Solvable, c: { circuit: Circuit; box: number }): boolean {
+  if (node.oracle) return oracleResults(c.circuit, { ...node.oracle, column: c.box }).every((r) => r.passed);
+  return grade(simulate(c.circuit), node.target).passed;
+}
+
+/** Every way to split a sequence around the box. */
+function candidates(node: Solvable, seq: Move[]): Array<{ circuit: Circuit; box: number }> {
+  if (!node.oracle) return [{ circuit: build(node, seq), box: 0 }];
+  return Array.from({ length: seq.length + 1 }, (_, k) => buildAround(node, seq.slice(0, k), seq.slice(k)));
+}
+
 /** Depth-first search for any circuit reaching the target within `maxGates`. */
 function findSolution(node: Solvable, maxGates: number): Move[] | null {
   const options = moves(node);
 
   // The starter circuit alone may already be the answer.
-  if (grade(simulate(build(node, [])), node.target).passed) return [];
+  if (candidates(node, []).some((c) => passes(node, c))) return [];
 
   const stack: Move[][] = options.map((m) => [m]);
   while (stack.length > 0) {
     const seq = stack.pop()!;
     let passed = false;
     try {
-      passed = grade(simulate(build(node, seq)), node.target).passed;
+      passed = candidates(node, seq).some((c) => passes(node, c));
     } catch {
       continue;
     }
@@ -136,8 +170,11 @@ function findSolution(node: Solvable, maxGates: number): Move[] | null {
   return null;
 }
 
+/** Past four gates the search is a hang, not a test; these nodes carry a reference. */
+const SEARCHABLE = (node: LessonNode) => node.par <= 4;
+
 describe("every curriculum node is solvable with its own palette", () => {
-  for (const node of NODES) {
+  for (const node of NODES.filter(SEARCHABLE)) {
     it(`${node.id} — ${node.title}`, () => {
       // One gate more than par, so there is slack for a longer valid route.
       const solution = findSolution(node, Math.min(node.par + 1, 4));
@@ -151,7 +188,7 @@ describe("every curriculum node is solvable with its own palette", () => {
 });
 
 describe("par is achievable", () => {
-  for (const node of NODES) {
+  for (const node of NODES.filter(SEARCHABLE)) {
     it(`${node.id} — par is ${node.par}`, () => {
       const solution = findSolution(node, node.par);
       expect(
@@ -160,6 +197,59 @@ describe("par is achievable", () => {
       ).not.toBeNull();
     });
   }
+});
+
+/* -- Node references ------------------------------------------------------------
+   A node's reference is one intended solution, at the columns a learner would
+   actually use. It has to fit around the lesson's locked gates and the box,
+   use only the node's palette, meet par, and pass: for an oracle node, for
+   every function the box can hide.
+   ------------------------------------------------------------------------- */
+
+function nodeFromReference(node: LessonNode): Circuit {
+  const c = emptyCircuit(node.qubits, node.title);
+  c.gates = [
+    ...lockedGates(node.starter ?? []),
+    ...(node.oracle ? oracleGates(node.oracle, 0) : []),
+    ...(node.reference ?? []).map((g) => ({
+      id: nextGateId(),
+      type: g.type,
+      targets: g.targets,
+      controls: g.controls ?? [],
+      params: g.params ?? [],
+      column: g.column,
+    })),
+  ];
+  return c;
+}
+
+describe("every node reference fits, stays in the palette, meets par and passes", () => {
+  for (const node of NODES.filter((n) => n.reference)) {
+    it(`${node.id} — ${node.title}`, () => {
+      const c = nodeFromReference(node);
+      expect(validate(c).valid, `${node.id}'s reference collides with the lesson's own gates`).toBe(true);
+      for (const g of node.reference!) {
+        expect(node.allowedGates, `${node.id}'s reference uses ${g.type}`).toContain(g.type);
+        if (node.oracle) {
+          const { column, width } = node.oracle;
+          expect(g.column >= column && g.column < column + width, `${node.id}'s reference puts a gate inside the box`).toBe(false);
+        }
+      }
+      expect(node.reference!.length).toBeLessThanOrEqual(node.par);
+      if (node.oracle) {
+        const results = oracleResults(c, node.oracle);
+        expect(results.filter((r) => !r.passed).map((r) => r.name), `${node.id} fails for`).toEqual([]);
+      } else {
+        expect(grade(simulate(c), node.target).passed).toBe(true);
+      }
+    });
+  }
+
+  it("covers every node too big to search", () => {
+    for (const node of NODES.filter((n) => !SEARCHABLE(n))) {
+      expect(node.reference, `${node.id} has par ${node.par} and no reference`).toBeDefined();
+    }
+  });
 });
 
 /* -- Challenges ---------------------------------------------------------------

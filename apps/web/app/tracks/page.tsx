@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/chrome/TopBar";
 import { Button, Chip, Readout, Registration } from "@/components/ui/primitives";
+import { NODES } from "@/lib/curriculum/nodes";
 import { TRACKS, trackHours, trackProgress } from "@/lib/curriculum/tracks";
 import { useSession } from "@/stores/sessionStore";
 import p from "@/components/ui/page.module.css";
@@ -40,9 +41,9 @@ export default function TracksPage() {
         </header>
 
         <p className={p.body} style={{ marginBottom: "var(--s-6)" }}>
-          Every track walks the same nineteen nodes from “What a qubit is not” to
-          three entangled wires, and closes with capstone challenges picked for its
-          domain. Work carries between them. Finish one and you get a record you
+          Every track walks the same {NODES.length} nodes, from “What a qubit is not” to
+          the first quantum algorithms, and closes with capstone challenges picked for
+          its domain. Work carries between them. Finish one and you get a record you
           can send to whoever asked you to evaluate this.
         </p>
 

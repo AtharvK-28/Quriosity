@@ -1,0 +1,175 @@
+.panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-areas:
+    "streak puzzle quests"
+    "week   puzzle quests";
+  gap: var(--s-4) var(--s-5);
+  padding: var(--s-5);
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
+}
+.panel[data-variant="full"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "streak" "week" "puzzle" "quests";
+}
+
+@media (max-width: 960px) {
+  .panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "streak puzzle" "week puzzle" "quests quests"; }
+}
+@media (max-width: 600px) {
+  .panel { grid-template-columns: minmax(0, 1fr); grid-template-areas: "streak" "week" "puzzle" "quests"; padding: var(--s-4); }
+}
+
+/* -- Streak --------------------------------------------------------------------- */
+
+.streak {
+  grid-area: streak;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "ket count" "ket note" "ket freeze";
+  align-items: center;
+  gap: 4px var(--s-3);
+}
+/* Ket carries the streak; the flame stays beside the number it lights. */
+.ket { grid-area: ket; align-self: center; }
+.flame { flex: none; align-self: center; fill: var(--rule-3); transition: fill var(--m-quick) linear; }
+.flame .core { fill: var(--paper); opacity: 0.35; }
+.flame[data-lit] { fill: var(--flag); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--flag) 55%, transparent)); }
+.flame[data-lit] .core { fill: var(--cta); opacity: 1; }
+
+.streakText { grid-area: count; display: flex; align-items: baseline; gap: 8px; }
+.streakNum {
+  font-family: var(--font-statement);
+  font-size: 40px;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.panel[data-variant="full"] .streakNum { font-size: 52px; }
+.streakLabel {
+  font-family: var(--font-label);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.streakNote { grid-area: note; font-size: var(--t-label); line-height: 1.45; color: var(--ink-2); }
+.streakNote[data-risk] { color: var(--flag); }
+
+.freezes {
+  grid-area: freeze;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-self: start;
+  padding: 2px 8px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-full);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  color: var(--phase);
+}
+.snow { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+
+/* -- Week ---------------------------------------------------------------------- */
+
+.week {
+  grid-area: week;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  align-self: end;
+}
+.day { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.dot {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-full);
+  border: 1.5px dashed var(--rule-3);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--page);
+}
+.day[data-state="done"] .dot { border: none; background: var(--measure); }
+.day[data-state="frozen"] .dot { border: 1.5px solid var(--phase); color: var(--phase); }
+.day[data-today] .dot { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--cta); }
+.dayName { font-family: var(--font-mono); font-size: 10px; color: var(--ink-muted); }
+
+/* -- Puzzle ---------------------------------------------------------------------- */
+
+.puzzle {
+  grid-area: puzzle;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: var(--s-4);
+  border: var(--frame-w) solid var(--cta);
+  border-radius: var(--r-panel);
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--cta) 14%, transparent), transparent 60%),
+    var(--paper-inset);
+  color: var(--ink);
+  min-height: 132px;
+}
+.puzzle:hover { text-decoration: none; filter: brightness(1.06); }
+.puzzle[data-done] { border-color: var(--measure); background: var(--measure-wash); }
+.puzzleKicker {
+  font-family: var(--font-label);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.puzzleTitle { font-family: var(--font-statement); font-size: 25px; line-height: 1.1; }
+.puzzleCta {
+  font-family: var(--font-label);
+  font-size: var(--t-label);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  color: var(--cta);
+}
+.puzzle[data-done] .puzzleCta { color: var(--measure); }
+
+/* -- Quests ------------------------------------------------------------------------ */
+
+.quests { grid-area: quests; display: flex; flex-direction: column; gap: var(--s-2); }
+.questHead { display: flex; justify-content: space-between; align-items: baseline; }
+.questCount { font-family: var(--font-mono); font-size: var(--t-label); color: var(--ink-2); }
+.questList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.quest { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: var(--s-2); align-items: center; }
+.check {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-gate);
+  border: 1.5px solid var(--rule-3);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--page);
+}
+.quest[data-done] .check { background: var(--measure); border-color: var(--measure); }
+.questBody { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.questTitle { font-size: var(--t-label); color: var(--ink); }
+.quest[data-done] .questTitle { color: var(--ink-muted); text-decoration: line-through; text-decoration-color: var(--rule-3); }
+.bar { height: 4px; border-radius: var(--r-full); background: var(--paper-inset); overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--measure); transition: width var(--m-settle) var(--e-out); }
+.questMeta { display: flex; gap: 8px; align-items: baseline; font-family: var(--font-mono); font-size: var(--t-micro); color: var(--ink-muted); }
+.questMeta b { color: var(--cta); font-weight: 500; }
+.quest[data-done] .questMeta b { color: var(--measure); }
+.bonus { font-size: var(--t-micro); font-family: var(--font-mono); letter-spacing: var(--ls-micro); color: var(--ink-muted); }
+.bonus[data-done] { color: var(--measure); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar span, .flame { transition: none; }
+}

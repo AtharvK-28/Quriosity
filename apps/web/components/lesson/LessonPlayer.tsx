@@ -23,11 +23,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CircuitCanvas } from "@/components/circuit/CircuitCanvas";
+import { KetBeside } from "@/components/mascot/KetWatch";
+import { isLocked, lockedGates as lessonLockedGates, oracleGates, oracleMiss, oracleResults, reservedColumns } from "@/lib/curriculum/oracle";
 import { GateTray, TrayHint } from "@/components/circuit/GateTray";
 import { Histogram, probabilityMap, toFractions } from "@/components/viz/Histogram";
 import { BlochRow } from "@/components/viz/BlochSphere";
 import { StateTable } from "@/components/viz/StateTable";
 import { CodePanel } from "@/components/code/CodePanel";
+import { GateMark } from "@/components/circuit/GateMark";
+import { GATES } from "@/lib/ir/gates";
 import { VideoDisclosure } from "@/components/lesson/VideoDisclosure";
 import { StudyQuiz } from "@/components/lesson/StudyQuiz";
 import { StepThrough } from "@/components/lesson/StepThrough";
@@ -81,8 +85,8 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
   const {
     circuit, version, setCircuit, replaceCircuit, held, pendingControl, selectedGateId, highlighted,
     run, running, error, scrubColumn,
-    hold, place, completeControlled, cancelPending, select, moveGate, removeGate, setParams,
-    execute, applyFix, undo, clearRun, setScrub,
+    hold, place, completeControlled, cancelPending, select, moveGate, dropGate, rewireGate, removeGate, setParams,
+    execute, applyFix, undo, clearRun, setScrub, setReserved, swapOracle,
   } = useCircuit();
 
   const [beat, setBeat] = useState<Beat>("brief");
@@ -93,6 +97,8 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
   /** Both on ask, both reset per node. Neither is ever volunteered. */
   const [nudgeShown, setNudgeShown] = useState(false);
   const [ideaShown, setIdeaShown] = useState(false);
+  /** Which function the oracle box holds right now, on an oracle node. */
+  const [variant, setVariant] = useState(0);
 
   /** When the last failed run landed, for the S3 metric. */
   const lastFailure = useRef<{ at: number; tutorShown: boolean } | null>(null);
@@ -103,7 +109,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
 
   // Read from the URL rather than useSearchParams: this page is statically
   // generated per node, and pulling in the search-params hook would make all
-  // nineteen dynamic for the sake of one optional flag.
+  // lessons dynamic for the sake of one optional flag.
   useEffect(() => {
     setConsolidating(new URLSearchParams(window.location.search).get("consolidate") === "1");
   }, [node.id]);
@@ -112,8 +118,11 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
 
   const startingCircuit = useCallback((): Circuit => {
     const c = emptyCircuit(node.qubits, node.title);
-    if (node.starter) {
-      c.gates = node.starter.map((g) => ({
+    const starter = node.starter ?? [];
+    c.gates = [
+      // The lesson's own gates (a helper qubit's preparation): shown, locked.
+      ...lessonLockedGates(starter.filter((g) => g.locked)),
+      ...starter.filter((g) => !g.locked).map((g) => ({
         id: nextGateId(),
         type: g.type,
         targets: g.targets,
@@ -121,13 +130,21 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
         params: g.params ?? [],
         column: g.column,
         ...(g.type === "measure" ? { clbit: g.targets[0] } : {}),
-      }));
-    }
+      })),
+      ...(node.oracle ? oracleGates(node.oracle, 0) : []),
+    ];
     return c;
   }, [node]);
 
-  useEffect(() => {
+  /** The node's starting circuit, with the box's columns held and f₁ in it. */
+  const loadStart = useCallback(() => {
     setCircuit(startingCircuit());
+    setReserved(node.oracle ? reservedColumns(node.oracle) : null);
+    setVariant(0);
+  }, [node, setCircuit, setReserved, startingCircuit]);
+
+  useEffect(() => {
+    loadStart();
     setBeat("brief");
     setAttempts(0);
     setNudgeShown(false);
@@ -135,7 +152,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
     lastFailure.current = null;
     codeVersion.current = null;
     // A fresh node starts clean: no carried-over verdict from the last one.
-  }, [node.id, setCircuit, startingCircuit]);
+  }, [node.id, loadStart]);
 
   // After applying code, the store bumps its version once. Capture that
   // version so a later canvas edit can be told apart from the code's result.
@@ -149,11 +166,14 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
 
   /* -- Target --------------------------------------------------------------- */
 
+  const activeTarget = node.oracle ? node.oracle.variants[variant]?.target ?? node.target : node.target;
   const targetMap = useMemo(
-    () => probabilityMap(targetProbabilities(node.target), node.qubits),
-    [node],
+    () => probabilityMap(targetProbabilities(activeTarget), node.qubits),
+    [activeTarget, node.qubits],
   );
-  const phaseMatters = useMemo(() => targetNeedsPhase(node.target), [node]);
+  const phaseMatters = useMemo(() => targetNeedsPhase(activeTarget), [activeTarget]);
+  /** The lesson placed gates the learner cannot edit: code must not replace them. */
+  const hasLocked = Boolean(node.oracle || node.starter?.some((g) => g.locked));
 
   const lockedGates = useMemo<GateType[]>(() => {
     if (!caps.lockedGates) return [];
@@ -172,7 +192,7 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
     // the wrong step against the new result.
     setScrub(null);
     clearPop();
-    execute(node.target);
+    execute(activeTarget);
     setAttempts((a) => a + 1);
   }
 
@@ -180,12 +200,14 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
   useEffect(() => {
     if (!run?.grade) return;
     // The right state reached without the move the node teaches is not a pass.
-    const missing = run.grade.passed ? unmetRequirement(node, circuit) : null;
+    const missing = run.grade.passed
+      ? unmetRequirement(node, circuit) ?? (node.oracle ? oracleMiss(circuit, node.oracle) : null)
+      : null;
     const passed = run.grade.passed && !missing;
     // A consolidation pass is re-derivation, not a fresh attempt: it must not
     // touch first-attempt accuracy or hand out XP a second time (E6-S5).
     if (!consolidating) {
-      recordAttempt(node.id, passed, run.grade.fidelity, gateCount(circuit));
+      recordAttempt(node.id, passed, run.grade.fidelity, learnerGateCount(circuit));
     }
     if (run.finding?.misconception) {
       recordMisconception(run.finding.misconception, run.finding.ruleId, node.id);
@@ -282,9 +304,22 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
   const scrubbing = scrubColumn !== null;
 
   /** The move this node teaches, when the run reached the state without it. */
-  const missingStep = useMemo(
+  const requirementMiss = useMemo(
     () => (run?.grade?.passed ? unmetRequirement(node, circuit) : null),
     // Judged against the circuit as it was run, not as it is being edited.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [run?.at, node],
+  );
+  /** Right for the function on show, wrong for another the box could hide. */
+  const oracleShortfall = useMemo(
+    () => (run?.grade?.passed && node.oracle ? oracleMiss(circuit, node.oracle) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [run?.at, node],
+  );
+  const missingStep = requirementMiss ?? oracleShortfall;
+  /** How the last run did against every function the box can hide. */
+  const variantResults = useMemo(
+    () => (run && node.oracle ? oracleResults(circuit, node.oracle) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [run?.at, node],
   );
@@ -408,23 +443,35 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
               <div className={s.stage}>
                 <Registration />
                 <div className={s.stageBody}>
-                  <CircuitCanvas
-                    circuit={circuit}
-                    minColumns={4}
-                    selectedGateId={selectedGateId}
-                    highlighted={highlighted}
-                    qubitStates={qubitStates}
-                    scrubColumn={scrubColumn}
-                    held={held}
-                    pendingControl={pendingControl}
-                    onPlace={place}
-                    onCompleteControlled={completeControlled}
-                    onCancelPending={cancelPending}
-                    onSelect={select}
-                    onMove={moveGate}
-                    onRemove={removeGate}
-                  onParams={setParams}
-                  />
+                  <KetBeside circuit={circuit} live selectedGateId={selectedGateId}>
+                    <CircuitCanvas
+                      circuit={circuit}
+                      minColumns={4}
+                      selectedGateId={selectedGateId}
+                      highlighted={highlighted}
+                      qubitStates={qubitStates}
+                      scrubColumn={scrubColumn}
+                      held={held}
+                      pendingControl={pendingControl}
+                      onPlace={place}
+                      onCompleteControlled={completeControlled}
+                      onCancelPending={cancelPending}
+                      onSelect={select}
+                      onMove={moveGate}
+                      onDrop={dropGate}
+                      onRewire={rewireGate}
+                      onRemove={removeGate}
+                      onParams={setParams}
+                      pointAt={caps.proactiveTutor && run && !run.grade?.passed ? highlighted[0] ?? null : null}
+                      box={node.oracle ? {
+                        from: node.oracle.column,
+                        to: node.oracle.column + node.oracle.width - 1,
+                        label: node.oracle.label,
+                        name: node.oracle.variants[variant]?.name,
+                        hidden: true,
+                      } : null}
+                    />
+                  </KetBeside>
                 </div>
 
                 {/* Aligned with the circuit above it. Dragging winds every
@@ -476,6 +523,40 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                 </div>
               </div>
 
+              {node.oracle && (
+                <div className={s.oracleBar}>
+                  <span className="label">The box hides one of</span>
+                  <div className={s.oracleChips} role="group" aria-label="Function in the box">
+                    {node.oracle.variants.map((v, i) => {
+                      const r = variantResults?.[i];
+                      return (
+                        <button
+                          key={v.name}
+                          type="button"
+                          className={s.oracleChip}
+                          aria-pressed={i === variant}
+                          data-result={r ? (r.passed ? "pass" : "fail") : undefined}
+                          aria-label={`${v.name}${r ? (r.passed ? ", right" : ", wrong") : ""}`}
+                          onClick={() => {
+                            if (i === variant || !node.oracle) return;
+                            swapOracle(oracleGates(node.oracle, i));
+                            setVariant(i);
+                          }}
+                        >
+                          {v.name}
+                          {r && <span aria-hidden>{r.passed ? " ✓" : " ✗"}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <span className={s.oracleNote}>
+                    {variantResults
+                      ? `Right for ${variantResults.filter((r) => r.passed).length} of ${variantResults.length}. Every run checks all of them.`
+                      : "Every run checks all of them. Switch to see each one's result."}
+                  </span>
+                </div>
+              )}
+
               <div style={{ marginTop: "var(--s-3)" }}>
                 <TrayHint held={held?.type ?? null} pending={pendingControl} />
               </div>
@@ -499,7 +580,9 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                 <div className={s.diagnosis} data-tone={missingStep ? "flag" : undefined}>
                   <div className={s.diagnosisHead}>
                     <Chip tone={missingStep ? "flag" : "error"} dot>
-                      {missingStep ? "right state · one step missing" : `fidelity ${run.grade.fidelity.toFixed(3)}`}
+                      {missingStep
+                        ? requirementMiss ? "right state · one step missing" : "right for this f · not for all"
+                        : `fidelity ${run.grade.fidelity.toFixed(3)}`}
                     </Chip>
                     {run.finding?.misconception && (
                       <span className="label">{run.finding.misconception}</span>
@@ -572,15 +655,19 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
               <div className="panel">
                 <div className={s.targetHead}>
                   <span className="label">Target</span>
-                  {node.target.label && <span className="label label--ink">{node.target.label}</span>}
+                  {!node.oracle && activeTarget.label && <span className="label label--ink">{activeTarget.label}</span>}
                 </div>
-                <Histogram
-                  qubits={node.qubits}
-                  actual={targetMap}
-                  height={104}
-                  dense
-                />
-                {phaseMatters && (
+                {node.oracle ? (
+                  <p className={s.oracleRule}>{node.oracle.rule}</p>
+                ) : (
+                  <Histogram
+                    qubits={node.qubits}
+                    actual={targetMap}
+                    height={104}
+                    dense
+                  />
+                )}
+                {phaseMatters && !node.oracle && (
                   <p style={{ fontSize: "var(--t-body)", color: "var(--ink-muted)", marginTop: "var(--s-3)" }}>
                     The odds are only half of it — this target has a phase to match too.
                   </p>
@@ -628,10 +715,11 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
                       <CodePanel
                         circuit={circuit}
                         sdk={sdk}
+                        highlighted={highlighted}
                         onSdk={setSdk}
                         allowedGates={node.allowedGates}
                         requiredQubits={node.qubits}
-                        onApply={(c) => {
+                        onApply={hasLocked ? undefined : (c) => {
                           awaitingCodeVersion.current = true;
                           replaceCircuit({ ...c, metadata: { ...c.metadata, name: node.title } });
                         }}
@@ -653,11 +741,11 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
           targetMap={targetMap}
           shots={run.shots}
           fidelity={run.grade?.fidelity ?? 1}
-          advice={run.advice}
+          advice={node.oracle ? null : run.advice}
           run={run}
           nextId={nextId}
           onReview={() => {
-            setCircuit(startingCircuit());
+            loadStart();
             setBeat("build");
           }}
           onTryShorter={(c) => {
@@ -668,6 +756,14 @@ export function LessonPlayer({ node }: { node: LessonNode }) {
       )}
     </div>
   );
+}
+
+/**
+ * Gates the learner placed. The lesson's own (a helper's preparation, an
+ * oracle box) are not theirs, so they count toward neither par nor the record.
+ */
+function learnerGateCount(circuit: Circuit): number {
+  return gateCount({ ...circuit, gates: circuit.gates.filter((g) => !isLocked(g.id)) });
 }
 
 /* -- Beat 1: the brief -------------------------------------------------------- */
@@ -685,9 +781,16 @@ function Brief({
   consolidating: boolean;
   onStart(): void;
 }) {
+  const unitNo = Number(node.unitId.replace(/\D/g, "")) || 0;
+  const tray = node.allowedGates.filter((g) => g !== "barrier").slice(0, 8);
   return (
-    <div className={s.brief}>
-      <div>
+    <div className={s.brief} style={{ ["--u" as string]: `var(--unit-${unitNo % 5})` }}>
+      <OrbitArt />
+      <div className={s.briefText}>
+        <span className={s.unitPill}>
+          <span className={s.unitDot} aria-hidden />
+          Unit {unitNo} · node {node.ordinal} · {node.estMinutes} min
+        </span>
         {consolidating && (
           <p style={{ marginBottom: "var(--s-4)", color: "var(--ink-3)", fontSize: "var(--t-body)" }}>
             You have already passed this one. Re-deriving it opens the next unit,
@@ -697,9 +800,21 @@ function Brief({
         <h1 className={`statement statement--s ${s.hook}`}>{node.hook}</h1>
         <p className={s.taskLine}>{node.task}</p>
         {node.taskNote && <p className={s.taskNote}>{node.taskNote}</p>}
-        <Button variant="primary" size="lg" onClick={onStart}>
-          {consolidating ? "Build it again" : "Build it"}
-        </Button>
+        <div className={s.briefActions}>
+          <Button variant="primary" size="lg" onClick={onStart}>
+            {consolidating ? "Build it again" : "Build it"}
+          </Button>
+          {tray.length > 0 && (
+            <div className={s.trayPeek} aria-label="Gates in your tray">
+              <span className={s.trayLabel}>Your tray</span>
+              {tray.map((g) => (
+                <span key={g} className={s.trayGate} title={GATES[g].name}>
+                  <GateMark spec={GATES[g]} />
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={s.targetCard}>
@@ -708,14 +823,55 @@ function Brief({
           <span className="label">Aiming at</span>
           {node.target.label && <span className="label label--ink">{node.target.label}</span>}
         </div>
-        <Histogram qubits={node.qubits} actual={targetMap} height={128} dense />
-        <p style={{ fontSize: "var(--t-body)", color: "var(--ink-3)", marginTop: "var(--s-4)" }}>
-          {phaseMatters
-            ? "This shape, and the phase behind it. The grader checks both."
-            : "Any circuit that produces this shape passes. There is more than one."}
-        </p>
+        {node.oracle ? (
+          <>
+            <p className={s.oracleRule}>{node.oracle.rule}</p>
+            <p style={{ fontSize: "var(--t-body)", color: "var(--ink-3)", marginTop: "var(--s-4)" }}>
+              The box hides one of {node.oracle.variants.length} functions. One circuit has to be right for all of them.
+            </p>
+          </>
+        ) : (
+          <>
+            <Histogram qubits={node.qubits} actual={targetMap} height={128} dense />
+            <p style={{ fontSize: "var(--t-body)", color: "var(--ink-3)", marginTop: "var(--s-4)" }}>
+              {phaseMatters
+                ? "This shape, and the phase behind it. The grader checks both."
+                : "Any circuit that produces this shape passes. There is more than one."}
+            </p>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Decoration for the opening screen: a Bloch sphere in the unit's colour,
+ * its equator slowly turning. It sits behind the words and says nothing —
+ * the lesson does the saying.
+ */
+function OrbitArt() {
+  return (
+    <svg className={s.orbitArt} viewBox="0 0 400 400" aria-hidden>
+      <defs>
+        <radialGradient id="orbit-core" cx="50%" cy="45%" r="55%">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="200" cy="200" r="170" fill="url(#orbit-core)" />
+      <circle cx="200" cy="200" r="150" className={s.orbitLine} />
+      <g className={s.orbitSpin}>
+        <ellipse cx="200" cy="200" rx="150" ry="46" className={s.orbitLine} />
+        <circle cx="350" cy="200" r="6" className={s.orbitDot} />
+      </g>
+      <g className={s.orbitSpinSlow}>
+        <ellipse cx="200" cy="200" rx="46" ry="150" className={s.orbitLine} data-faint />
+        <circle cx="200" cy="50" r="4" className={s.orbitDot} />
+      </g>
+      <line x1="200" y1="200" x2="292" y2="118" className={s.orbitVector} />
+      <circle cx="292" cy="118" r="7" className={s.orbitDot} />
+    </svg>
   );
 }
 
@@ -747,7 +903,7 @@ function Pass({
   onReview(): void;
   onTryShorter(c: Circuit): void;
 }) {
-  const used = gateCount(circuit);
+  const used = learnerGateCount(circuit);
   const notes = notesFor(node.id);
   const cards = quizFor(node.id);
 
@@ -778,6 +934,19 @@ function Pass({
         {node.instructionTitle}
       </h2>
       <p className="prose">{node.passNote}</p>
+
+      {node.oracle && (
+        <div className={s.reveal}>
+          <span className="label">What the box hid</span>
+          <ul>
+            {node.oracle.variants.map((v) => (
+              <li key={v.name}>
+                <b>{v.name}</b> {v.reveal} <span className={s.revealOk}>✓ right</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {advice && (
         <MarginNote label={advice.ruleId === "O01_shorter_equivalent" ? "A shorter way" : "Also worth knowing"}>

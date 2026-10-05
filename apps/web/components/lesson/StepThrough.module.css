@@ -5,9 +5,10 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .stage {
@@ -26,7 +27,7 @@
 .track { flex: 1; }
 
 .position {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
