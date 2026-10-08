@@ -14,6 +14,8 @@ import { gateQubits, type Circuit } from "@/lib/ir/types";
 import type { Finding } from "@/lib/tutor/rules";
 import { markSeen, unseen, usePop } from "@/stores/popStore";
 import { useTutor } from "@/stores/tutorStore";
+import { MODE, useSession } from "@/stores/sessionStore";
+import type { Reward } from "@/lib/rewards";
 import { FOLLOW_UP } from "./TutorDock";
 
 /** A new lesson: the words and gates it introduces, first time only. */
@@ -82,11 +84,86 @@ export function popWin(body?: string): void {
 
 /** A new run is under way: whatever the last one prompted is stale. */
 export function clearPop(): void {
-  const { pop, dismiss } = usePop.getState();
-  if (pop && pop.kind !== "new") dismiss();
+  const { pop, queue, dismiss } = usePop.getState();
+  usePop.setState({ queue: queue.filter((q) => q.kind !== "hint" && q.kind !== "win") });
+  if (pop && (pop.kind === "hint" || pop.kind === "win")) dismiss();
 }
 
-/** Leaving the surface: nothing the tutor said here applies anywhere else. */
+/**
+ * Leaving the surface: nothing the tutor said here applies anywhere else.
+ * Rewards are about the learner, not the page, so they stay.
+ */
 export function dismissPop(): void {
-  usePop.getState().dismiss();
+  const { pop, queue } = usePop.getState();
+  const rewards = queue.filter((q) => q.kind === "reward");
+  if (pop?.kind === "reward") {
+    usePop.setState({ queue: rewards });
+    return;
+  }
+  usePop.getState().clear();
+  const [first, ...rest] = rewards;
+  if (first) usePop.setState({ pop: first, queue: rest });
+}
+
+/** Something earned — a quest, the streak, a rank, arena XP — in the tutor's voice. */
+export function popReward(r: Reward): void {
+  const motivation = MODE[useSession.getState().mode].motivation;
+  const show = usePop.getState().show;
+  switch (r.kind) {
+    case "quest":
+      show({ kind: "reward", title: "Quest complete", body: r.title, reward: { icon: "quest", amount: motivation ? `+${r.xp} XP` : undefined } });
+      return;
+    case "allQuests":
+      show({
+        kind: "reward",
+        title: "All three quests done",
+        body: "That's today handled. New quests at midnight UTC.",
+        reward: { icon: "xp", amount: motivation ? `+${r.xp} XP` : undefined },
+      });
+      return;
+    case "streak": {
+      const title =
+        r.event === "froze" ? "Streak saved by a freeze"
+          : r.event === "earnedFreeze" ? `${r.days} days — freeze earned`
+            : r.days === 1 ? "Day one of your streak"
+              : `${r.days}-day streak`;
+      const body =
+        r.event === "froze" ? `A freeze covered the day you missed. ${r.freezes} left.`
+          : r.event === "earnedFreeze" ? "A freeze covers a day you miss. You can hold two."
+            : r.days === 1 ? "Come back tomorrow to make it two."
+              : "Kept alive for today. See you tomorrow.";
+      show({
+        kind: "reward",
+        title,
+        body,
+        reward: { icon: r.event === "froze" || r.event === "earnedFreeze" ? "freeze" : "streak", amount: String(r.days) },
+      });
+      return;
+    }
+    case "arena":
+      if (!motivation) return;
+      show({
+        kind: "reward",
+        title: r.firstWinToday ? "First win of the day" : r.won ? "Match won" : "Match played",
+        body: r.firstWinToday ? "Bonus XP for your first win today." : "Every match counts toward your quests.",
+        reward: { icon: "xp", amount: `+${r.xp} XP` },
+      });
+      return;
+    case "badge":
+      show({
+        kind: "reward",
+        title: `Badge: ${r.name}`,
+        body: r.how,
+        reward: { icon: "badge", glyph: r.glyph, amount: "New badge" },
+      });
+      return;
+    case "rank":
+      show({
+        kind: "reward",
+        title: r.up ? `Promoted to ${r.tier}` : `Now ${r.tier}`,
+        body: r.up ? "Your rank moved up. Keep it there." : "One bad match. Win it back.",
+        reward: { icon: "rank", amount: r.tier, up: r.up },
+      });
+      return;
+  }
 }

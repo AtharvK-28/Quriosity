@@ -77,7 +77,7 @@
 .headBtn {
   padding: 4px 7px;
   border-radius: var(--r-gate);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -117,7 +117,7 @@
 .followUp {
   align-self: flex-start;
   padding: 4px 0;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
@@ -130,12 +130,13 @@
 .suggestion {
   text-align: left;
   padding: 10px 12px;
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
   font-size: var(--t-body);
   color: var(--ink-2);
   transition: border-color var(--m-instant) linear, color var(--m-instant) linear;
+  box-shadow: var(--shadow-card);
 }
 .suggestion:hover { border-color: var(--cta); color: var(--ink); }
 .suggestion[data-lead] { border-color: var(--flag); background: var(--flag-wash); color: var(--ink); }
@@ -165,7 +166,7 @@
 .reply[data-failed] { color: var(--ink-2); }
 
 .from {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
@@ -221,6 +222,26 @@
 .sources { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .source { font-size: var(--t-label); color: var(--measure); }
 
+.checked { color: var(--flag); }
+/* An answer that passed every check says so, quietly, in the measure colour. */
+.verified { color: var(--measure); }
+
+.feedback { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.rate {
+  min-height: 28px;
+  padding: 2px 10px;
+  border: 1px solid var(--rule-3);
+  border-radius: 2px;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-label);
+  cursor: pointer;
+}
+.rate:hover { border-color: var(--ink-2); color: var(--ink); }
+.rate:focus-visible { outline: 2px solid var(--cta); outline-offset: 2px; }
+.rated { font-size: var(--t-label); color: var(--ink-muted); }
+
 .typing {
   color: var(--ink-muted);
   letter-spacing: 0.2em;
@@ -242,12 +263,13 @@
   max-height: 140px;
   resize: none;
   padding: 10px 12px;
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-3);
   border-radius: var(--r-panel);
   font-size: var(--t-body);
   line-height: 1.45;
   color: var(--ink);
+  box-shadow: var(--shadow-card);
 }
 .input::placeholder { color: var(--ink-faint); }
 .input:focus-visible { outline: 2px solid var(--measure); outline-offset: 1px; border-color: var(--measure); }
@@ -260,7 +282,7 @@
   color: var(--cta-ink);
   border: 2px solid var(--cta);
   border-radius: var(--r-gate);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   font-weight: 500;
   letter-spacing: var(--ls-label);
@@ -285,3 +307,24 @@
   .panel { top: auto; left: 12px; width: auto; height: min(78vh, 640px); }
   .kbd { display: none; }
 }
+
+/* -- Ket ------------------------------------------------------------------------
+   The tutor has a face. The launcher's disc gives way to Ket itself. */
+.launcherMark:has(svg) {
+  width: auto;
+  height: auto;
+  background: none;
+  box-shadow: none;
+}
+
+.headName { display: flex; flex-direction: column; line-height: 1.15; }
+.headName b { font-size: var(--t-body); font-weight: 700; color: var(--ink); }
+.headName span { font-size: var(--t-micro); color: var(--ink-muted); }
+
+.hello {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+.hello .introText { margin: 0; }

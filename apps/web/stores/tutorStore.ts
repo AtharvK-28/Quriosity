@@ -9,6 +9,7 @@
 import { create } from "zustand";
 import {
   MAX_TURNS,
+  type TutorCheck,
   type TutorEvent,
   type TutorMode,
   type TutorSource,
@@ -27,6 +28,12 @@ export interface TutorMessage {
   note?: string;
   streaming?: boolean;
   failed?: boolean;
+  /** Which check withdrew the model's first answer, if one did. */
+  withdrawn?: TutorCheck;
+  /** Set when a model's answer passed every check; the claims it confirmed. */
+  verified?: number;
+  /** The learner's verdict, once given. */
+  helpful?: boolean;
 }
 
 interface TutorState {
@@ -42,6 +49,8 @@ interface TutorState {
   ask(question: string): Promise<void>;
   stop(): void;
   clear(): void;
+  /** Helpful or not, once per answer (PRD §8 `tutor_feedback`). */
+  rate(id: number, helpful: boolean): void;
 }
 
 let seq = 0;
@@ -72,6 +81,13 @@ export const useTutor = create<TutorState>((set, get) => ({
   },
 
   stop: () => inflight?.abort(),
+
+  rate: (id, helpful) => {
+    const m = get().messages.find((x) => x.id === id);
+    if (!m || m.role !== "assistant" || m.helpful !== undefined || m.streaming || m.failed) return;
+    track("tutor_feedback", { helpful, source: m.mode === "guide" ? "guide" : "llm", withdrawn: Boolean(m.withdrawn) });
+    set((s) => ({ messages: s.messages.map((x) => (x.id === id ? { ...x, helpful } : x)) }));
+  },
 
   ask: async (question) => {
     const q = question.trim();
@@ -104,6 +120,11 @@ export const useTutor = create<TutorState>((set, get) => ({
       else if (e.t === "text") patch((m) => ({ ...m, text: m.text + e.v }));
       else if (e.t === "note") patch((m) => ({ ...m, note: e.v }));
       else if (e.t === "error") patch((m) => ({ ...m, text: m.text || e.v, failed: !m.text }));
+      else if (e.t === "check") {
+        track("tutor_answer_withdrawn", { check: e.by, law: e.law, misconception_id: e.misconception });
+        patch((m) => ({ ...m, withdrawn: e.by }));
+      }
+      else if (e.t === "verified") patch((m) => ({ ...m, verified: e.claims }));
       else if (e.t === "retract") patch((m) => ({ ...m, text: "", sources: [], mode: undefined, note: undefined }));
       else if (e.t === "done") patch((m) => ({ ...m, streaming: false }));
     };

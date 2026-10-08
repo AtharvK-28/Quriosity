@@ -9,7 +9,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { firewall } from "@/lib/tutor/firewall";
+import { firewall, lawName } from "@/lib/tutor/firewall";
+import { tutorCheckStats, type AnalyticsEvent } from "@/lib/analytics";
 import { CORPUS, CORRECTIONS } from "@/lib/tutor/corpus";
 import { NODES } from "@/lib/curriculum/nodes";
 import { GLOSSARY } from "@/lib/curriculum/glossary";
@@ -34,6 +35,19 @@ describe("catalogued laws", () => {
     ["Grover's algorithm gives an exponential speedup.", "grover-quadratic"],
     ["More Grover iterations always improve the odds.", "grover-overshoot"],
     ["In Qiskit, q0 is the leftmost bit.", "little-endian"],
+    ["In a Bell pair each qubit still has its own state.", "entangled-no-own-state"],
+    ["An entangled qubit's Bloch vector sits on the surface like any other.", "entangled-no-own-state"],
+    ["A single Bloch sphere shows the full state of two qubits.", "entangled-no-own-state"],
+    ["Relative phase doesn't matter.", "relative-phase"],
+    ["The relative phase is just bookkeeping.", "relative-phase"],
+    ["|+⟩ and |−⟩ are the same state.", "relative-phase"],
+    ["A controlled gate never changes its control.", "kickback"],
+    ["The control qubit is never affected by a CNOT.", "kickback"],
+    ["Noise only happens at the end, during measurement.", "noise-everywhere"],
+    ["Noise is just a random bit flip on the result.", "noise-everywhere"],
+    ["Circuit depth doesn't affect the noise.", "noise-grows-with-depth"],
+    ["Quantum computers will replace classical computers.", "quantum-alongside-classical"],
+    ["A quantum computer is faster at everything.", "quantum-alongside-classical"],
   ])("stops %j", (text, law) => {
     expect(blocked(text)).toBe(law);
   });
@@ -58,6 +72,17 @@ describe("catalogued laws", () => {
     "A global phase changes nothing you can measure.",
     "In Cirq, q0 is the leftmost bit.",
     "q0 is the rightmost bit.",
+    "An entangled qubit has no state of its own, so its Bloch vector sits at the centre.",
+    "One Bloch sphere cannot show two entangled qubits.",
+    "Global phase doesn't matter, but relative phase does.",
+    "Relative phase doesn't show in the histogram, yet it decides what the next H does.",
+    "|+⟩ and |−⟩ are indistinguishable in the Z basis.",
+    "On basis states, CNOT never changes the control.",
+    "With the target in |−⟩, the CNOT changes the control's phase.",
+    "Noise doesn't only happen at the end: every gate adds some.",
+    "Deeper circuits accumulate more error.",
+    "Quantum computers won't replace classical computers.",
+    "Quantum computers don't speed up every problem, only particular ones.",
   ])("lets %j through", (text) => {
     expect(blocked(text)).toBeNull();
   });
@@ -85,6 +110,25 @@ describe("computed laws", () => {
     expect(blocked("Z flips |0⟩ to |1⟩.")).toBe("gate-algebra");
   });
 
+  it("works out two- and three-qubit gates on basis states, in either bit order", () => {
+    // Control on the left (textbooks) or on the right (Qiskit): both are right.
+    expect(blocked("CNOT turns |10⟩ into |11⟩.")).toBeNull();
+    expect(blocked("CNOT turns |01⟩ into |11⟩.")).toBeNull();
+    expect(blocked("Applying CNOT to |00⟩ gives |00⟩.")).toBeNull();
+    expect(blocked("SWAP sends |10⟩ to |01⟩.")).toBeNull();
+    expect(blocked("CZ takes |11⟩ to −|11⟩.")).toBeNull();
+    expect(blocked("Toffoli maps |110⟩ to |111⟩.")).toBeNull();
+    expect(blocked("[[gate:cx]] maps |11⟩ to |10⟩.")).toBeNull();
+
+    const v = firewall("CNOT turns |00⟩ into |11⟩.");
+    expect(v?.law).toBe("gate-algebra");
+    expect(v?.truth).toBe("CNOT sends |00⟩ to |00⟩, not |11⟩.");
+    expect(firewall("CNOT maps |10⟩ to |01⟩.")?.truth).toMatch(/\|11⟩ or \|10⟩, depending on which qubit is the control/);
+    expect(firewall("CZ flips |10⟩ to |11⟩.")?.truth).toMatch(/only its sign/);
+    expect(blocked("SWAP maps |10⟩ to |10⟩.")).toBe("gate-algebra");
+    expect(blocked("Toffoli maps |100⟩ to |101⟩.")).toBe("gate-algebra");
+  });
+
   it("holds probabilities to one", () => {
     expect(blocked("You get |0⟩ with 70% and |1⟩ with 50%.")).toBe("normalisation");
     expect(blocked("|1⟩ comes up 150% of the time.")).toBe("normalisation");
@@ -109,6 +153,32 @@ describe("the platform's own teaching passes", () => {
 
   it.each(sentences.map((s) => [s]))("%j", (text) => {
     expect(firewall(text)).toBeNull();
+  });
+});
+
+describe("counting what the checks catch", () => {
+  const ev = (name: string, props: Record<string, string | boolean | null>) =>
+    ({ name, props, user_id: "u", session_id: "s", mode: "guided", timestamp: 0 }) as AnalyticsEvent;
+
+  it("counts model answers, withdrawals by check and law, and helpful ratings", () => {
+    const stats = tutorCheckStats([
+      ev("tutor_invoked", { source: "llm" }),
+      ev("tutor_invoked", { source: "guide" }),
+      ev("tutor_answer_withdrawn", { check: "physics", law: "no-cloning", misconception_id: "M8" }),
+      ev("tutor_answer_withdrawn", { check: "physics", law: "no-cloning", misconception_id: "M8" }),
+      ev("tutor_answer_withdrawn", { check: "physics", law: "gate-algebra", misconception_id: null }),
+      ev("tutor_answer_withdrawn", { check: "claim", law: "simulator", misconception_id: null }),
+      ev("tutor_feedback", { helpful: true }),
+      ev("tutor_feedback", { helpful: false }),
+    ]);
+    expect(stats).toMatchObject({ answers: 5, physics: 3, claim: 1, rated: 2, helpful: 1 });
+    expect(stats.laws).toEqual([["no-cloning", 2], ["gate-algebra", 1]]);
+  });
+
+  it("names every law for the learner", () => {
+    expect(lawName("no-cloning")).toBe("the no-cloning theorem");
+    expect(lawName("kickback")).toBe("a controlled gate can change its control");
+    expect(lawName("gate-algebra")).toBe("gate algebra");
   });
 });
 

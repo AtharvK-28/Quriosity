@@ -209,6 +209,8 @@ const GATE_AT =
 
 export class ClaimChecker {
   private carry: Scope = "none";
+  /** Claims about the circuit this checker has confirmed against the simulation. */
+  checked = 0;
 
   constructor(private readonly truth: Truth) {}
 
@@ -246,6 +248,7 @@ export class ClaimChecker {
         if (Math.abs(actual - c.p) > c.tolerance) {
           return { claim, actual: `P(${c.bits}) is ${formatProbability(actual)}` };
         }
+        this.checked += 1;
       }
     }
 
@@ -263,6 +266,7 @@ export class ClaimChecker {
             actual: `there is no ${m[1]} on q${qubit}${column === null ? "" : ` in column ${column}`}`,
           };
         }
+        this.checked += 1;
       }
     }
     return null;

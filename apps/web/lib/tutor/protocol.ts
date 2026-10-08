@@ -35,11 +35,26 @@ export interface TutorSource {
 /** Which engine answered. The learner is always told. */
 export type TutorMode = "claude" | "gemini" | "guide";
 
+/** The two checks that can withdraw a model's answer. */
+export type TutorCheck = "claim" | "physics";
+
 export type TutorEvent =
   | { t: "meta"; mode: TutorMode; sources: TutorSource[] }
   | { t: "text"; v: string }
   | { t: "note"; v: string }
   | { t: "error"; v: string }
+  /**
+   * A check withdrew the model's answer: "claim" when it contradicted the
+   * simulator, "physics" when it broke a law. Sent before the replacement, so
+   * the browser can count how often each check fires.
+   */
+  | { t: "check"; by: TutorCheck; law: string; misconception: string | null }
+  /**
+   * A model's answer finished and every sentence passed both checks. `claims`
+   * is how many statements about this circuit were confirmed against its
+   * simulation; the physics firewall read every sentence either way.
+   */
+  | { t: "verified"; claims: number }
   /** Withdraw everything sent so far: the claim check caught a contradiction. */
   | { t: "retract" }
   | { t: "done" };

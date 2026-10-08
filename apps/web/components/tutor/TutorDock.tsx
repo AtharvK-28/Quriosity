@@ -13,21 +13,22 @@
  * sits at the top of an empty conversation — instant, local, no model call —
  * with a one-tap follow-up that asks for the fuller explanation.
  *
- * The short-form tutor — a new word, a nudge, a cheer — is TutorPop, mounted
- * here so it exists wherever the dock does. The panel itself still never
- * opens on its own.
+ * The short-form tutor — a new word, a nudge, a cheer, a reward — is
+ * TutorPop, mounted once in the layout so a reward can land on any page. The
+ * panel itself still never opens on its own.
  */
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { GateMark } from "@/components/circuit/GateMark";
+import { Ket } from "@/components/mascot/Ket";
 import { GATES, isGateType } from "@/lib/ir/gates";
 import type { GateType } from "@/lib/ir/types";
-import type { TutorWhere } from "@/lib/tutor/protocol";
+import type { TutorCheck, TutorMode, TutorWhere } from "@/lib/tutor/protocol";
+import { formatCount, t, type MessageKey } from "@/lib/i18n";
 import { useCircuit } from "@/stores/circuitStore";
 import { MODE, useSession } from "@/stores/sessionStore";
 import { useTutor, type TutorMessage } from "@/stores/tutorStore";
-import { TutorPop } from "./TutorPop";
 import s from "./TutorDock.module.css";
 
 const SUGGESTIONS: Record<TutorWhere["surface"], string[]> = {
@@ -94,7 +95,6 @@ export function TutorDock({ where }: { where: TutorWhere }) {
   if (!open) {
     return (
       <>
-        <TutorPop />
         <button
           type="button"
           className={s.launcher}
@@ -102,9 +102,9 @@ export function TutorDock({ where }: { where: TutorWhere }) {
           aria-keyshortcuts="Control+/ Meta+/"
         >
           <span className={s.launcherMark} aria-hidden>
-            q
+            <Ket size={30} />
           </span>
-          Ask the tutor
+          Ask Ket
           <kbd className={s.kbd}>⌘/</kbd>
         </button>
       </>
@@ -116,7 +116,11 @@ export function TutorDock({ where }: { where: TutorWhere }) {
   return (
     <aside className={s.panel} aria-label="Tutor" ref={panelRef}>
       <header className={s.head}>
-        <span className="label label--ink">Tutor</span>
+        <Ket size={30} mood={last?.role === "assistant" && last.streaming ? "thinking" : "calm"} />
+        <span className={s.headName}>
+          <b>Ket</b>
+          <span>your tutor</span>
+        </span>
         <span className={s.headSpacer} />
         {messages.length > 0 && (
           <button type="button" className={s.headBtn} onClick={clear}>
@@ -140,9 +144,12 @@ export function TutorDock({ where }: { where: TutorWhere }) {
                 </button>
               </div>
             )}
-            <p className={s.introText}>
-              Ask about a gate, an idea, or your circuit — the tutor can see it.
-            </p>
+            <div className={s.hello}>
+              <Ket size={56} mood="curious" />
+              <p className={s.introText}>
+                Hi, I&apos;m Ket. Ask me about a gate, an idea, or your circuit. I can see it.
+              </p>
+            </div>
             <div className={s.suggestions}>
               {finding && diagnosisOnPage && (
                 <button type="button" className={s.suggestion} data-lead onClick={() => submit(FOLLOW_UP)}>
@@ -200,22 +207,40 @@ export function TutorDock({ where }: { where: TutorWhere }) {
           </button>
         )}
       </form>
-      <p className={s.disclaimer}>The tutor can be wrong. The simulator is not.</p>
+      <p className={s.disclaimer}>{t("tutor.disclaimer")}</p>
     </aside>
   );
 }
 
+const FROM: Record<TutorMode, MessageKey> = { claude: "tutor.from.claude", gemini: "tutor.from.gemini", guide: "tutor.from.guide" };
+const CHECKED: Record<TutorCheck, MessageKey> = { physics: "tutor.checked.physics", claim: "tutor.checked.claim" };
+
 function Message({ m }: { m: TutorMessage }) {
+  const rate = useTutor((st) => st.rate);
   if (m.role === "user") return <div className={s.user}>{m.text}</div>;
 
   return (
     <div className={s.reply} data-failed={m.failed || undefined}>
-      {m.mode && <span className={s.from}>{m.mode === "claude" ? "Claude" : m.mode === "gemini" ? "Gemini" : "Built-in guide"}</span>}
+      {m.mode && (
+        <span className={s.from}>
+          {t(FROM[m.mode])}
+          {m.withdrawn && <span className={s.checked}> · {t(CHECKED[m.withdrawn])}</span>}
+          {!m.withdrawn && m.verified !== undefined && (
+            <span className={s.verified}>
+              {" "}· {m.verified === 0
+                ? t("tutor.verified.physics")
+                : m.verified === 1
+                  ? t("tutor.verified.claim")
+                  : t("tutor.verified.claims", { n: formatCount(m.verified) })}
+            </span>
+          )}
+        </span>
+      )}
       {m.text ? (
         <RichText text={m.text} />
       ) : (
         m.streaming && (
-          <span className={s.typing} role="status" aria-label="The tutor is thinking">
+          <span className={s.typing} role="status" aria-label={t("tutor.thinking")}>
             ···
           </span>
         )
@@ -223,12 +248,31 @@ function Message({ m }: { m: TutorMessage }) {
       {m.note && <p className={s.note}>{m.note}</p>}
       {!m.streaming && m.sources && m.sources.length > 0 && (
         <div className={s.sources}>
-          <span className="label">Related</span>
+          <span className="label">{t("tutor.related")}</span>
           {m.sources.map((src) => (
             <Link key={src.href + src.title} href={src.href} className={s.source}>
               {src.title}
             </Link>
           ))}
+        </div>
+      )}
+      {!m.streaming && !m.failed && m.text && (
+        <div className={s.feedback}>
+          {m.helpful === undefined ? (
+            <>
+              <span className="label">{t("tutor.helpful")}</span>
+              <button type="button" className={s.rate} onClick={() => rate(m.id, true)}>
+                {t("tutor.yes")}
+              </button>
+              <button type="button" className={s.rate} onClick={() => rate(m.id, false)}>
+                {t("tutor.no")}
+              </button>
+            </>
+          ) : (
+            <span className={s.rated} role="status">
+              {m.helpful ? t("tutor.thanks") : t("tutor.notHelpful")}
+            </span>
+          )}
         </div>
       )}
     </div>

@@ -131,6 +131,25 @@ describe("POST /api/tutor with a Gemini key", () => {
     expect(notesOf(ev)).toMatch(/withdrawn/);
   });
 
+  it("says an answer passed, and how many of its claims the simulator confirmed", async () => {
+    replies = [{ status: 200, chunks: ["Right now you get |00⟩ half the time ", "and |11⟩ half the time. "] }];
+    const ev = await ask("What does my circuit do?");
+    const verified = ev.find((e) => e.t === "verified");
+    expect(verified).toEqual({ t: "verified", claims: 2 });
+    expect(ev.findIndex((e) => e.t === "verified")).toBe(ev.length - 2);
+    expect(ev.at(-1)).toEqual({ t: "done" });
+  });
+
+  it("still says so when the answer made no claim about the circuit, since the firewall read it", async () => {
+    replies = [{ status: 200, chunks: ["A CNOT flips its target when its control is 1. "] }];
+    expect((await ask("What is a CNOT?")).find((e) => e.t === "verified")).toEqual({ t: "verified", claims: 0 });
+  });
+
+  it("never says a withdrawn answer passed", async () => {
+    replies = [{ status: 200, chunks: ["Right now you get |01⟩ half the time. "] }];
+    expect((await ask("What does my circuit do?")).some((e) => e.t === "verified")).toBe(false);
+  });
+
   it("falls back to Flash-Lite when the first model is overloaded", async () => {
     replies = [{ status: 503, body: '{"error":{"code":503}}' }, { status: 200, chunks: ["Fine from the fallback."] }];
     const ev = await ask("Explain the Hadamard gate");

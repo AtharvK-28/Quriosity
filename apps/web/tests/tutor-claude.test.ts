@@ -235,7 +235,9 @@ describe("POST /api/tutor with a key", () => {
 
     // Nothing had gone out yet, so there is nothing to retract.
     expect(ev.some((e) => e.t === "retract")).toBe(false);
-    expect(ev[0]).toMatchObject({ t: "meta", mode: "guide" });
+    // The check is reported first, so the browser can count it, then the guide answers.
+    expect(ev[0]).toEqual({ t: "check", by: "claim", law: "simulator", misconception: null });
+    expect(ev[1]).toMatchObject({ t: "meta", mode: "guide" });
     expect(notesOf(ev)).toMatch(/withdrawn/);
   });
 
@@ -253,6 +255,7 @@ describe("POST /api/tutor with a key", () => {
     const kinds = ev.map((e) => e.t);
 
     expect(kinds).toContain("retract");
+    expect(ev.find((e) => e.t === "check")).toEqual({ t: "check", by: "physics", law: "no-signalling", misconception: "M3" });
     const after = ev.slice(kinds.indexOf("retract") + 1);
     expect(after[0]).toMatchObject({ t: "meta", mode: "guide" });
     expect(textOf(after)).toMatch(/nothing travels faster than light/);

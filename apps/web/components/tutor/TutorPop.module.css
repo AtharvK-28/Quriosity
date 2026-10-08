@@ -1,39 +1,51 @@
-/* The tutor dropping by: an instrument card, not a toast. */
+/* The tutor speaking from its corner: a speech bubble above the launcher. */
 .pop {
+  --signal: var(--ink-3);
   position: fixed;
   z-index: 46;
-  /* As wide as the margin beside the page's content column allows, so on a
-     desktop it sits in empty space rather than over the target panel; never
-     narrower than a readable card. */
-  width: clamp(300px, calc((100vw - 1060px) / 2 - 20px), 360px);
-  display: flex;
-  flex-direction: column;
-  background: var(--paper-raised);
-  border: 1px solid var(--frame);
-  border-radius: var(--r-panel);
-  box-shadow: var(--shadow-pop);
-  animation: var(--enter) var(--m-settle) var(--e-settle) both;
+  right: 20px;
+  bottom: 84px;
+  width: min(384px, calc(100vw - 32px));
+  animation: rise var(--m-settle) var(--e-settle) both;
 }
 
-/* What happened sets the kicker's colour — and nothing else on the card. */
-.pop[data-kind="new"]  { --signal: var(--ink-3); }
-.pop[data-kind="hint"] { --signal: var(--flag); }
-.pop[data-kind="win"]  { --signal: var(--measure); }
+/* What happened sets the signal colour — and nothing else on the card. */
+.pop[data-kind="new"]    { --signal: var(--phase); }
+.pop[data-kind="hint"]   { --signal: var(--flag); }
+.pop[data-kind="win"]    { --signal: var(--measure); }
+.pop[data-kind="reward"] { --signal: var(--cta); }
 
-/* Where each side sits, and which way it comes in. Every landing spot is on
-   the right, over the reference column (target, state views), which holds
-   nothing to click. The left and centre were tried: at a laptop's width the
-   card covered the lesson's headline, the task line, the canvas's first
-   column and the verdict's buttons — the exact things a learner reads or
-   clicks next. The entrance still varies, so it reads as the tutor arriving
-   rather than a banner appearing. */
-.pop[data-side="right"]  { top: 76px;    right: 16px; --enter: fromRight; }
-.pop[data-side="top"]    { top: 76px;    right: 16px; --enter: fromTop; }
-.pop[data-side="bottom"] { bottom: 88px; right: 16px; --enter: fromBottom; } /* above the launcher */
+@keyframes rise {
+  from { transform: translateY(18px) scale(0.96); opacity: 0; transform-origin: 90% 100%; }
+  to   { transform: none; opacity: 1; }
+}
 
-@keyframes fromRight  { from { transform: translateX(28px);  opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes fromTop    { from { transform: translateY(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes fromBottom { from { transform: translateY(20px);  opacity: 0; } to { transform: none; opacity: 1; } }
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 70% at 0% 0%, color-mix(in srgb, var(--signal) 16%, transparent), transparent 60%),
+    var(--paper-raised);
+  border: 1px solid color-mix(in srgb, var(--signal) 45%, var(--frame));
+  border-radius: 14px;
+  box-shadow: var(--shadow-pop), 0 0 0 1px color-mix(in srgb, var(--signal) 12%, transparent);
+}
+
+/* The tail points at the launcher: this is the tutor talking. */
+.tail {
+  position: absolute;
+  right: 36px;
+  bottom: -9px;
+  width: 18px;
+  height: 18px;
+  background: var(--paper-raised);
+  border-right: 1px solid color-mix(in srgb, var(--signal) 45%, var(--frame));
+  border-bottom: 1px solid color-mix(in srgb, var(--signal) 45%, var(--frame));
+  transform: rotate(45deg);
+  border-bottom-right-radius: 4px;
+}
 
 /* -- Header ------------------------------------------------------------------ */
 
@@ -41,73 +53,68 @@
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  padding: 10px 10px 10px var(--s-4);
-  border-bottom: 1px solid var(--rule-2);
+  padding: 12px 10px 10px 14px;
 }
 
-.mark {
+.who { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+
+.avatar {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
-  border: 1.5px solid var(--ink);
-  border-radius: var(--r-gate);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--ink);
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--r-full);
 }
+.avatar::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--r-full);
+  border: 2px solid var(--signal);
+  opacity: 0;
+  animation: hello 1.4s var(--e-out) 0.15s 2;
+}
+@keyframes hello { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.6); opacity: 0; } }
 
+.whoText { display: flex; flex-direction: column; min-width: 0; }
+.name { font-size: var(--t-label); font-weight: 600; color: var(--ink); line-height: 1.2; }
 .kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
-  font-weight: 500;
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
   color: var(--signal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.dot {
-  width: 6px;
-  height: 6px;
+.more {
+  padding: 2px 7px;
   border-radius: var(--r-full);
-  background: var(--signal);
-}
-
-.spacer { flex: 1; }
-
-.steps {
-  display: inline-flex;
-  gap: 5px;
-  margin-right: 4px;
-}
-.step {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--r-full);
-  border: 1px solid var(--rule-3);
-  transition: background var(--m-quick) linear, width var(--m-quick) var(--e-out);
-}
-.step[data-on] {
-  width: 16px;
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--paper-inset);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-2);
 }
 
 .close {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--r-gate);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-full);
   font-size: 12px;
   color: var(--ink-muted);
 }
 .close:hover { color: var(--ink); background: var(--paper-inset); }
+.close:focus-visible { outline: 2px solid var(--cta); outline-offset: 1px; }
+
+.segments { display: flex; gap: 4px; padding: 0 14px; }
+.segments span { flex: 1; height: 3px; border-radius: var(--r-full); background: var(--rule-2); transition: background var(--m-quick) linear; }
+.segments span[data-on] { background: var(--signal); }
 
 /* -- Body -------------------------------------------------------------------- */
 
@@ -115,65 +122,94 @@
   display: flex;
   align-items: center;
   gap: var(--s-4);
-  padding: var(--s-4);
+  padding: 14px 16px 16px;
   animation: settle var(--m-quick) var(--e-out) both;
 }
-
 @keyframes settle {
-  from { opacity: 0; transform: translateX(6px); }
+  from { opacity: 0; transform: translateX(10px); }
   to   { opacity: 1; transform: none; }
 }
 
-.copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+.specimen {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  border: 1px solid var(--rule-2);
+  background:
+    linear-gradient(var(--rule) 1px, transparent 1px) 0 0 / 12px 12px,
+    linear-gradient(90deg, var(--rule) 1px, transparent 1px) 0 0 / 12px 12px,
+    var(--paper);
 }
+.specimen[data-small] { width: 72px; height: 72px; }
+.initial { font-family: var(--font-statement); font-size: 44px; color: var(--signal); }
+
+.glyph { fill: none; stroke: var(--signal); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.symbol { font-family: var(--font-mono); font-size: var(--t-label); color: var(--signal); }
 
 /* A word is a concept, so it takes the statement face. */
 .title {
   font-family: var(--font-statement);
-  font-size: 25px;
+  font-size: 28px;
   line-height: 1.05;
   letter-spacing: -0.01em;
   color: var(--ink);
 }
+.text { font-size: var(--t-body); line-height: 1.45; color: var(--ink-2); }
 
-.text {
-  font-size: var(--t-body);
-  line-height: 1.45;
-  color: var(--ink-2);
+.amount {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--signal);
+  font-variant-numeric: tabular-nums;
+  animation: count 600ms var(--e-out) 120ms both;
 }
+@keyframes count { from { transform: translateY(8px) scale(0.8); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* The reward medallion. */
+.medallion {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 76px;
+  height: 76px;
+  border-radius: var(--r-full);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--signal) 40%, var(--paper)), var(--paper) 72%);
+  border: 2px solid var(--signal);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--signal) 40%, transparent);
+  animation: stamp 520ms var(--e-out) both;
+}
+.medallion[data-icon="streak"] { --signal: var(--flag); }
+.medallion[data-icon="freeze"] { --signal: var(--phase); }
+.medallion[data-icon="quest"]  { --signal: var(--measure); }
+.medallion[data-down]          { --signal: var(--ink-muted); }
+.fill { fill: var(--signal); }
+.stroke { fill: none; stroke: var(--signal); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes stamp { 0% { transform: scale(0.4) rotate(-18deg); opacity: 0; } 60% { transform: scale(1.1) rotate(4deg); opacity: 1; } 100% { transform: none; } }
 
 /* The gates card: one row per gate, each a link to its reference row. */
-.gates {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-}
-
+.gates { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; width: 100%; }
 .gateRow {
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  padding: 7px 8px;
+  padding: 8px;
   margin: 0 -8px;
-  border-radius: var(--r-panel);
+  border-radius: 10px;
   color: var(--ink);
 }
 .gateRow:hover { background: var(--paper-inset); text-decoration: none; }
-
 .gateGlyph {
   display: grid;
   place-items: center;
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   background: var(--paper);
   border: 2px solid var(--ink);
   border-radius: var(--r-gate);
@@ -183,21 +219,9 @@
   line-height: 1;
 }
 .gateGlyph svg { width: 100%; height: 100%; }
-
-.gateText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  font-size: var(--t-label);
-  line-height: 1.35;
-}
-.gateText b {
-  font-size: var(--t-body);
-  font-weight: 500;
-}
-.gateText span {
-  color: var(--ink-muted);
-}
+.gateText { display: flex; flex-direction: column; min-width: 0; font-size: var(--t-label); line-height: 1.35; }
+.gateText b { font-size: var(--t-body); font-weight: 500; }
+.gateText span { color: var(--ink-muted); }
 
 /* -- Footer ------------------------------------------------------------------ */
 
@@ -205,11 +229,14 @@
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  padding: 0 var(--s-4) var(--s-4);
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--rule);
 }
+.spacer { flex: 1; }
+.keys { font-family: var(--font-mono); font-size: var(--t-micro); color: var(--ink-muted); margin-right: 4px; }
 
 .link {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
@@ -219,62 +246,65 @@
 
 .primary,
 .ghost {
-  padding: 7px 14px;
-  border-radius: var(--r-gate);
-  font-family: var(--font-mono);
+  padding: 8px 16px;
+  border-radius: var(--r-full);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
 }
-.primary {
-  background: var(--cta);
-  color: var(--cta-ink);
-}
+.primary { background: var(--cta); color: var(--cta-ink); }
 .primary:hover { filter: brightness(1.08); }
-.ghost {
-  color: var(--ink-3);
-  border: 1px solid var(--rule-2);
-}
+.ghost { color: var(--ink-3); border: 1px solid var(--rule-2); }
 .ghost:hover { color: var(--ink); border-color: var(--rule-3); }
+.primary:focus-visible, .ghost:focus-visible { outline: 2px solid var(--cta); outline-offset: 2px; }
 
-/* A cheer closes itself; this runs down with it. */
+/* A cheer or a reward closes itself; this runs down with it. */
 .timer {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 2px;
-  background: var(--measure);
+  height: 3px;
+  background: var(--signal);
   transform-origin: left;
   animation-name: drain;
   animation-timing-function: linear;
   animation-fill-mode: both;
 }
-@keyframes drain {
-  from { transform: scaleX(1); }
-  to   { transform: scaleX(0); }
+@keyframes drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* A small burst from the avatar — earned by an action, over in a second. */
+.burst { position: absolute; left: 30px; top: 28px; width: 0; height: 0; pointer-events: none; z-index: 2; }
+.burst span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--signal);
+  opacity: 0;
+  animation: fly 900ms var(--e-out) 80ms both;
+}
+.burst span:nth-child(3n) { background: var(--cta); }
+.burst span:nth-child(4n) { background: var(--measure); width: 4px; height: 8px; }
+@keyframes fly {
+  0% { transform: rotate(var(--a)) translateX(0) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateX(var(--d)) scale(0.4); opacity: 0; }
 }
 
-/* On a phone every side is the bottom, above the tutor launcher. */
+/* On a phone: full width, above the launcher. */
 @media (max-width: 640px) {
-  .pop[data-side] {
-    left: 12px;
-    right: 12px;
-    top: auto;
-    bottom: 76px;
-    width: auto;
-    translate: none;
-    --enter: fromBottom;
-  }
-  .title { font-size: 23px; }
+  .pop { left: 12px; right: 12px; bottom: 76px; width: auto; }
+  .specimen { width: 76px; height: 76px; }
+  .title { font-size: 24px; }
+  .tail { right: 48px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pop,
-  .body,
-  .timer {
-    animation: none;
-  }
-  .timer { display: none; }
+  .pop, .body, .timer, .medallion, .amount, .avatar::after, .burst span { animation: none; }
+  .burst, .timer { display: none; }
 }
+
+.medallion[data-icon="badge"] { --signal: var(--phase); }
+.badgeGlyph { font-family: var(--font-mono); font-size: 24px; font-weight: 700; color: var(--signal); text-shadow: 0 0 12px var(--signal); }

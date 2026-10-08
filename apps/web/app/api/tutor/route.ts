@@ -215,16 +215,22 @@ function guardedOutput(send: Send, ctx: CircuitContext, sources: TutorSource[], 
     finish: () => {
       if (!halt) release(buffer.flush());
     },
+    /** Says the finished answer passed every check. Call before "done". */
+    verified() {
+      if (started && !halt) send({ t: "verified", claims: checker.checked });
+    },
     /** Ends the answer if a check stopped it. True when it did. */
     concluded(question: string): boolean {
       const h = halt as typeof halt;
       if (!h) return false;
       if (h.kind === "contradiction") {
         console.warn(`[tutor] withdrew an answer that contradicts the simulator: "${h.bad.claim}" (${h.bad.actual})`);
+        send({ t: "check", by: "claim", law: "simulator", misconception: null });
         if (started) send({ t: "retract" });
         answerFromGuide(send, question, ctx, WITHDRAWN, retractionAnswer(question, ctx));
       } else if (h.kind === "physics") {
         console.warn(`[tutor] physics firewall withdrew an answer (${h.bad.law}): "${h.bad.claim}"`);
+        send({ t: "check", by: "physics", law: h.bad.law, misconception: h.bad.misconception });
         if (started) send({ t: "retract" });
         answerFromGuide(send, question, ctx, firewalled(h.bad), physicsAnswer(h.bad, question, ctx));
       } else {
@@ -297,6 +303,7 @@ async function answerFromClaude(
     } else if (final.stop_reason === "max_tokens") {
       send({ t: "note", v: "The answer was cut short. Ask for the rest if you need it." });
     }
+    out.verified();
     send({ t: "done" });
   } catch (err) {
     if (signal.aborted) return;
@@ -471,6 +478,7 @@ async function answerFromGemini(
     } else if (finishReason === "MAX_TOKENS") {
       send({ t: "note", v: "The answer was cut short. Ask for the rest if you need it." });
     }
+    out.verified();
     send({ t: "done" });
   } catch (err) {
     if (signal.aborted) return;

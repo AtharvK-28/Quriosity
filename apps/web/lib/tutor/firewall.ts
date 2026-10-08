@@ -16,7 +16,9 @@
  *     curriculum cannot drift apart.
  *   - COMPUTED. Claims about what a fixed gate does — "H sends |0⟩ to |1⟩",
  *     "S applied twice cancels", "|0⟩ 70% and |1⟩ 50%" — are not looked up,
- *     they are worked out with the gate registry's own matrices.
+ *     they are worked out with the gate registry's own matrices. CNOT, CZ,
+ *     SWAP and Toffoli on basis states ("CNOT turns |10⟩ into |11⟩") are
+ *     worked out under every wire assignment, since bit order varies by SDK.
  *
  * Like the claim check, it leans towards letting text through. A clause that
  * negates the idea ("nothing travels faster than light") or a sentence that
@@ -165,7 +167,164 @@ const LAWS: Law[] = [
     // Cirq and PennyLane really do order the other way.
     unless: /\b(?:cirq|pennylane|big[- ]endian)\b/i,
   },
+  {
+    id: "entangled-no-own-state",
+    name: "an entangled qubit has no state of its own",
+    misconception: "M4",
+    wrong: [
+      /\b(?:entangled|bell (?:pair|state))\b[^.]*?\b(?:each|every|both|either)\s+(?:of\s+the\s+)?qubits?\b[^.]*?\b(?:has|have|keeps?|still has)\s+(?:its|their)\s+own\s+(?:pure\s+|definite\s+|individual\s+)?(?:state|bloch vector|arrow|direction)\b/i,
+      /\b(?:each|every|either)\s+(?:half|qubit)\s+of\s+(?:an?\s+|the\s+)?(?:entangled|bell)\s+(?:pair|state)\b[^.]*?\b(?:is|sits|points|lies)\s+(?:in\s+(?:a\s+)?(?:pure|definite)\s+state|on\s+the\s+surface)\b/i,
+      /\bentangled\s+qubit(?:'s)?\b[^.]*?\b(?:bloch\s+)?(?:vector|arrow)\b[^.]*?\b(?:on|at|reaches|touches)\s+the\s+surface\b/i,
+      /\b(?:one|a single)\s+bloch sphere\b[^.]*?\b(?:shows?|represents?|holds?|draws?|captures?|describes?)\s+(?:the\s+(?:full|whole|joint|complete)\s+state\s+of\s+)?(?:two|both|2|multiple|several|many)\s+(?:entangled\s+)?qubits\b/i,
+      /\b(?:two|2|multi)[- ]qubit\s+(?:state|register)s?\b[^.]*?\b(?:fits?|lives?|lies?|is drawn|can be drawn|sits?|can be shown)\s+on\s+(?:a|one|the)\s+(?:single\s+)?bloch sphere\b/i,
+    ],
+  },
+  {
+    id: "relative-phase",
+    name: "relative phase is physical",
+    misconception: "M6",
+    wrong: [
+      /\brelative phases?\b[^.]*?\b(?:doesn['’]t|does not|don['’]t|do not|never|won['’]t|will not)\s+(?:really\s+)?(?:matter|make (?:any |a )?difference|affect anything|change anything|do anything)\b/i,
+      /\brelative phases?\b[^.]*?\b(?:is|are)\s+(?:irrelevant|meaningless|unphysical|not physical|unobservable|undetectable|unmeasurable|just bookkeeping|only bookkeeping)\b/i,
+      /\brelative phases?\b[^.]*?\bcan\s+(?:always\s+|safely\s+)?be\s+(?:ignored|dropped|discarded)\b/i,
+      /\|\s*\+\s*(?:⟩|>)\s+and\s+\|\s*[−-]\s*(?:⟩|>)\s+(?:are|is)\s+(?:really\s+|actually\s+|just\s+)?(?:the same(?:\s+state)?|identical|equivalent|interchangeable|indistinguishable)\b/i,
+    ],
+    // The histogram really can't tell them apart; that is the half-truth M6 grows from.
+    unless: /\b(?:z[- ]?basis|histogram|counts?|odds|probabilit\w*|statistics|computational basis|measur\w*|global)\b/i,
+    negationIsTheClaim: true,
+  },
+  {
+    id: "kickback",
+    name: "a controlled gate can change its control",
+    misconception: "M9",
+    wrong: [
+      /\bcontrol(?:\s+qubit)?\b[^.]*?\b(?:is\s+never|is\s+not\s+ever|never\s+gets?|can(?:not|['’]t)\s+(?:ever\s+)?be)\s+(?:changed|affected|touched|altered|modified|disturbed)\b/i,
+      /\b(?:controlled[- ]gates?|CNOTs?|CX|CZ|Controlled-[XZ]|Toffoli)\b[^.]*?\b(?:never|can(?:not|['’]t))\s+(?:change[sd]?|affects?|touch(?:es)?|alters?|modif(?:y|ies)|disturbs?)\s+(?:the\s+|its\s+)?controls?\b/i,
+      /\b(?:controlled[- ]gates?|CNOTs?|CX|CZ|Controlled-[XZ]|Toffoli)\b[^.]*?\b(?:always|only ever)\s+leaves?\s+(?:the\s+|its\s+)?controls?\s+(?:alone|unchanged|untouched)\b/i,
+      /\bcontrol(?:\s+qubit)?\s+(?:always|never\s+changes|is\s+always)\s+(?:stays?\s+|remains?\s+)?(?:unchanged|untouched|unaffected|the same)\b/i,
+    ],
+    // On basis states the control really is left alone — that is the truth table.
+    unless: /\b(?:basis|classical|computational|definite|truth table|0 or 1)\b|\|\s*[01]+\s*(?:⟩|>)/i,
+    negationIsTheClaim: true,
+  },
+  {
+    id: "noise-everywhere",
+    name: "noise acts at every gate",
+    misconception: "M13",
+    wrong: [
+      /\bnoise\b[^.]*?\b(?:only|just)\s+(?:ever\s+)?(?:happens?|occurs?|acts?|matters?|comes?|appears?|affects?|creeps? in|enters?|kicks? in)\b[^.]*?\b(?:at the end|during (?:the )?(?:final )?measurement|at (?:the )?(?:final )?measurement|at readout|on readout|when you measure)\b/i,
+      /\bnoise\s+(?:is|=)\s+(?:just|only|simply|merely)\s+(?:a\s+|some\s+)?(?:random\s+)?(?:bit[- ]flips?|readout errors?)\b/i,
+    ],
+  },
+  {
+    id: "noise-grows-with-depth",
+    name: "error grows with circuit depth",
+    misconception: "M13",
+    wrong: [
+      /\b(?:depth|deeper circuits?|more gates|circuit length|longer circuits?|gate count)\b[^.]*?\b(?:doesn['’]t|does not|don['’]t|do not|won['’]t|never)\s+(?:matter|affect|change|increase|add to|raise|make a difference to)\b[^.]*?\b(?:noise|errors?|fidelity|accuracy)\b/i,
+      /\b(?:noise|errors?)\b[^.]*?\b(?:doesn['’]t|does not|don['’]t|do not|won['’]t|never)\s+(?:grow|build up|accumulate|increase|depend)\b[^.]*?\b(?:depth|gates|circuit length|longer|deeper)\b/i,
+    ],
+    negationIsTheClaim: true,
+  },
+  {
+    id: "quantum-alongside-classical",
+    name: "quantum computers work alongside classical ones",
+    misconception: "M14",
+    wrong: [
+      /\bquantum comput\w*\b[^.]*?\b(?:will|would|are going to|is going to|could|can|shall)\s+(?:eventually\s+|soon\s+|one day\s+|someday\s+|completely\s+|fully\s+)?(?:replace|supersede|make\s+(?:all\s+)?(?:classical|ordinary|regular|normal|conventional)\s+computers?\s+obsolete)\b/i,
+      /\bquantum comput\w*\b[^.]*?\b(?:faster|better|quicker|more powerful)\s+(?:at|for|on|than classical computers (?:at|for|on))\s+(?:everything|anything|every(?:\s+\w+)?\s+(?:problem|task|computation|program)|all\s+(?:problems|tasks|computations|programs))\b/i,
+      /\bquantum comput\w*\b[^.]*?\b(?:speeds? up|accelerates?|solves?)\s+(?:everything|every (?:problem|task|computation|program)|all (?:problems|tasks|computations|programs))\b/i,
+      /\bquantum comput\w*\b[^.]*?\b(?:doesn['’]t|does not|don['’]t|do not|won['’]t|will not)\s+need\s+(?:a\s+|any\s+)?classical\s+(?:computers?|hardware|help|control)\b/i,
+    ],
+  },
 ];
+
+/* -- Computed laws: multi-qubit gates on basis states -------------------------- */
+
+/*
+ * "CNOT turns |10⟩ into |11⟩" is right with the control on the left, as
+ * textbooks write it, and wrong with the control on the right, as Qiskit
+ * orders bits. The tutor may be using either, so a claim is only wrong when no
+ * wire assignment makes it right.
+ */
+const MGATE = String.raw`(CNOTs?|CX|C-NOT|[Cc]ontrolled-(?:NOT|X|Z)|CZ|SWAP|[Ss]wap|Toffoli|CCX|CCNOT)`;
+const MKET = String.raw`\|\s*[01]{2,3}\s*(?:⟩|>|〉)`;
+
+const MULTI_CLAIM = [
+  new RegExp(
+    String.raw`\b${MGATE}(?:\s+gate)?\s+(?:maps|turns|takes|sends|transforms|converts|changes|flips|brings|moves)\s+(${MKET})\s+(?:to|into|onto)\s+[−-]?\s*(${MKET})`,
+  ),
+  new RegExp(
+    String.raw`\b(?:[Aa]pply(?:ing)?\s+(?:an?\s+|the\s+)?|[Aa]n?\s+|[Tt]he\s+)${MGATE}(?:\s+gate)?\s+(?:to|on)\s+(${MKET})\s+(?:gives|yields|produces|makes|leaves|results in|returns|puts it in)\s+(?:you\s+)?[−-]?\s*(${MKET})`,
+  ),
+];
+
+type MultiGate = "cx" | "cz" | "swap" | "ccx";
+
+function multiGate(word: string): MultiGate | null {
+  const w = word.toLowerCase().replace(/s$/, "");
+  if (["cnot", "cx", "c-not", "controlled-not", "controlled-x"].includes(w)) return "cx";
+  if (["cz", "controlled-z"].includes(w)) return "cz";
+  if (w === "swap") return "swap";
+  if (["toffoli", "ccx", "ccnot"].includes(w)) return "ccx";
+  return null;
+}
+
+const bitsOf = (ket: string) => ket.replace(/[^01]/g, "");
+
+/** Every basis state the gate can send `bits` to, over every wire assignment. */
+function multiOutcomes(gate: MultiGate, bits: string): string[] | null {
+  const n = bits.length;
+  const flip = (b: string, i: number) => b.slice(0, i) + (b[i] === "1" ? "0" : "1") + b.slice(i + 1);
+  if (gate === "cz") return n === 2 ? [bits] : null;
+  if (gate === "swap") return n === 2 ? [bits[1] + bits[0]] : null;
+  if (gate === "cx") {
+    if (n !== 2) return null;
+    return [bits[0] === "1" ? flip(bits, 1) : bits, bits[1] === "1" ? flip(bits, 0) : bits];
+  }
+  if (n !== 3) return null;
+  const out: string[] = [];
+  for (let target = 0; target < 3; target++) {
+    const controls = [0, 1, 2].filter((i) => i !== target);
+    out.push(controls.every((i) => bits[i] === "1") ? flip(bits, target) : bits);
+  }
+  return out;
+}
+
+const GATE_TITLE: Record<MultiGate, string> = { cx: "CNOT", cz: "Controlled-Z", swap: "SWAP", ccx: "Toffoli" };
+
+function multiTruth(gate: MultiGate, from: string, outs: string[], claimed: string): string {
+  const ket = (b: string) => `|${b}⟩`;
+  const distinct = [...new Set(outs)];
+  if (gate === "cz") {
+    return `Controlled-Z never changes a basis state's bits, only its sign: ${ket(from)} stays ${ket(from)}${from === "11" ? " (with a minus sign)" : ""}, not ${ket(claimed)}.`;
+  }
+  if (distinct.length === 1) {
+    return `${GATE_TITLE[gate]} sends ${ket(from)} to ${ket(distinct[0])}, not ${ket(claimed)}.`;
+  }
+  return `${GATE_TITLE[gate]} sends ${ket(from)} to ${distinct.map(ket).join(" or ")}, depending on which qubit is the ${gate === "ccx" ? "target" : "control"} — never to ${ket(claimed)}.`;
+}
+
+function multiViolation(clause: string): Violation | null {
+  for (const re of MULTI_CLAIM) {
+    const m = re.exec(clause);
+    if (!m) continue;
+    const gate = multiGate(m[1]);
+    const from = bitsOf(m[2]);
+    const to = bitsOf(m[3]);
+    if (!gate || from.length !== to.length) continue;
+    const outs = multiOutcomes(gate, from);
+    if (!outs || outs.includes(to)) continue;
+    return {
+      law: "gate-algebra",
+      name: "gate algebra",
+      claim: clause.trim(),
+      truth: multiTruth(gate, from, outs, to),
+      misconception: null,
+    };
+  }
+  return null;
+}
 
 /* -- Computed laws: fixed gates, worked out ------------------------------------ */
 
@@ -274,6 +433,9 @@ const ACTION_CLAIM = [
 function computedViolation(clause: string): Violation | null {
   const claim = clause.trim();
 
+  const multi = multiViolation(clause);
+  if (multi) return multi;
+
   for (const re of SELF_INVERSE_CLAIM) {
     const m = re.exec(clause);
     const type = m && fixedGate(m[1]);
@@ -356,6 +518,13 @@ const LETTER: Partial<Record<GateType, string>> = {
 
 function asProse(text: string): string {
   return text.replace(CHIP, (_m, id: string) => LETTER[id as GateType] ?? GATES[id as GateType]?.name ?? id);
+}
+
+/** The learner-facing name of a law, by id. */
+export function lawName(id: string): string {
+  if (id === "gate-algebra") return "gate algebra";
+  if (id === "normalisation") return "probabilities add up to 100%";
+  return LAWS.find((l) => l.id === id)?.name ?? id;
 }
 
 /** The first physics violation in a chunk of released text, or null. */
