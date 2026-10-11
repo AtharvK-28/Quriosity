@@ -1,0 +1,18 @@
+.publish { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+
+.select {
+  min-height: 32px;
+  max-width: 180px;
+  padding: 0 var(--s-2);
+  border: 1px solid var(--rule-3);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--t-label);
+}
+.select:focus-visible { outline: 2px solid var(--cta); outline-offset: 2px; }
+
+.note { font-size: var(--t-label); }
+.ok { font-size: var(--t-label); color: var(--measure); }
+.bad { font-size: var(--t-label); color: var(--error); }

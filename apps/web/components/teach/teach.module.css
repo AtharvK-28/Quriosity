@@ -44,10 +44,11 @@
 
 .attemptCircuit {
   overflow-x: auto;
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
   padding: var(--s-2);
+  box-shadow: var(--shadow-card);
 }
 
 .attemptMessage {
@@ -65,9 +66,10 @@
   flex-direction: column;
   gap: var(--s-4);
   padding: var(--s-5);
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .assignForm {
@@ -108,7 +110,7 @@
 }
 
 .assignDue {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;

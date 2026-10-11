@@ -25,6 +25,8 @@ import {
 import { NODES, NODES_BY_ID, challengeOpen, useSession } from "@/stores/sessionStore";
 import { targetProbabilities } from "@/lib/grade/fidelity";
 import { toChallenge, useAuthored } from "@/stores/authoredStore";
+import { useClassChallenges } from "@/stores/classChallengesStore";
+import { useAuth } from "@/stores/authStore";
 import s from "./challenges.module.css";
 
 const ORDER: ChallengeKind[] = ["reach", "golf", "bughunt"];
@@ -33,10 +35,16 @@ export default function ChallengesPage() {
   const router = useRouter();
   const { progress, challenges, hydrate, hydrated } = useSession();
   const authored = useAuthored((st) => st.items);
+  const published = useClassChallenges((st) => st.items);
+  const authStatus = useAuth((a) => a.status);
 
   useEffect(() => { hydrate(); useAuthored.getState().hydrate(); }, [hydrate]);
 
   const authoredChallenges = useMemo(() => authored.map(toChallenge), [authored]);
+  const classChallenges = useMemo(() => published.map((c) => ({ challenge: toChallenge(c), cohort: c.cohort })), [published]);
+  useEffect(() => {
+    if (authStatus !== "unknown") void useClassChallenges.getState().load();
+  }, [authStatus]);
 
   const solved = useMemo(
     () => CHALLENGES.filter((c) => challenges[c.id]?.solved).length,
@@ -128,6 +136,29 @@ export default function ChallengesPage() {
           );
         })}
 
+        {classChallenges.length > 0 && (
+          <section className={s.section}>
+            <div className={s.sectionHead}>
+              <h2 className={s.sectionTitle}>From your classes</h2>
+              <span className={s.sectionBlurb}>
+                Published by your instructors. Graded the same way; not counted on your record.
+              </span>
+            </div>
+            <div className={s.grid}>
+              {classChallenges.map(({ challenge: c, cohort }) => (
+                <ChallengeCard
+                  key={c.id}
+                  challenge={{ ...c, brief: `${c.brief} · ${cohort}` }}
+                  locked={false}
+                  solvedGates={challenges[c.id]?.bestGates ?? null}
+                  attempts={challenges[c.id]?.attempts ?? 0}
+                  onOpen={() => router.push(`/challenges/authored?id=${encodeURIComponent(c.id)}`)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {authoredChallenges.length > 0 && (
           <section className={s.section}>
             <div className={s.sectionHead}>
@@ -175,6 +206,7 @@ function ChallengeCard({
     <button
       type="button"
       className={s.card}
+      data-kind={challenge.kind}
       data-locked={locked}
       data-solved={solved}
       disabled={locked}

@@ -41,16 +41,18 @@
 .stage {
   position: relative;
   padding: 0 var(--s-4);
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .panel {
   padding: var(--s-5);
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .panelHead {

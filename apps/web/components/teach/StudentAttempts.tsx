@@ -4,7 +4,7 @@
  * One student's recent failed runs — PRD E10-S5: "a read-only view of the IR,
  * the result, and the diagnosis issued". What the instructor sees is what the
  * learner saw: the circuit as submitted, its fidelity, and the rule engine's
- * sentence.
+ * sentence, with the gate that sentence is about ringed on the circuit.
  */
 
 import { useEffect, useState } from "react";
@@ -14,6 +14,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { CHALLENGES_BY_ID } from "@/lib/curriculum/challenges";
 import { NODES_BY_ID } from "@/lib/curriculum/nodes";
 import type { Circuit } from "@/lib/ir/types";
+import { attemptHighlights } from "@/lib/tutor/replay";
 import { api, ApiError } from "@/stores/authStore";
 import s from "./teach.module.css";
 
@@ -82,7 +83,7 @@ export function StudentAttempts({
                 <span className={s.muted}>{ago(a.at)}</span>
               </div>
               <div className={s.attemptCircuit}>
-                <CircuitCanvas circuit={a.ir} minColumns={3} readOnly />
+                <CircuitCanvas circuit={a.ir} minColumns={3} readOnly highlighted={attemptHighlights(a.place, a.ir, a.ruleId)} />
               </div>
               <p className={s.attemptMessage}>
                 {a.message ?? "No specific diagnosis — the state was simply not the target."}

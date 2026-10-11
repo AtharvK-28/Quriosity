@@ -21,9 +21,11 @@ import { Button, Chip, Input, Registration, Segmented } from "@/components/ui/pr
 import { GATES } from "@/lib/ir/gates";
 import { emptyCircuit, gateCount, type GateType } from "@/lib/ir/types";
 import { targetNeedsPhase, targetProbabilities } from "@/lib/grade/fidelity";
+import { describeState } from "@/lib/sim/describe";
 import { useCircuit } from "@/stores/circuitStore";
 import { defaultPalette, deriveTarget, useAuthored, type AuthoredChallenge } from "@/stores/authoredStore";
 import { useSession } from "@/stores/sessionStore";
+import { PublishChallenge } from "@/components/teach/PublishChallenge";
 import p from "@/components/ui/page.module.css";
 
 const TRAY: GateType[] = [
@@ -36,7 +38,7 @@ export default function AuthorPage() {
   const authored = useAuthored();
   const {
     circuit, held, pendingControl, selectedGateId, highlighted,
-    hold, place, completeControlled, cancelPending, select, moveGate, removeGate, setParams,
+    hold, place, completeControlled, cancelPending, select, moveGate, dropGate, rewireGate, removeGate, setParams,
     setCircuit, addQubit, removeQubit, undo,
   } = useCircuit();
 
@@ -57,6 +59,13 @@ export default function AuthorPage() {
   const target = useMemo(() => (circuit.gates.length > 0 ? deriveTarget(circuit) : null), [circuit]);
   const suggested = useMemo(() => defaultPalette(circuit), [circuit]);
   const offered = palette ?? suggested;
+  /** The target written out, when it is a pure state that can be. */
+  const described = useMemo(
+    () => (target?.kind === "statevector" ? describeState(target.amplitudes, target.qubits) : null),
+    [target],
+  );
+  /** Gates the answer uses. Anything else offered is a decoy. */
+  const used = useMemo(() => new Set(circuit.gates.map((g) => g.type)), [circuit]);
   const missing = circuit.gates.map((g) => g.type).filter((t) => t !== "barrier" && !offered.includes(t));
 
   const problems = [
@@ -112,6 +121,8 @@ export default function AuthorPage() {
                   onCancelPending={cancelPending}
                   onSelect={select}
                   onMove={moveGate}
+                  onDrop={dropGate}
+                  onRewire={rewireGate}
                   onRemove={removeGate}
                   onParams={setParams}
                 />
@@ -137,6 +148,16 @@ export default function AuthorPage() {
               </div>
               {target ? (
                 <>
+                  {described && (
+                    <div style={{ marginBottom: "var(--s-3)" }}>
+                      <p className="mono" style={{ fontSize: "var(--t-title)", lineHeight: 1.3, overflowWrap: "anywhere" }} aria-label={`Target state ${described.ket}`}>
+                        {described.ket}
+                      </p>
+                      <p style={{ marginTop: "var(--s-1)", color: "var(--measure)" }}>
+                        {described.name ? `${described.name[0].toUpperCase()}${described.name.slice(1)}, worked out from your circuit.` : "Worked out from your circuit."}
+                      </p>
+                    </div>
+                  )}
                   <Histogram qubits={circuit.qubits} actual={probabilityMap(targetProbabilities(target), circuit.qubits)} height={120} dense={circuit.qubits <= 3} />
                   <p className={p.muted} style={{ marginTop: "var(--s-3)" }}>
                     {target.kind === "statevector"
@@ -180,8 +201,9 @@ export default function AuthorPage() {
               <div className={p.row} style={{ gap: "var(--s-2)" }}>
                 {TRAY.map((t) => {
                   const on = offered.includes(t);
+                  const decoy = on && t !== "measure" && circuit.gates.length > 0 && !used.has(t);
                   return (
-                    <label key={t} title={GATES[t].name} style={{ display: "inline-flex", alignItems: "center", gap: 4, opacity: on ? 1 : 0.5, cursor: "pointer" }}>
+                    <label key={t} title={decoy ? `${GATES[t].name} · decoy, the answer doesn't use it` : GATES[t].name} style={{ display: "inline-flex", alignItems: "center", gap: 4, opacity: on ? 1 : 0.5, cursor: "pointer" }}>
                       <input
                         type="checkbox"
                         checked={on}
@@ -189,6 +211,9 @@ export default function AuthorPage() {
                         aria-label={GATES[t].name}
                       />
                       <span style={{ width: 30, height: 30, display: "grid", placeItems: "center" }}><GateMark spec={GATES[t]} /></span>
+                      {decoy && (
+                        <span className="mono" style={{ fontSize: "var(--t-micro)", color: "var(--ink-faint)" }}>decoy</span>
+                      )}
                     </label>
                   );
                 })}
@@ -207,8 +232,8 @@ export default function AuthorPage() {
               </p>
             )}
             <p className={p.muted}>
-              Authored challenges stay in this browser until there is a server to publish
-              them to a cohort.
+              Saved challenges stay in this browser. Publish one to a class from the list
+              below, and every member finds it under Challenges.
             </p>
           </form>
         </div>
@@ -225,7 +250,10 @@ export default function AuthorPage() {
                     <Link href={`/challenges/authored?id=${encodeURIComponent(a.id)}`}>{a.title}</Link>{" "}
                     <span className={p.mono}>{a.kind} · {a.reference.qubits}q · par {gateCount(a.reference)}</span>
                   </span>
-                  <Button variant="ghost" size="sm" onClick={() => authored.remove(a.id)}>Delete</Button>
+                  <span className={p.row} style={{ gap: "var(--s-2)" }}>
+                    <PublishChallenge challenge={a} />
+                    <Button variant="ghost" size="sm" onClick={() => authored.remove(a.id)}>Delete</Button>
+                  </span>
                 </div>
               ))}
             </div>

@@ -39,10 +39,11 @@
 
 .targetCard {
   position: relative;
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   padding: var(--s-5);
+  box-shadow: var(--shadow-card);
 }
 
 .targetHead {
@@ -70,9 +71,10 @@
 
 .stage {
   position: relative;
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .stageBody { padding: 0 var(--s-4); }
@@ -94,7 +96,7 @@
 }
 
 .gateCount {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -124,7 +126,8 @@
   padding: var(--s-5);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
-  background: var(--paper);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .verdict[data-tone="miss"],

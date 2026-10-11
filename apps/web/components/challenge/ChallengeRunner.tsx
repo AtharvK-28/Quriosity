@@ -19,6 +19,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CircuitCanvas } from "@/components/circuit/CircuitCanvas";
+import { KetBeside } from "@/components/mascot/KetWatch";
 import { GateTray, TrayHint } from "@/components/circuit/GateTray";
 import { Histogram, probabilityMap, toFractions } from "@/components/viz/Histogram";
 import { BlochRow } from "@/components/viz/BlochSphere";
@@ -33,7 +34,7 @@ import { targetProbabilities } from "@/lib/grade/fidelity";
 import type { Sdk } from "@/lib/render";
 import { track } from "@/lib/analytics";
 import { useCircuit } from "@/stores/circuitStore";
-import { useSession } from "@/stores/sessionStore";
+import { MODE, useSession } from "@/stores/sessionStore";
 import {
   DIFFICULTY_COPY, KIND_COPY, type Challenge,
 } from "@/lib/curriculum/challenges";
@@ -51,18 +52,26 @@ const VIEWS: Array<{ value: View; label: string }> = [
 export function ChallengeRunner({
   challenge,
   backHref = "/challenges",
+  backLabel = "Challenges",
   authored = false,
+  badge,
+  onResult,
 }: {
   challenge: Challenge;
   backHref?: string;
+  backLabel?: string;
   /** Written by an instructor in this browser (E8-S6). Not part of the record. */
   authored?: boolean;
+  /** An extra chip in the crumb, e.g. "daily puzzle". */
+  badge?: string;
+  /** Every graded run. `assisted` once the solution has been shown. */
+  onResult?(r: { passed: boolean; circuit: Circuit; attempts: number; assisted: boolean }): void;
 }) {
-  const { challenges, recordChallenge, recordMisconception, hydrate } = useSession();
+  const { challenges, recordChallenge, recordMisconception, hydrate, mode } = useSession();
   const {
     circuit, setCircuit, held, pendingControl, selectedGateId, highlighted,
     run, running, error,
-    hold, place, completeControlled, cancelPending, select, moveGate, removeGate,
+    hold, place, completeControlled, cancelPending, select, moveGate, dropGate, rewireGate, removeGate,
     setParams, execute, applyFix, clearRun, undo,
   } = useCircuit();
 
@@ -120,6 +129,7 @@ export function ChallengeRunner({
       gate_count: gateCount(circuit),
     });
     if (!authored) recordChallenge(challenge.id, run.grade.passed, gateCount(circuit));
+    onResult?.({ passed: run.grade.passed, circuit, attempts: attempts, assisted: solutionShown });
     if (run.finding?.misconception) {
       recordMisconception(run.finding.misconception, run.finding.ruleId, null);
     }
@@ -189,8 +199,9 @@ export function ChallengeRunner({
   return (
     <div className={s.shell}>
       <nav className={s.crumb}>
-        <Link href={backHref} className={`label ${s.back}`}>← Challenges</Link>
+        <Link href={backHref} className={`label ${s.back}`}>← {backLabel}</Link>
         <span style={{ display: "flex", gap: "var(--s-3)", alignItems: "center" }}>
+          {badge && <Chip tone="measure">{badge}</Chip>}
           {authored && <Chip tone="phase">authored here</Chip>}
           <Chip>{KIND_COPY[challenge.kind].label}</Chip>
           <Chip>{DIFFICULTY_COPY[challenge.difficulty]}</Chip>
@@ -215,22 +226,27 @@ export function ChallengeRunner({
           <div className={s.stage}>
             <Registration />
             <div className={s.stageBody}>
-              <CircuitCanvas
-                circuit={circuit}
-                minColumns={5}
-                selectedGateId={selectedGateId}
-                highlighted={highlighted}
-                qubitStates={qubitStates}
-                held={held}
-                pendingControl={pendingControl}
-                onPlace={place}
-                onCompleteControlled={completeControlled}
-                onCancelPending={cancelPending}
-                onSelect={select}
-                onMove={moveGate}
-                onRemove={removeGate}
-                onParams={setParams}
-              />
+              <KetBeside circuit={circuit} states={qubitStates} selectedGateId={selectedGateId}>
+                <CircuitCanvas
+                  circuit={circuit}
+                  minColumns={5}
+                  selectedGateId={selectedGateId}
+                  highlighted={highlighted}
+                  qubitStates={qubitStates}
+                  held={held}
+                  pendingControl={pendingControl}
+                  onPlace={place}
+                  onCompleteControlled={completeControlled}
+                  onCancelPending={cancelPending}
+                  onSelect={select}
+                  onMove={moveGate}
+                  onDrop={dropGate}
+                  onRewire={rewireGate}
+                  onRemove={removeGate}
+                  onParams={setParams}
+                  pointAt={MODE[mode].proactiveTutor && run && !run.grade?.passed ? highlighted[0] ?? null : null}
+                />
+              </KetBeside>
             </div>
 
             <div className={s.stageFoot}>
@@ -364,7 +380,7 @@ export function ChallengeRunner({
               )}
 
               <Disclosure label="See it in code">
-                <CodePanel circuit={circuit} sdk="qiskit" />
+                <CodePanel circuit={circuit} sdk="qiskit" highlighted={highlighted} />
               </Disclosure>
 
               <div className={s.verdictActions}>
@@ -434,6 +450,7 @@ export function ChallengeRunner({
                 <CodePanel
                   circuit={circuit}
                   sdk={sdk}
+                  highlighted={highlighted}
                   onSdk={setSdk}
                   allowedGates={challenge.allowedGates}
                   requiredQubits={challenge.qubits}

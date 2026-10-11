@@ -27,7 +27,7 @@
   border: 1px solid var(--flag);
   border-radius: var(--r-gate);
   background: var(--flag-wash);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -43,9 +43,10 @@
   position: relative;
   padding: var(--s-5) var(--s-6);
   margin-bottom: clamp(28px, 4vw, 44px);
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .leadStatement {
@@ -85,10 +86,11 @@
 }
 
 .heat {
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
   padding: var(--s-4) var(--s-5);
+  box-shadow: var(--shadow-card);
 }
 
 .heatRow {
@@ -101,6 +103,12 @@
 }
 
 .heatRow:last-child { border-bottom: none; }
+
+/* A phone cannot hold four columns: the bar takes a line of its own. */
+@media (max-width: 520px) {
+  .heatRow { grid-template-columns: minmax(0, 1fr) auto auto; row-gap: var(--s-2); }
+  .heatBar { grid-column: 1 / -1; }
+}
 
 .belief {
   display: flex;
@@ -116,7 +124,7 @@
 }
 
 .beliefMeta {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -161,11 +169,12 @@
 /* -- Completion matrix ------------------------------------------------------------ */
 
 .matrixWrap {
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
   padding: var(--s-5);
   overflow-x: auto;
+  box-shadow: var(--shadow-card);
 }
 
 .matrix {
@@ -212,7 +221,7 @@
 }
 
 .unitTick {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -225,7 +234,7 @@
   margin-top: var(--s-4);
   padding-top: var(--s-4);
   border-top: 1px solid var(--rule);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -356,7 +365,7 @@
   padding: 5px 10px;
   border: 1px solid var(--measure);
   border-radius: var(--r-gate);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
@@ -385,7 +394,7 @@
 .studentOpen {
   align-self: flex-start;
   margin-top: 2px;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
