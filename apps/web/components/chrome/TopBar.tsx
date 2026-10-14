@@ -19,49 +19,53 @@ import { MODE, useSession } from "@/stores/sessionStore";
 import { useAuth } from "@/stores/authStore";
 import { setTheme, useTheme } from "./useTheme";
 import { useOnline } from "./useOnline";
+import { formatCount, t, type MessageKey } from "@/lib/i18n";
+import { dayKey, liveStreak } from "@/lib/daily";
 import s from "./TopBar.module.css";
 
-const NAV: Record<string, Array<{ href: string; label: string }>> = {
+type NavLink = { href: string; label: string };
+const link = (href: string, key: MessageKey): NavLink => ({ href, label: t(key) });
+
+const NAV: Record<string, NavLink[]> = {
   guided: [
-    { href: "/path", label: "Path" },
-    { href: "/challenges", label: "Challenges" },
-    { href: "/arena", label: "Arena" },
-    { href: "/build", label: "Bench" },
-    { href: "/review", label: "Review" },
-    { href: "/profile", label: "Progress" },
-    { href: "/reference", label: "Glossary" },
+    link("/path", "nav.path"),
+    link("/challenges", "nav.challenges"),
+    link("/arena", "nav.arena"),
+    link("/build", "nav.bench"),
+    link("/review", "nav.review"),
+    link("/profile", "nav.progress"),
+    link("/reference", "nav.glossary"),
   ],
   // A researcher gets the bench and the docs (PRD §4: "Workbench mode surfaces
   // Build, Docs, and nothing else by default"). No path, no challenges, no
   // progress — none of it is why they opened the tab.
-  workbench: [
-    { href: "/build", label: "Bench" },
-    { href: "/docs", label: "Docs" },
-    { href: "/reference", label: "Glossary" },
-  ],
+  workbench: [link("/build", "nav.bench"), link("/docs", "nav.docs"), link("/reference", "nav.glossary")],
   // PRD §4: "Track mode surfaces Tracks, Build, Challenges."
   track: [
-    { href: "/tracks", label: "Tracks" },
-    { href: "/challenges", label: "Challenges" },
-    { href: "/arena", label: "Arena" },
-    { href: "/build", label: "Bench" },
-    { href: "/review", label: "Review" },
-    { href: "/profile", label: "Progress" },
-    { href: "/reference", label: "Glossary" },
+    link("/tracks", "nav.tracks"),
+    link("/challenges", "nav.challenges"),
+    link("/arena", "nav.arena"),
+    link("/build", "nav.bench"),
+    link("/review", "nav.review"),
+    link("/profile", "nav.progress"),
+    link("/reference", "nav.glossary"),
   ],
 };
 
 /** Reachable from every mode, but never worth a slot in the main run. */
-const SECONDARY = [
-  { href: "/playground", label: "Playground" },
-  { href: "/teach", label: "Teach" },
-  { href: "/docs", label: "Docs" },
-  { href: "/settings", label: "Settings" },
+const SECONDARY: NavLink[] = [
+  link("/playground", "nav.playground"),
+  link("/teach", "nav.teach"),
+  link("/docs", "nav.docs"),
+  link("/settings", "nav.settings"),
 ];
 
 export function TopBar() {
   const pathname = usePathname();
-  const { mode, xp, streakDays, hydrate, hydrated, setMode } = useSession();
+  const session = useSession();
+  const { mode, xp, hydrate, hydrated, setMode } = session;
+  const live = liveStreak(session);
+  const puzzleDone = session.daily.day === dayKey() && session.daily.puzzle !== null;
   const online = useOnline();
   const caps = MODE[mode];
   const theme = useTheme();
@@ -88,7 +92,7 @@ export function TopBar() {
         <span className={s.wordmark}>Quriosity</span>
       </Link>
 
-      <nav className={s.nav} aria-label="Main">
+      <nav className={s.nav} aria-label={t("nav.main")}>
         {links.map((l) => (
           <Link
             key={l.href}
@@ -139,27 +143,35 @@ export function TopBar() {
             than warns: it takes the measurement colour, not the error one, and
             it names what still works. Nothing in the app is gated on it. */}
         {!online && (
-          <span className={s.offline} role="status" title="The simulator, the grader and the tutor's rule engine all run on this device.">
+          <span className={s.offline} role="status" title={t("topbar.offlineTitle")}>
             <span className={s.offlineMark} aria-hidden>
               ●
             </span>
-            offline · still works
+            {t("topbar.offline")}
           </span>
         )}
 
         {/* Only rendered where the mode permits. Hidden UI is not a control on
             the server, but here the whole point is that it does not exist. */}
-        {hydrated && caps.streak && streakDays > 0 && (
-          <span className={s.stat} title={`${streakDays} days in a row`}>
-            <span className={s.statMark} aria-hidden>
-              ▲
-            </span>
-            {streakDays}d
-          </span>
+        {/* The streak is the way back in: it links to today, and says when
+            today still needs doing. */}
+        {hydrated && caps.streak && (
+          <Link
+            href="/daily"
+            className={s.streak}
+            data-state={live.doneToday ? "done" : live.atRisk ? "risk" : "idle"}
+            title={live.doneToday ? t("topbar.streakDone", { days: live.days }) : live.atRisk ? t("topbar.streakRisk", { days: live.days }) : t("topbar.streakStart")}
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden className={s.streakFlame}>
+              <path d="M12 2.5c.6 3.2-1.9 4.9-3.4 7C7.2 11.4 6.5 13 6.5 15a5.5 5.5 0 0 0 11 0c0-2.6-1.4-4.3-2.6-5.6.1 1.6-.6 2.8-1.7 3.3.5-3.4-.3-7.3-1.2-10.2Z" />
+            </svg>
+            {live.days}
+            {!puzzleDone && <span className={s.streakDot} aria-label={t("topbar.puzzleWaiting")} />}
+          </Link>
         )}
         {hydrated && caps.motivation && (
-          <span className={s.stat} title="Experience from nodes passed">
-            {xp} xp
+          <span className={s.stat} title={t("topbar.xpTitle")}>
+            {t("topbar.xp", { xp: formatCount(xp) })}
           </span>
         )}
 
@@ -167,19 +179,19 @@ export function TopBar() {
           type="button"
           className={s.modeTag}
           onClick={() => setTheme(other)}
-          aria-label={`Theme: ${theme}. Switch to ${other}.`}
-          title={`Switch to ${other}`}
+          aria-label={t("topbar.themeLabel", { theme, other })}
+          title={t("topbar.themeTitle", { other })}
         >
           <span aria-hidden>{theme === "night" ? "☾" : "☀"}</span>
           <span className={s.themeName}> {theme}</span>
         </button>
 
-        <button type="button" className={s.modeTag} onClick={cycleMode} title="Change how the app behaves">
+        <button type="button" className={s.modeTag} onClick={cycleMode} title={t("topbar.modeTitle")}>
           {mode}
         </button>
 
         {authStatus === "signed-in" && user && (
-          <Link href="/settings#account" className={s.account} title={`Signed in as ${user.email}`}>
+          <Link href="/settings#account" className={s.account} title={t("topbar.signedInAs", { email: user.email })}>
             <span className={s.accountMark} aria-hidden>
               {user.displayName.slice(0, 1).toUpperCase()}
             </span>
@@ -188,7 +200,7 @@ export function TopBar() {
         )}
         {authStatus === "guest" && (
           <Link href={`/auth/login?next=${encodeURIComponent(pathname)}`} className={s.signIn}>
-            Sign in
+            {t("topbar.signIn")}
           </Link>
         )}
       </div>
@@ -196,7 +208,7 @@ export function TopBar() {
   );
 }
 
-function MoreMenu({ links, pathname }: { links: Array<{ href: string; label: string }>; pathname: string }) {
+function MoreMenu({ links, pathname }: { links: NavLink[]; pathname: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -229,10 +241,10 @@ function MoreMenu({ links, pathname }: { links: Array<{ href: string; label: str
         data-active={active}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label="Other pages"
+        aria-label={t("nav.otherPages")}
         onClick={() => setOpen((o) => !o)}
       >
-        More ▾
+        {t("nav.more")} ▾
       </button>
       {open && (
         <div className={s.moreMenu} role="menu">

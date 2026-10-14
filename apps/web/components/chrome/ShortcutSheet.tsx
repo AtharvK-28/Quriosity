@@ -17,6 +17,9 @@ export const PAGE_SHORTCUTS: Array<{ keys: string; action: string }> = [
   { keys: "⌘S / Ctrl+S", action: "Save the circuit" },
   { keys: "⌘/ / Ctrl+/", action: "Open or close the tutor" },
   { keys: "1 – 5", action: "Plot, Bloch, Table, Density, Code" },
+  { keys: "Space", action: "Play through the circuit, step by step" },
+  { keys: "[ / ]", action: "Hide or show the state lane" },
+  { keys: "⌘K / Ctrl+K", action: "Go anywhere — pages, lessons, terms, gates" },
   { keys: "?", action: "This sheet" },
 ];
 

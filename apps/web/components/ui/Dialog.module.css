@@ -11,7 +11,7 @@
 
 .panel {
   width: min(560px, 100%);
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   box-shadow: var(--shadow-pop);
@@ -38,7 +38,7 @@
 }
 
 .close {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -60,7 +60,7 @@
   gap: 6px;
   padding: 7px 10px;
   border-radius: var(--r-gate);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   font-weight: 500;
   letter-spacing: var(--ls-label);

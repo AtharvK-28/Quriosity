@@ -1,0 +1,81 @@
+/* The canvas takes the room; Ket stands in a narrow column beside it and
+   never over a gate. */
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s-3);
+}
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.watch {
+  flex: none;
+  width: 132px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-2) var(--s-2);
+  border-left: 1px dashed var(--rule-2);
+}
+
+/* Room for an antenna pointing straight down (|1⟩). */
+.stage {
+  padding-bottom: 10px;
+}
+
+.wires {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.wire {
+  padding: 2px 8px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-full);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.wire[aria-pressed="true"] {
+  border-color: var(--cta);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--cta) 16%, transparent);
+}
+
+.words {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  line-height: 1.3;
+}
+.words b {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--ink);
+}
+.words span {
+  font-size: var(--t-micro);
+  color: var(--ink-3);
+}
+
+/* On a phone the canvas needs the whole width: Ket sits beneath it, in a row. */
+@media (max-width: 640px) {
+  .row { flex-direction: column; }
+  .watch {
+    width: auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    border-left: none;
+    border-top: 1px dashed var(--rule-2);
+    padding: var(--s-2) 0 0;
+  }
+  .stage :global(svg) { width: 56px; height: 56px; }
+  .words { align-items: flex-start; text-align: left; }
+}

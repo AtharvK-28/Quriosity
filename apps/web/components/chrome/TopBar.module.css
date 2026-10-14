@@ -7,8 +7,12 @@
   gap: var(--s-5);
   height: 60px;
   padding: 0 clamp(16px, 3vw, 40px);
-  background: var(--page);
-  border-bottom: 2px solid var(--frame);
+  /* Frosted: the page's light shows through as it scrolls under. */
+  background: color-mix(in srgb, var(--page) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid var(--rule-2);
+  box-shadow: 0 10px 30px -24px rgb(0 0 0 / 0.8);
 }
 
 .brand {
@@ -25,10 +29,13 @@
 .mark {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--ink);
-  border-radius: var(--r-gate);
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 8px;
+  background: var(--cta-grad);
+  color: var(--cta-ink);
+  box-shadow: var(--cta-glow);
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
@@ -56,19 +63,25 @@
 }
 .nav::-webkit-scrollbar { display: none; }
 
+/* Navigation is read on every page, so it is set as words, not as a code:
+   the UI face, normal case, at a reading size. */
 .link {
-  padding: 7px 11px;
-  border-radius: var(--r-gate);
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
+  position: relative;
+  padding: 7px 12px;
+  border-radius: var(--r-full);
+  font-family: var(--font-label);
+  font-size: 14.5px;
   font-weight: 500;
-  letter-spacing: var(--ls-label);
-  text-transform: uppercase;
-  color: var(--ink-muted);
+  letter-spacing: 0.01em;
+  color: var(--ink-3);
   white-space: nowrap;
 }
-.link:hover { color: var(--ink); background: var(--paper); text-decoration: none; }
-.link[data-active="true"] { color: var(--ink); background: var(--paper); }
+.link:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 7%, transparent); text-decoration: none; }
+.link[data-active="true"] {
+  color: var(--ink);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cta) 22%, transparent), color-mix(in srgb, var(--cta) 8%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cta) 45%, transparent), 0 6px 18px -10px var(--cta);
+}
 
 /* Secondary destinations sit apart from the learning run, so the main nav
    still reads as one sequence rather than a bag of links. */
@@ -102,12 +115,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-mono);
-  font-size: var(--t-micro);
-  font-weight: 500;
+  font-family: var(--font-label);
+  font-size: 13.5px;
+  font-weight: 700;
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -117,7 +130,7 @@
   padding: 4px 8px;
   border: 1px solid var(--rule-2);
   border-radius: var(--r-gate);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -149,7 +162,7 @@
   padding: 4px 8px;
   border: 1px solid var(--measure);
   border-radius: var(--r-gate);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -183,9 +196,9 @@
   border-radius: var(--r-gate);
   background: var(--cta);
   color: var(--cta-ink);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
   white-space: nowrap;
@@ -255,7 +268,7 @@
 .moreItem {
   padding: 8px 10px;
   border-radius: var(--r-gate);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
@@ -274,3 +287,38 @@
 @media (max-width: 1280px) {
   .themeName { display: none; }
 }
+
+/* The streak: a link to today. Grey until today counts, coral while it is at
+   risk, lit once it is safe. */
+.streak {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-full);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.streak:hover { text-decoration: none; border-color: var(--rule-3); color: var(--ink); }
+.streakFlame { fill: var(--rule-3); }
+.streak[data-state="done"] { color: var(--ink); border-color: color-mix(in srgb, var(--flag) 50%, transparent); }
+.streak[data-state="done"] .streakFlame { fill: var(--flag); }
+.streak[data-state="risk"] { color: var(--flag); border-color: var(--flag); }
+.streak[data-state="risk"] .streakFlame { fill: var(--flag); animation: flicker 1.6s ease-in-out infinite; }
+.streakDot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--cta);
+  box-shadow: 0 0 0 2px var(--page);
+}
+@keyframes flicker { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .streak[data-state="risk"] .streakFlame { animation: none; } }

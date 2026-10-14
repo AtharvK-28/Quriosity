@@ -45,9 +45,10 @@
 .panel {
   position: relative;
   padding: var(--s-5);
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .framed { border: var(--frame-w) solid var(--frame); }
@@ -113,11 +114,12 @@
   flex-direction: column;
   gap: 6px;
   padding: var(--s-4);
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
   cursor: pointer;
   text-align: left;
+  box-shadow: var(--shadow-card);
 }
 
 .choice:hover { border-color: var(--ink); }
@@ -148,7 +150,7 @@
 .listRow:last-child { border-bottom: none; }
 
 .mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -184,7 +186,7 @@
 }
 
 .table th {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   font-weight: 500;
   letter-spacing: var(--ls-micro);
@@ -243,7 +245,7 @@
   gap: var(--s-4);
   flex-wrap: wrap;
   margin-bottom: var(--s-6);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
