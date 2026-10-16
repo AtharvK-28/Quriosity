@@ -22,12 +22,13 @@
   align-items: flex-start;
   gap: var(--s-3);
   padding: var(--s-5);
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--rule-3);
   border-radius: var(--r-panel);
   text-align: left;
   cursor: pointer;
   transition: border-color var(--m-quick) var(--e-out), transform var(--m-quick) var(--e-out);
+  box-shadow: var(--shadow-card);
 }
 
 .card:hover {
@@ -113,7 +114,7 @@
 .cardWho {
   margin-top: auto;
   padding-top: var(--s-3);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-label);
   text-transform: uppercase;
@@ -126,3 +127,12 @@
   color: var(--ink-muted);
   max-width: 58ch;
 }
+
+.replay {
+  margin-top: var(--s-4);
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--measure);
+  cursor: pointer;
+}
+.replay:hover { color: var(--ink); }

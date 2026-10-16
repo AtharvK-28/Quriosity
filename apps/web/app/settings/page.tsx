@@ -8,18 +8,19 @@
  *          principles: say what is kept and why, and honour deletion).
  *   §8     Analytics are pseudonymous, local, and can be switched off.
  *
- * There is no account yet, so "your data" is exactly what this browser holds,
- * and the page lists it rather than gesturing at it.
+ * "Your data" is what this browser holds — plus, when signed in, the synced
+ * copy the account keeps — and the page lists it rather than gesturing at it.
  */
 
 import { useEffect, useState } from "react";
 import { TopBar } from "@/components/chrome/TopBar";
-import { setTheme, useTheme } from "@/components/chrome/useTheme";
+import { setTheme, useThemeChoice } from "@/components/chrome/useTheme";
 import { Button, Input, Readout } from "@/components/ui/primitives";
 import { MODE_COPY, useSession, type Mode } from "@/stores/sessionStore";
 import { useLibrary } from "@/stores/libraryStore";
 import { useAuthored } from "@/stores/authoredStore";
-import { analyticsEnabled, readEvents, setAnalyticsEnabled } from "@/lib/analytics";
+import { analyticsEnabled, readEvents, setAnalyticsEnabled, tutorCheckStats } from "@/lib/analytics";
+import { lawName } from "@/lib/tutor/firewall";
 import { downloadText } from "@/lib/download";
 import { popsEnabled, setPopsEnabled } from "@/stores/popStore";
 import { AccountPanel } from "@/components/account/AccountPanel";
@@ -31,7 +32,7 @@ export default function SettingsPage() {
   const session = useSession();
   const library = useLibrary();
   const authored = useAuthored();
-  const theme = useTheme();
+  const themeChoice = useThemeChoice();
 
   const [name, setName] = useState("");
   const [events, setEvents] = useState(0);
@@ -166,8 +167,9 @@ export default function SettingsPage() {
 
             <div className={p.row}>
               <span className="label">Theme</span>
-              <Button variant={theme === "night" ? "primary" : "ghost"} size="sm" onClick={() => setTheme("night")}>Night</Button>
-              <Button variant={theme === "day" ? "primary" : "ghost"} size="sm" onClick={() => setTheme("day")}>Day</Button>
+              <Button variant={themeChoice === "system" ? "primary" : "ghost"} size="sm" onClick={() => setTheme("system")}>Match system</Button>
+              <Button variant={themeChoice === "night" ? "primary" : "ghost"} size="sm" onClick={() => setTheme("night")}>Night</Button>
+              <Button variant={themeChoice === "day" ? "primary" : "ghost"} size="sm" onClick={() => setTheme("day")}>Day</Button>
             </div>
             <label className={p.row} style={{ cursor: "pointer" }}>
               <input
@@ -188,11 +190,14 @@ export default function SettingsPage() {
           {saved && <p className={p.muted} role="status" style={{ marginTop: "var(--s-2)" }}>{saved}</p>}
         </section>
 
+        {/* -- Tutor checks ------------------------------------------------------------ */}
+        <TutorChecks events={events} />
+
         {/* -- Data — §7.4 --------------------------------------------------------- */}
         <section className={p.section}>
           <div className={p.sectionHead}>
             <h2 className={p.sectionTitle}>Your data</h2>
-            <span className={p.mono}>all of it is in this browser</span>
+            <span className={p.mono}>kept in this browser</span>
           </div>
 
           <div className={`${p.panel} ${p.stack}`}>
@@ -205,11 +210,13 @@ export default function SettingsPage() {
             </div>
 
             <p className={p.body}>
-              There is no account, so nothing here has left this machine. Progress and
-              saved circuits are kept so you can pick up where you stopped. Usage events
-              — which nodes you started, how long a correction took, whether a tutor
-              suggestion was taken — are kept so the platform can be judged on whether
-              it teaches. They carry a random id, never your name.
+              As a guest, nothing here leaves this machine. Signed in, your progress,
+              saved circuits and failed attempts are kept with your account as well, so
+              they follow you to another device — and your instructor sees them if you
+              join a class. Usage events — which nodes you started, how long a
+              correction took, whether a tutor suggestion was taken — never leave this
+              browser. They are kept so the platform can be judged on whether it
+              teaches, and carry a random id, never your name.
             </p>
 
             <label className={p.row} style={{ cursor: "pointer" }}>
@@ -244,5 +251,41 @@ export default function SettingsPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+/**
+ * How often the tutor's own checks overruled it here. The firewall is only
+ * worth its place if it fires, so the count is shown, not just logged.
+ */
+function TutorChecks({ events }: { events: number }) {
+  const [stats, setStats] = useState<ReturnType<typeof tutorCheckStats> | null>(null);
+  useEffect(() => setStats(tutorCheckStats(readEvents())), [events]);
+  if (!stats) return null;
+
+  return (
+    <section className={p.section}>
+      <div className={p.sectionHead}>
+        <h2 className={p.sectionTitle}>Tutor checks</h2>
+        <span className={p.mono}>in this browser</span>
+      </div>
+      <div className={`${p.panel} ${p.stack}`}>
+        <div className={p.row} style={{ gap: "var(--s-6)" }}>
+          <Readout value={stats.answers} label="model answers" />
+          <Readout value={stats.physics} label="stopped by the physics firewall" />
+          <Readout value={stats.claim} label="stopped by the claim check" />
+          <Readout value={stats.rated ? `${Math.round((stats.helpful / stats.rated) * 100)}%` : "—"} label="rated helpful" />
+        </div>
+        <p className={p.body}>
+          Every sentence a model writes is checked twice before you see it: against
+          the simulator&apos;s reading of your circuit, and against the laws of quantum
+          mechanics. An answer that fails either is withdrawn and replaced with what
+          is true.
+          {stats.laws.length > 0 && (
+            <> Caught here so far: {stats.laws.map(([law, n]) => `${lawName(law)} (${n})`).join(", ")}.</>
+          )}
+        </p>
+      </div>
+    </section>
   );
 }

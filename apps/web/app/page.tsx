@@ -23,11 +23,12 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TopBar } from "@/components/chrome/TopBar";
 import { Button, Registration, Slider } from "@/components/ui/primitives";
+import { Ket } from "@/components/mascot/Ket";
 import { Histogram, toFractions } from "@/components/viz/Histogram";
 import { BlochSphere } from "@/components/viz/BlochSphere";
 import { qubitState } from "@/lib/sim/analysis";
 import { render, SDK_LABELS } from "@/lib/render";
-import { UNITS, nodesInUnit } from "@/lib/curriculum/nodes";
+import { NODES, UNITS, nodesInUnit } from "@/lib/curriculum/nodes";
 import { CHALLENGES } from "@/lib/curriculum/challenges";
 import { MISCONCEPTIONS } from "@/lib/tutor/rules";
 import { emptyCircuit, nextGateId, type Circuit } from "@/lib/ir/types";
@@ -112,7 +113,7 @@ export default function LandingPage() {
           </span>
 
           <h1 className={`statement ${s.headline}`}>
-            A qubit is not a coin.
+            A qubit is <span className="glow-text">not a coin.</span>
           </h1>
 
           <p className={`prose ${s.sub}`}>
@@ -124,11 +125,11 @@ export default function LandingPage() {
             <Button variant="primary" size="lg" onClick={() => (window.location.href = "/start")}>
               Start building
             </Button>
-            <Link href="/build" className="label" style={{ padding: "12px 4px" }}>
-              Skip to the bench →
+            <Link href="/build" className={s.textLink}>
+              Skip to the bench <span aria-hidden>→</span>
             </Link>
-            <Link href="/playground" className="label" style={{ padding: "12px 4px" }}>
-              Play with one qubit →
+            <Link href="/playground" className={s.textLink}>
+              Play with one qubit <span aria-hidden>→</span>
             </Link>
           </div>
         </div>
@@ -206,9 +207,12 @@ export default function LandingPage() {
       <section className={s.section}>
         <div className={s.sectionHead}>
           <span className="label">The loop</span>
-          <h2 className="statement statement--s" style={{ marginTop: "var(--s-3)" }}>
+          <h2 className={`statement ${s.sectionTitle}`}>
             A wrong circuit should tell you which gate is wrong.
           </h2>
+          <p className={s.lead}>
+            Every lesson runs the same four beats, so you always know what comes next.
+          </p>
         </div>
 
         <ol className={s.loop}>
@@ -218,7 +222,7 @@ export default function LandingPage() {
             { n: "03", t: "Get diagnosed", d: "The gate, the wire and the fix." },
             { n: "04", t: "Then the why", d: "Explained after you try — so it sticks." },
           ].map((b) => (
-            <li key={b.n} className={s.loopStep}>
+            <li key={b.n} className={`${s.loopStep} lift`}>
               <span className={s.loopNum}>{b.n}</span>
               <div>
                 <h3 className={s.loopTitle}>{b.t}</h3>
@@ -232,10 +236,13 @@ export default function LandingPage() {
       {/* -- Rosetta --------------------------------------------------------- */}
       <section className={s.section}>
         <div className={s.sectionHead}>
-          <span className="label">One circuit, four dialects</span>
-          <h2 className="statement statement--s" style={{ marginTop: "var(--s-3)" }}>
+          <span className="label">One circuit, five dialects</span>
+          <h2 className={`statement ${s.sectionTitle}`}>
             Switching SDK changes the spelling, never the circuit.
           </h2>
+          <p className={s.lead}>
+            Build it once and read it in the toolkit you will use next: the code is written as you place each gate.
+          </p>
         </div>
 
         <div className={s.rosetta}>
@@ -255,14 +262,17 @@ export default function LandingPage() {
       <section className={s.section}>
         <div className={s.sectionHead}>
           <span className="label">What is inside</span>
-          <h2 className="statement statement--s" style={{ marginTop: "var(--s-3)" }}>
+          <h2 className={`statement ${s.sectionTitle}`}>
             Entanglement is not hard. It is a stack of easy things.
           </h2>
+          <p className={s.lead}>
+            Five short units take you from one qubit, through entanglement, to your first quantum algorithms. Every lesson ends in a circuit you built yourself.
+          </p>
         </div>
 
         <div className={s.units}>
           {UNITS.map((u) => (
-            <article key={u.id} className={s.unitCard}>
+            <article key={u.id} className={`${s.unitCard} lift`} style={{ ["--u" as string]: `var(--unit-${u.ordinal % 5})` }}>
               <span className="label">Unit {u.ordinal}</span>
               <h3 className={s.unitTitle}>{u.title}</h3>
               <p className={s.unitSkill}>{u.terminalSkill}</p>
@@ -276,7 +286,7 @@ export default function LandingPage() {
 
         <div className={s.counts}>
           {[
-            { n: "19", t: "lesson nodes, each ending in a circuit you built" },
+            { n: String(NODES.length), t: "lesson nodes, each ending in a circuit you built" },
             { n: String(CHALLENGES.length), t: "challenges — reach, golf and bug hunt" },
             {
               n: String(Object.keys(MISCONCEPTIONS).length),
@@ -296,9 +306,12 @@ export default function LandingPage() {
       <section className={s.section}>
         <div className={s.sectionHead}>
           <span className="label">Three ways in</span>
-          <h2 className="statement statement--s" style={{ marginTop: "var(--s-3)" }}>
+          <h2 className={`statement ${s.sectionTitle}`}>
             A researcher who sees XP closes the tab. So they never see it.
           </h2>
+          <p className={s.lead}>
+            Pick how you want to work. The mode switch in the top bar changes it at any time.
+          </p>
         </div>
 
         <div className={s.swaps}>
@@ -309,6 +322,7 @@ export default function LandingPage() {
               why: "A path, challenges and a tutor that helps the moment a run fails.",
               href: "/path",
               cta: "Open the path",
+              tone: "var(--cta)",
             },
             {
               out: "Workbench",
@@ -316,6 +330,7 @@ export default function LandingPage() {
               why: "No XP, no streaks, no tutor unless asked. Twelve wires and noise.",
               href: "/build",
               cta: "Open the bench",
+              tone: "var(--phase)",
             },
             {
               out: "Teaching",
@@ -323,10 +338,11 @@ export default function LandingPage() {
               why: "A ranked list of what your class actually misunderstands.",
               href: "/teach",
               cta: "See the heatmap",
+              tone: "var(--measure)",
             },
           ].map((sw) => (
-            <article key={sw.out} className={s.swap}>
-              <span className={s.swapOut}>{sw.out}</span>
+            <article key={sw.out} className={`${s.swap} lift`} style={{ ["--tone" as string]: sw.tone }}>
+              <span className={s.modePill}>{sw.out}</span>
               <h3 className={s.swapIn}>{sw.to}</h3>
               <p className={s.swapWhy}>{sw.why}</p>
               <Link href={sw.href} className={`label ${s.swapLink}`}>
@@ -337,7 +353,65 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* -- Library (planned) ------------------------------------------------
+          Not built yet, and the section says so on every card: a landing
+          page that promises what it cannot open is the fastest way to lose a
+          reader's trust. */}
+      <section className={s.section} aria-labelledby="library-head">
+        <div className={s.sectionHead}>
+          <span className="label">
+            Digital library <span className={s.soon}>Coming soon</span>
+          </span>
+          <h2 id="library-head" className={`statement ${s.sectionTitle}`}>
+            The reading and watching, next to the doing.
+          </h2>
+          <p className={s.lead}>
+            Next: papers and lectures to go with each lesson, gathered in one place.
+          </p>
+        </div>
+
+        <div className={s.swaps}>
+          {[
+            {
+              out: "Journals",
+              to: "Papers worth reading",
+              why: "Peer-reviewed references on quantum computing and on how it is learned, chosen unit by unit, each with a note on why it matters.",
+            },
+            {
+              out: "Video",
+              to: "Lectures and talks",
+              why: "Video references from across the field, linked from the lesson they explain.",
+            },
+            {
+              out: "Sources",
+              to: "Gathered in one place",
+              why: "Papers, videos and the platform's own lessons and glossary, searchable together.",
+            },
+          ].map((card) => (
+            <article key={card.out} className={s.swap} data-soon>
+              <span className={s.swapTag}>{card.out}</span>
+              <h3 className={s.swapIn}>{card.to}</h3>
+              <p className={s.swapWhy}>{card.why}</p>
+              <span className={`label ${s.swapLink} ${s.soonLink}`}>Coming soon</span>
+            </article>
+          ))}
+        </div>
+
+        <p className={s.rosettaNote}>
+          Here today: the <Link href="/reference">glossary</Link>, every term the
+          lessons use, defined and linked back to where it is taught.
+        </p>
+      </section>
+
       <section className={s.close}>
+        {/* Ket, the tutor, meets you at the door. Motion is one hop on
+            arrival, then stillness. */}
+        <figure className={s.ketCard} aria-label="Ket, the tutor">
+          <Ket size={132} mood="happy" />
+          <figcaption className={s.ketSays}>
+            I&apos;m Ket, your tutor. When a run goes wrong, I&apos;ll point at the gate and say why.
+          </figcaption>
+        </figure>
         <span className="label">Start anywhere</span>
         <h2 className="statement statement--s" style={{ maxWidth: "20ch" }}>
           Unit 0 takes ten minutes.
@@ -358,7 +432,7 @@ export default function LandingPage() {
       </section>
 
       <footer className={s.footer}>
-        <span>Quriosity · SIH 26140 · Logic Sorcerers</span>
+        <span>Quriosity · SIH 26140 · Quantum Latte</span>
         <span>Simulated in your browser · nothing is uploaded</span>
       </footer>
     </div>

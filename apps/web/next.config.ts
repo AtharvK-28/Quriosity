@@ -16,6 +16,8 @@ const API_ORIGIN = (
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // `next dev` behind a Cloudflare quick tunnel, for sharing a local build.
+  allowedDevOrigins: ["*.trycloudflare.com"],
   async rewrites() {
     return [{ source: "/api/server/:path*", destination: `${API_ORIGIN}/:path*` }];
   },

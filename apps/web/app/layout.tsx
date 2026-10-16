@@ -3,7 +3,10 @@ import { Instrument_Serif, Space_Grotesk, JetBrains_Mono } from "next/font/googl
 import "@/styles/tokens.css";
 import { DEFAULT_THEME, THEME_BOOT } from "@/lib/theme";
 import { ServiceWorkerBoot } from "@/components/chrome/ServiceWorkerBoot";
+import { ThemeBoot } from "@/components/chrome/ThemeBoot";
 import { AuthBoot } from "@/components/chrome/AuthBoot";
+import { CommandPalette } from "@/components/chrome/CommandPalette";
+import { TutorPop } from "@/components/tutor/TutorPop";
 
 /**
  * Three faces, three jobs, no overlap.
@@ -60,7 +63,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#140a2b",
+  // The browser's own chrome follows the device, as the page does.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e3ded1" },
+    { media: "(prefers-color-scheme: dark)", color: "#140a2b" },
+  ],
 };
 
 /**
@@ -81,8 +88,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
+        <ThemeBoot />
         <ServiceWorkerBoot />
         <AuthBoot />
+        <CommandPalette />
+        <TutorPop />
       </body>
     </html>
   );

@@ -22,10 +22,11 @@
 .task {
   position: relative;
   padding: var(--s-5);
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
   margin-bottom: clamp(32px, 5vw, 48px);
+  box-shadow: var(--shadow-card);
 }
 
 .taskHead {
@@ -81,10 +82,11 @@
 /* -- Retention table ------------------------------------------------------------ */
 
 .table {
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
   padding: var(--s-5);
+  box-shadow: var(--shadow-card);
 }
 
 .tableHead,
@@ -119,7 +121,7 @@
 }
 
 .rowUnit {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -168,7 +170,7 @@
 }
 
 .rowMono {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;

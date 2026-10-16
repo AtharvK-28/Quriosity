@@ -1,7 +1,11 @@
 "use client";
 
 /**
- * Onboarding — mode selection.
+ * Onboarding. A first visit meets Ket (components/onboarding/MeetKet): ninety
+ * seconds operating on a qubit, skippable at every step. Then, or straight
+ * away on a return visit, the mode choice below.
+ *
+ * Mode selection:
  *
  * One screen, three cards, no progress bar, no confirm step. The question is
  * asked once and answered in one click, and each card previews its own primary
@@ -12,15 +16,42 @@
  * an expensive place to lose someone.
  */
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/chrome/TopBar";
+import { MeetKet } from "@/components/onboarding/MeetKet";
 import { Registration } from "@/components/ui/primitives";
 import { MODE, MODE_COPY, useSession, type Mode } from "@/stores/sessionStore";
 import s from "./start.module.css";
 
+/** Set once Ket has been met or skipped, so a return visit goes straight to the choice. */
+const MET_KET = "quriosity.met-ket.v1";
+
 export default function StartPage() {
   const router = useRouter();
   const setMode = useSession((st) => st.setMode);
+  const [stage, setStage] = useState<"loading" | "intro" | "choose">("loading");
+
+  useEffect(() => {
+    let met = false;
+    try {
+      met = window.localStorage.getItem(MET_KET) === "1";
+    } catch {
+      // Storage blocked: meet Ket every time, which is harmless.
+    }
+    const replay = new URLSearchParams(window.location.search).has("intro");
+    setStage(met && !replay ? "choose" : "intro");
+  }, []);
+
+  function metKet() {
+    try {
+      window.localStorage.setItem(MET_KET, "1");
+    } catch {
+      // Nothing to remember it in; the choice still follows.
+    }
+    setStage("choose");
+    window.scrollTo({ top: 0 });
+  }
 
   function choose(mode: Mode) {
     setMode(mode);
@@ -31,9 +62,11 @@ export default function StartPage() {
     <div className="sheet" style={{ minHeight: "100vh" }}>
       <TopBar />
 
-      <main className={s.main}>
+      {stage === "intro" && <MeetKet onDone={metKet} />}
+
+      {stage === "choose" && <main className={s.main}>
         <header className={s.head}>
-          <h1 className="statement statement--s">How do you want to work?</h1>
+          <h1 className="statement statement--s">How do you want to learn?</h1>
           <p className="prose" style={{ marginTop: "var(--s-3)" }}>
             You can change this any time — it costs you no progress.
           </p>
@@ -55,7 +88,10 @@ export default function StartPage() {
           Workbench mode hides every XP counter, streak and leaderboard in the
           product, and the tutor never speaks unless you ask it to.
         </p>
-      </main>
+        <button type="button" className={s.replay} onClick={() => setStage("intro")}>
+          Meet Ket again
+        </button>
+      </main>}
     </div>
   );
 }

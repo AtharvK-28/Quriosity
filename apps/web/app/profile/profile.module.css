@@ -34,9 +34,10 @@
   gap: var(--s-4);
   align-items: flex-start;
   padding: var(--s-4) var(--s-5);
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .unit[data-complete="true"] { border-color: var(--measure); }
@@ -52,7 +53,7 @@
 }
 
 .unitMeta {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -80,10 +81,11 @@
 }
 
 .panel {
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
   padding: var(--s-5);
+  box-shadow: var(--shadow-card);
 }
 
 .empty {
@@ -114,7 +116,7 @@
 }
 
 .mMeta {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -149,7 +151,7 @@
 }
 
 .cScore {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;

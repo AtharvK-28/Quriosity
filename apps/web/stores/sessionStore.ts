@@ -19,6 +19,12 @@ import { NODES, NODES_BY_ID, NODE_ORDER, UNITS, nodesInUnit, type LessonNode } f
 import { setAnalyticsMode, track } from "@/lib/analytics";
 import { MAX_SIM_QUBITS } from "@/lib/sim/statevector";
 import type { SessionDoc } from "@/lib/sync/merge";
+import {
+  ALL_QUESTS_BONUS, dayKey, extendStreak, questDone, questsFor,
+  type DailyCounters, type DailyMetric, type StreakState,
+} from "@/lib/daily";
+import { announce } from "@/lib/rewards";
+import { BADGES_BY_ID } from "@/lib/arena/badges";
 
 export type Mode = "guided" | "workbench" | "track";
 
@@ -61,8 +67,23 @@ export interface MisconceptionEvent {
   at: number;
 }
 
-interface SessionState {
+/** Today's progress on the daily loop. Reset when the UTC date changes. */
+export interface DailyState {
+  day: string;
+  counters: DailyCounters;
+  /** Quest ids already paid out today. */
+  done: string[];
+  allBonus: boolean;
+  puzzle: { gates: number; ms: number; tries: number; assisted: boolean } | null;
+}
+
+export function blankDaily(day: string = dayKey()): DailyState {
+  return { day, counters: {}, done: [], allBonus: false, puzzle: null };
+}
+
+interface SessionState extends StreakState {
   hydrated: boolean;
+  daily: DailyState;
   mode: Mode;
   displayName: string;
   /** The professional track being followed, in Track mode. */
@@ -87,6 +108,15 @@ interface SessionState {
   recordChallenge(id: string, solved: boolean, gateCount: number): void;
   recordMisconception(misconceptionId: string, ruleId: string, nodeId: string | null): void;
   recordReview(nodeId: string, recalled: boolean): void;
+  /** Something that counts toward today: a quest metric, and the streak. */
+  logDaily(metric: DailyMetric, n?: number): void;
+  recordPuzzle(r: { gates: number; ms: number; tries: number; assisted: boolean }): void;
+  /** An arena match ended: XP, quests, streak. */
+  recordArena(won: boolean, rated: boolean): void;
+  /** Arena badges held (see lib/arena/badges.ts). */
+  badges: string[];
+  /** Adds the ones not already held and announces them. Returns the new ones. */
+  awardBadges(ids: string[]): string[];
 
   reset(): void;
   hydrate(): void;
@@ -110,8 +140,20 @@ export function sessionDoc(s: Pick<SessionState, keyof SessionDoc>): SessionDoc 
     streakDays: s.streakDays,
     streakLastDay: s.streakLastDay,
     misconceptions: s.misconceptions,
+    streakFreezes: s.streakFreezes,
+    bestStreak: s.bestStreak,
+    activeDays: s.activeDays,
+    frozenDays: s.frozenDays,
+    daily: s.daily,
+    badges: s.badges,
   };
 }
+
+/** Metrics that keep a streak alive. Pressing Run alone does not. */
+const COUNTS_FOR_STREAK = new Set<DailyMetric>(["puzzle", "lessons", "challenges", "arenaGames", "reviews"]);
+
+/** First win of the day is worth more — a reason to come back and play one. */
+export const ARENA_XP = { played: 5, won: 15, firstWinToday: 25 } as const;
 
 function blankProgress(): NodeProgress {
   return {
@@ -146,6 +188,12 @@ export const useSession = create<SessionState>((set, get) => ({
   xp: 0,
   streakDays: 0,
   streakLastDay: null,
+  streakFreezes: 0,
+  bestStreak: 0,
+  activeDays: [],
+  frozenDays: [],
+  daily: blankDaily(),
+  badges: [],
   misconceptions: [],
 
   setMode(mode) {
@@ -177,10 +225,10 @@ export const useSession = create<SessionState>((set, get) => ({
     track("node_attempted", { node_id: nodeId, attempt_index: p.attempts, is_first_attempt: isFirst });
 
     let xp = get().xp;
-    let streakDays = get().streakDays;
-    let streakLastDay = get().streakLastDay;
+    let newlyPassed = false;
 
     if (passed && p.state !== "passed") {
+      newlyPassed = true;
       p.state = "passed";
       p.passedAt = Date.now();
       p.gateCount = gateCount;
@@ -197,20 +245,17 @@ export const useSession = create<SessionState>((set, get) => ({
         first_attempt_accuracy: p.firstAttemptCorrect ? 1 : 0,
       });
 
-      const t = today();
-      if (streakLastDay !== t) {
-        const gap = streakLastDay ? daysBetween(streakLastDay, t) : Infinity;
-        streakDays = gap === 1 ? streakDays + 1 : 1;
-        streakLastDay = t;
-        if (streakDays > 1) track("streak_extended", { length: streakDays });
-      }
     } else if (!passed && p.state !== "passed") {
       p.state = "attempted";
     }
 
     progress[nodeId] = p;
-    set({ progress: recomputeUnlocks(progress), xp, streakDays, streakLastDay });
+    set({ progress: recomputeUnlocks(progress), xp });
     persist(get());
+    if (newlyPassed) {
+      get().logDaily("lessons");
+      if (p.firstAttemptCorrect) get().logDaily("firstTries");
+    }
   },
 
   recordChallenge(id, solved, gateCount) {
@@ -223,17 +268,106 @@ export const useSession = create<SessionState>((set, get) => ({
     if (solved) {
       // XP once per challenge, but a shorter answer always replaces the record.
       // Practice should be worth repeating without being worth farming.
+      let first = false;
       if (!c.solved) {
         c.solved = true;
         c.solvedAt = Date.now();
         xp += 15;
+        first = true;
       }
       c.bestGates = c.bestGates === null ? gateCount : Math.min(c.bestGates, gateCount);
+      challenges[id] = c;
+      set({ challenges, xp });
+      persist(get());
+      if (first) {
+        get().logDaily("challenges");
+        if (c.attempts === 1) get().logDaily("firstTries");
+      }
+      return;
     }
 
     challenges[id] = c;
     set({ challenges, xp });
     persist(get());
+  },
+
+  logDaily(metric, n = 1) {
+    const today = dayKey();
+    const s = get();
+    const daily = s.daily.day === today ? { ...s.daily, counters: { ...s.daily.counters } } : blankDaily(today);
+    daily.counters[metric] = (daily.counters[metric] ?? 0) + n;
+    let xp = s.xp;
+    const paid: Array<{ title: string; xp: number }> = [];
+    for (const q of questsFor(today)) {
+      if (daily.done.includes(q.id) || !questDone(q, daily.counters)) continue;
+      daily.done = [...daily.done, q.id];
+      xp += q.xp;
+      paid.push({ title: q.title, xp: q.xp });
+    }
+    let allPaid = false;
+    if (!daily.allBonus && questsFor(today).every((q) => daily.done.includes(q.id))) {
+      daily.allBonus = true;
+      xp += ALL_QUESTS_BONUS;
+      allPaid = true;
+    }
+
+    // Only the streak's own fields — spreading the whole state here once put
+    // the old counters back over the new ones.
+    let streak: StreakState = {
+      streakDays: s.streakDays, streakLastDay: s.streakLastDay, streakFreezes: s.streakFreezes,
+      bestStreak: s.bestStreak, activeDays: s.activeDays, frozenDays: s.frozenDays,
+    };
+    let streakEvent: ReturnType<typeof extendStreak>["event"] = null;
+    if (COUNTS_FOR_STREAK.has(metric)) {
+      const out = extendStreak(streak, today);
+      streak = out.next;
+      streakEvent = out.event;
+      if (streakEvent && streak.streakDays > 1) track("streak_extended", { length: streak.streakDays });
+    }
+
+    set({ ...streak, daily, xp });
+    persist(get());
+
+    if (streakEvent) announce({ kind: "streak", days: streak.streakDays, event: streakEvent, freezes: streak.streakFreezes });
+    for (const q of paid) announce({ kind: "quest", title: q.title, xp: q.xp });
+    if (allPaid) announce({ kind: "allQuests", xp: ALL_QUESTS_BONUS });
+  },
+
+  recordPuzzle(r) {
+    const today = dayKey();
+    const s = get();
+    const daily = s.daily.day === today ? s.daily : blankDaily(today);
+    if (daily.puzzle) return;
+    set({ daily: { ...daily, puzzle: r } });
+    persist(get());
+    get().logDaily("puzzle");
+  },
+
+  awardBadges(ids) {
+    const held = new Set(get().badges);
+    const fresh = [...new Set(ids)].filter((id) => !held.has(id) && BADGES_BY_ID.has(id));
+    if (fresh.length === 0) return [];
+    set({ badges: [...get().badges, ...fresh] });
+    persist(get());
+    for (const id of fresh) {
+      const b = BADGES_BY_ID.get(id)!;
+      announce({ kind: "badge", name: b.name, how: b.how, glyph: b.glyph });
+    }
+    return fresh;
+  },
+
+  recordArena(won, rated) {
+    const today = dayKey();
+    const s = get();
+    const winsToday = s.daily.day === today ? s.daily.counters.arenaWins ?? 0 : 0;
+    const firstWinToday = won && winsToday === 0;
+    const gained = ARENA_XP.played + (won ? ARENA_XP.won : 0) + (firstWinToday ? ARENA_XP.firstWinToday : 0);
+    set({ xp: s.xp + gained });
+    persist(get());
+    announce({ kind: "arena", xp: gained, won, firstWinToday });
+    get().logDaily("arenaGames");
+    if (won) get().logDaily("arenaWins");
+    void rated;
   },
 
   recordConsolidation(nodeId) {
@@ -275,6 +409,7 @@ export const useSession = create<SessionState>((set, get) => ({
     progress[nodeId] = p;
     set({ progress, xp: get().xp + (recalled ? 5 : 0) });
     persist(get());
+    get().logDaily("reviews");
   },
 
   reset() {
@@ -286,6 +421,12 @@ export const useSession = create<SessionState>((set, get) => ({
       xp: 0,
       streakDays: 0,
       streakLastDay: null,
+      streakFreezes: 0,
+      bestStreak: 0,
+      activeDays: [],
+      frozenDays: [],
+      daily: blankDaily(),
+      badges: [],
       misconceptions: [],
     });
     persist(get());
@@ -352,6 +493,8 @@ export const useSession = create<SessionState>((set, get) => ({
       xp: earned,
       streakDays: Math.max(1, get().streakDays),
       streakLastDay: today(),
+      activeDays: [...new Set([...get().activeDays, today()])],
+      bestStreak: Math.max(1, get().bestStreak),
     });
     persist(get());
   },
@@ -368,6 +511,7 @@ export const useSession = create<SessionState>((set, get) => ({
       xp: doc.xp ?? 0,
       streakDays: doc.streakDays ?? 0,
       streakLastDay: doc.streakLastDay ?? null,
+      ...extras(doc),
       misconceptions: doc.misconceptions ?? [],
     });
     persist(get());
@@ -393,10 +537,24 @@ export const useSession = create<SessionState>((set, get) => ({
       xp: loaded.xp ?? 0,
       streakDays: loaded.streakDays ?? 0,
       streakLastDay: loaded.streakLastDay ?? null,
+      ...extras(loaded),
       misconceptions: loaded.misconceptions ?? [],
     });
   },
 }));
+
+/** The daily-loop fields, defaulted — documents written before they existed lack them. */
+function extras(doc: Partial<SessionDoc>) {
+  const day = dayKey();
+  return {
+    streakFreezes: doc.streakFreezes ?? 0,
+    bestStreak: Math.max(doc.bestStreak ?? 0, doc.streakDays ?? 0),
+    activeDays: doc.activeDays ?? (doc.streakLastDay ? [doc.streakLastDay] : []),
+    frozenDays: doc.frozenDays ?? [],
+    badges: doc.badges ?? [],
+    daily: doc.daily && doc.daily.day === day ? doc.daily : blankDaily(day),
+  };
+}
 
 function persist(s: SessionState) {
   if (typeof window === "undefined") return;

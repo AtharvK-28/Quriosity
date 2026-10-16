@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/chrome/TopBar";
 import { NextUp } from "@/components/learning/NextUp";
 import { Assigned } from "@/components/learning/Assigned";
+import { TodayPanel } from "@/components/daily/TodayPanel";
 import { Button, Readout, Registration } from "@/components/ui/primitives";
 import {
   MASTERY_THRESHOLD, MODE, NODES_BY_ID, UNITS, currentNodeId, dueForReview,
@@ -78,8 +79,24 @@ export default function PathPage() {
                 ? "Nineteen nodes to a GHZ state."
                 : passedCount >= total
                   ? "Every node in U0 to U3 is done."
-                  : `${passedCount} of ${total} resolved.`}
+                  : <>{passedCount} of {total} <span className="glow-text--cool">resolved.</span></>}
             </h1>
+            {/* The whole journey as one lit bar, one segment per unit. */}
+            <div className={s.journey} aria-label={`${passedCount} of ${total} nodes passed`}>
+              {UNITS.map((u) => {
+                const { passed, total: n } = unitProgress(progress, u.id);
+                return (
+                  <span
+                    key={u.id}
+                    className={s.journeySeg}
+                    style={{ flexGrow: n, ["--u" as string]: `var(--unit-${u.ordinal % 5})` }}
+                    title={`Unit ${u.ordinal} · ${passed} of ${n}`}
+                  >
+                    <span style={{ width: `${n > 0 ? (passed / n) * 100 : 0}%` }} />
+                  </span>
+                );
+              })}
+            </div>
           </div>
 
           <div className={s.stats}>
@@ -105,6 +122,10 @@ export default function PathPage() {
         <Assigned />
         {(currentNode || passedCount > 0) && <NextUp skipReview />}
 
+        {/* Today: the streak, the daily puzzle and three quests — the reason
+            to come back tomorrow. */}
+        <TodayPanel />
+
         {UNITS.map((unit) => {
           const nodes = nodesInUnit(unit.id);
           const { passed, total: count } = unitProgress(progress, unit.id);
@@ -115,12 +136,28 @@ export default function PathPage() {
             .filter(Boolean)[0];
 
           return (
-            <section key={unit.id} className={s.unit} data-locked={locked}>
+            <section
+              key={unit.id}
+              className={s.unit}
+              data-locked={locked}
+              data-done={passed === count || undefined}
+              style={{ ["--u" as string]: `var(--unit-${unit.ordinal % 5})` }}
+            >
               <div className={s.unitHead}>
-                <div>
-                  <h2 className={s.unitTitle}>
-                    Unit {unit.ordinal} · {unit.title}
-                  </h2>
+                <span className={s.unitBadge} aria-hidden>
+                  <svg viewBox="0 0 44 44" className={s.ring}>
+                    <circle cx="22" cy="22" r="19" className={s.ringTrack} />
+                    <circle
+                      cx="22" cy="22" r="19"
+                      className={s.ringFill}
+                      strokeDasharray={`${(count > 0 ? passed / count : 0) * 119.4} 119.4`}
+                    />
+                  </svg>
+                  <span className={s.unitNum}>{unit.ordinal}</span>
+                </span>
+                <div className={s.unitText}>
+                  <span className={s.unitKicker}>Unit {unit.ordinal}</span>
+                  <h2 className={s.unitTitle}>{unit.title}</h2>
                   <p className={s.unitSkill}>{unit.terminalSkill}</p>
                 </div>
                 <span className={`label ${s.unitCount}`}>
@@ -150,6 +187,7 @@ export default function PathPage() {
                         type="button"
                         className={s.node}
                         data-state={state}
+                        data-current={isCurrent || undefined}
                         disabled={state === "locked"}
                         onClick={() => router.push(`/lesson/${node.id}`)}
                         title={

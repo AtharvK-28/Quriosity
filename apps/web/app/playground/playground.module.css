@@ -28,9 +28,10 @@
   flex-direction: column;
   gap: var(--s-5);
   padding: var(--s-5);
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .section { display: flex; flex-direction: column; gap: var(--s-3); }

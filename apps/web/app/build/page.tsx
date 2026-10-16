@@ -41,7 +41,9 @@ import { downloadText } from "@/lib/download";
 import { useCircuit, stateAtScrub } from "@/stores/circuitStore";
 import { MODE, useSession } from "@/stores/sessionStore";
 import { useLibrary } from "@/stores/libraryStore";
+import { useAuth } from "@/stores/authStore";
 import { useTutor } from "@/stores/tutorStore";
+import Link from "next/link";
 import { TutorDock } from "@/components/tutor/TutorDock";
 import type { TutorWhere } from "@/lib/tutor/protocol";
 import s from "./build.module.css";
@@ -91,11 +93,15 @@ export default function BuildPage() {
   const { mode, hydrate, hydrated } = useSession();
   const caps = MODE[mode];
   const library = useLibrary();
+  // PRD E1-S6: saving as a guest offers an account. The circuit is kept either
+  // way — the library merges into the account on sign-up.
+  const signedIn = useAuth((a) => a.status === "signed-in");
+  const where = signedIn ? "to your account" : "in this browser";
 
   const {
     circuit, version, held, pendingControl, selectedGateId, highlighted,
     run, running, error, shots, noiseLevel, scrubColumn,
-    hold, place, completeControlled, cancelPending, select, moveGate, removeGate, setParams,
+    hold, place, completeControlled, cancelPending, select, moveGate, dropGate, rewireGate, removeGate, setParams,
     addQubit, removeQubit, setShots, setNoise, setScrub, setName,
     execute, undo, redo, reset, saveDraft, loadDraft, clearDraft, replaceCircuit, applyFix,
   } = useCircuit();
@@ -114,6 +120,10 @@ export default function BuildPage() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // Design Doc §11.2: `[` and `]` fold the state lane away for canvas room.
+  const [sideOpen, setSideOpen] = useState(true);
+  // Design Doc §10: Space plays the scrubber through, a column every 400ms.
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => { hydrate(); useLibrary.getState().hydrate(); }, [hydrate]);
 
@@ -208,17 +218,40 @@ export default function BuildPage() {
 
   const scrubbing = scrubColumn !== null;
 
+  const canPlay = Boolean(run) && depth > 1;
+  const togglePlay = useCallback(() => {
+    if (!canPlay) return;
+    setPlaying((on) => {
+      if (!on) setScrub(-1);
+      return !on;
+    });
+  }, [canPlay, setScrub]);
+
+  useEffect(() => {
+    if (!playing) return;
+    if (!canPlay) { setPlaying(false); return; }
+    const timer = setInterval(() => {
+      const at = useCircuit.getState().scrubColumn;
+      const next = (at ?? -1) + 1;
+      if (at === null || next >= depth - 1) {
+        setScrub(null);
+        setPlaying(false);
+      } else setScrub(next);
+    }, 400);
+    return () => clearInterval(timer);
+  }, [playing, canPlay, depth, setScrub]);
+
   /* -- Saving, sharing, exporting ------------------------------------------- */
 
   const startSave = useCallback(() => {
     if (savedId && library.get(savedId)) {
       library.save(circuit, circuit.metadata.name ?? library.get(savedId)!.name, savedId);
-      setStatus("Saved in this browser.");
+      setStatus(`Saved ${where}.`);
       return;
     }
     setSaveName(circuit.metadata.name ?? "");
     setSaving(true);
-  }, [savedId, library, circuit]);
+  }, [savedId, library, circuit, where]);
 
   function commitSave() {
     const name = saveName.trim() || "Untitled circuit";
@@ -226,7 +259,7 @@ export default function BuildPage() {
     const id = library.save({ ...circuit, metadata: { ...circuit.metadata, name } }, name, null);
     setSavedId(id);
     setSaving(false);
-    setStatus(`Saved “${name}” in this browser.`);
+    setStatus(`Saved “${name}” ${where}.`);
   }
 
   async function share() {
@@ -289,11 +322,18 @@ export default function BuildPage() {
       if (e.key === "?") { e.preventDefault(); setKeysOpen(true); return; }
       const index = ["1", "2", "3", "4", "5"].indexOf(e.key);
       if (index >= 0) setView(VIEWS[index].value);
+      if (e.key === "[") setSideOpen(false);
+      if (e.key === "]") setSideOpen(true);
+      // A focused button or link keeps Space for itself.
+      if (e.key === " " && !(e.target as HTMLElement | null)?.closest?.("button, a, [role='slider']")) {
+        e.preventDefault();
+        togglePlay();
+      }
       // ⌘/ belongs to the tutor dock, which owns the conversation.
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [execute, undo, redo, startSave]);
+  }, [execute, undo, redo, startSave, togglePlay]);
 
   if (!hydrated) {
     return (
@@ -341,6 +381,9 @@ export default function BuildPage() {
                   onSelect: () => downloadText(`${fileSlug(circuit.metadata.name)}.ipynb`, toNotebook(circuit, { shots }), "application/x-ipynb+json"),
                 },
                 { label: `Saved circuits (${library.items.length})`, onSelect: () => setLibraryOpen((v) => !v) },
+                sideOpen
+                  ? { label: "Hide the state lane", hint: "[", onSelect: () => setSideOpen(false) }
+                  : { label: "Show the state lane", hint: "]", onSelect: () => setSideOpen(true) },
                 { label: "Keyboard shortcuts", hint: "?", onSelect: () => setKeysOpen(true) },
               ]}
             />
@@ -380,7 +423,17 @@ export default function BuildPage() {
             </label>
             <Button variant="primary" size="sm" type="submit">Save</Button>
             <Button variant="ghost" size="sm" onClick={() => setSaving(false)}>Cancel</Button>
-            <span className={s.saveNote}>Saved in this browser. Share makes a link anyone can open.</span>
+            <span className={s.saveNote}>
+              {signedIn ? (
+                "Saved to your account. Share makes a link anyone can open."
+              ) : (
+                <>
+                  Saved in this browser.{" "}
+                  <Link href="/auth/signup?next=%2Fbuild">Sign up</Link> to keep it on every
+                  device — this circuit comes with you.
+                </>
+              )}
+            </span>
           </form>
         )}
 
@@ -392,7 +445,7 @@ export default function BuildPage() {
           />
         )}
 
-        <div className={s.lanes}>
+        <div className={s.lanes} data-side={sideOpen ? undefined : "closed"}>
           <div>
             <div className={s.stage}>
               <Registration />
@@ -413,6 +466,8 @@ export default function BuildPage() {
                   onCancelPending={cancelPending}
                   onSelect={select}
                   onMove={moveGate}
+                  onDrop={dropGate}
+                  onRewire={rewireGate}
                   onRemove={removeGate}
                   onParams={setParams}
                 />
@@ -432,9 +487,18 @@ export default function BuildPage() {
                       max={depth - 1}
                       step={1}
                       ariaLabel="Step through the circuit"
-                      onChange={(v) => setScrub(v >= depth - 1 ? null : v)}
+                      onChange={(v) => { setPlaying(false); setScrub(v >= depth - 1 ? null : v); }}
                     />
                   </span>
+                  <button
+                    type="button"
+                    className={s.play}
+                    onClick={togglePlay}
+                    aria-pressed={playing}
+                    title="Play through the circuit (Space)"
+                  >
+                    {playing ? "Stop" : "Play"}
+                  </button>
                   <span className={s.scrubLabel}>
                     {scrubColumn === null
                       ? "end"
@@ -613,8 +677,14 @@ export default function BuildPage() {
             )}
           </div>
 
+          {!sideOpen && (
+            <button type="button" className={s.sideShow} onClick={() => setSideOpen(true)}>
+              Show state <kbd>]</kbd>
+            </button>
+          )}
+
           {/* One state view at a time. */}
-          <aside className={s.side}>
+          <aside className={s.side} hidden={!sideOpen}>
             <div className={s.panel}>
               <div className={s.panelHead}>
                 <span className="label">
@@ -624,7 +694,7 @@ export default function BuildPage() {
               </div>
 
               {view === "code" ? (
-                <CodePanel circuit={circuit} sdk={sdk} onSdk={setSdk} onApply={(c) => { replaceCircuit(c); setSavedId(null); }} />
+                <CodePanel circuit={circuit} sdk={sdk} onSdk={setSdk} highlighted={highlighted} onApply={(c) => { replaceCircuit(c); setSavedId(null); }} />
               ) : !run ? (
                 <p className={s.empty}>
                   {circuit.gates.length > 0 ? (
@@ -721,6 +791,7 @@ function SavedCircuits({
   currentId: string | null;
 }) {
   const { items, rename, remove } = useLibrary();
+  const signedIn = useAuth((a) => a.status === "signed-in");
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [doomed, setDoomed] = useState<string | null>(null);
@@ -728,7 +799,7 @@ function SavedCircuits({
   return (
     <section className={s.library} aria-label="Saved circuits">
       <div className={s.libraryHead}>
-        <span className="label">Saved circuits · in this browser</span>
+        <span className="label">Saved circuits · {signedIn ? "your account" : "in this browser"}</span>
         <button type="button" className={s.restoredDismiss} onClick={onClose}>close</button>
       </div>
 

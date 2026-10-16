@@ -29,7 +29,13 @@ export interface EventProps {
   challenge_submitted: { challenge_id: string; fidelity: number; passed: boolean; gate_count: number };
   misconception_detected: { misconception_id: string; node_id: string | null };
   tutor_invoked: { trigger: "proactive" | "explicit"; source: "rule" | "llm" | "guide"; latency_ms: number };
-  tutor_feedback: { helpful: boolean };
+  tutor_feedback: { helpful: boolean; source: "llm" | "guide"; withdrawn: boolean };
+  /**
+   * Post-PRD. A check withdrew the model's answer — "claim" against the
+   * simulator, "physics" against the firewall. How often each law fires is
+   * the evidence that the firewall is doing work, not decoration.
+   */
+  tutor_answer_withdrawn: { check: "claim" | "physics"; law: string; misconception_id: string | null };
   tutor_suggestion_applied: { misconception_id: string | null; applied: boolean };
   corrected_after_failure: { node_id: string; seconds_since_failure: number; tutor_shown: boolean };
   code_mode_first_correct: { node_id: string; days_since_first_canvas_node: number | null };
@@ -179,6 +185,40 @@ function listenForSessionEnd(): void {
       nodes_touched: nodesTouched.size,
     });
   });
+}
+
+export interface TutorCheckStats {
+  /** Answers from a model (not the built-in guide). */
+  answers: number;
+  physics: number;
+  claim: number;
+  /** Physics laws caught, most often first. */
+  laws: Array<[string, number]>;
+  rated: number;
+  helpful: number;
+}
+
+/** How often the tutor's checks withdrew an answer, from the local log. */
+export function tutorCheckStats(events: AnalyticsEvent[]): TutorCheckStats {
+  const stats: TutorCheckStats = { answers: 0, physics: 0, claim: 0, laws: [], rated: 0, helpful: 0 };
+  const laws = new Map<string, number>();
+  for (const e of events) {
+    if (e.name === "tutor_answer_withdrawn") {
+      // A withdrawn answer was a model's; its replacement is logged as the guide's.
+      stats.answers += 1;
+      if (e.props.check === "physics") {
+        stats.physics += 1;
+        const law = String(e.props.law);
+        laws.set(law, (laws.get(law) ?? 0) + 1);
+      } else stats.claim += 1;
+    } else if (e.name === "tutor_invoked" && e.props.source === "llm") stats.answers += 1;
+    else if (e.name === "tutor_feedback") {
+      stats.rated += 1;
+      if (e.props.helpful === true) stats.helpful += 1;
+    }
+  }
+  stats.laws = [...laws].sort((a, b) => b[1] - a[1]);
+  return stats;
 }
 
 /** Has this event already been logged with these props? For once-only events. */

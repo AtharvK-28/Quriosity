@@ -15,7 +15,7 @@
  * be re-derived, so the larger of the two is kept.
  */
 
-import type { ChallengeProgress, MisconceptionEvent, Mode, NodeProgress, NodeState } from "@/stores/sessionStore";
+import type { ChallengeProgress, DailyState, MisconceptionEvent, Mode, NodeProgress, NodeState } from "@/stores/sessionStore";
 
 export interface SessionDoc {
   mode: Mode;
@@ -27,6 +27,32 @@ export interface SessionDoc {
   streakDays: number;
   streakLastDay: string | null;
   misconceptions: MisconceptionEvent[];
+  /** The daily loop. Optional: documents from before it existed lack them. */
+  streakFreezes?: number;
+  bestStreak?: number;
+  activeDays?: string[];
+  frozenDays?: string[];
+  daily?: DailyState;
+  badges?: string[];
+}
+
+/** Two copies of today: counters only go up, a paid quest stays paid. */
+function mergeDaily(a: DailyState | undefined, b: DailyState | undefined): DailyState | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  if (a.day !== b.day) return a.day > b.day ? a : b;
+  const counters: DailyState["counters"] = { ...a.counters };
+  for (const [k, v] of Object.entries(b.counters)) {
+    const key = k as keyof DailyState["counters"];
+    counters[key] = Math.max(counters[key] ?? 0, v ?? 0);
+  }
+  return {
+    day: a.day,
+    counters,
+    done: [...new Set([...a.done, ...b.done])],
+    allBonus: a.allBonus || b.allBonus,
+    puzzle: a.puzzle ?? b.puzzle,
+  };
 }
 
 const RANK: Record<NodeState, number> = { locked: 0, available: 1, attempted: 2, passed: 3 };
@@ -126,5 +152,11 @@ export function mergeSession(local: SessionDoc, remote: SessionDoc | null): Sess
     streakDays: streak.streakDays,
     streakLastDay: streak.streakLastDay,
     misconceptions,
+    streakFreezes: streak.streakFreezes ?? 0,
+    bestStreak: Math.max(local.bestStreak ?? 0, remote.bestStreak ?? 0, streak.streakDays),
+    activeDays: [...new Set([...(local.activeDays ?? []), ...(remote.activeDays ?? [])])].sort().slice(-120),
+    frozenDays: [...new Set([...(local.frozenDays ?? []), ...(remote.frozenDays ?? [])])].sort().slice(-60),
+    daily: mergeDaily(local.daily, remote.daily),
+    badges: [...new Set([...(local.badges ?? []), ...(remote.badges ?? [])])],
   };
 }

@@ -63,8 +63,21 @@ describe("what the shell refuses to cache", () => {
     expect(urlsBypassed()).toContain("/api/");
   });
 
-  it("never caches lesson videos, which are tens of megabytes", () => {
+  it("never caches lesson videos, which are several megabytes each", () => {
     expect(urlsBypassed()).toContain("/video/");
+  });
+
+  it("leaves the manifest to the browser, which fetches it without credentials", () => {
+    expect(SW).toMatch(/pathname === "\/manifest\.webmanifest"\)\s*return;/);
+  });
+
+  it("never caches a redirect's destination under the address that redirected", () => {
+    expect(SW).toMatch(/!fresh\.redirected/);
+  });
+
+  it("fails an uncached request like the browser would, not with an uncaught rejection", () => {
+    expect(SW).not.toMatch(/throw new Error/);
+    expect(SW).toMatch(/return Response\.error\(\)/);
   });
 
   /** Paths the fetch handler returns from without responding. */

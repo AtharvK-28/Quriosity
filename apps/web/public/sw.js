@@ -13,8 +13,9 @@
  *                     always correct and a miss is always a new build.
  *   /api/*            never touched. The tutor streams NDJSON; a cached stream
  *                     is a wrong answer with a confident face.
- *   /video/*          never touched. Twenty megabytes each, and the lesson
+ *   /video/*          never touched. Several megabytes each, and the lesson
  *                     already degrades to its transcript when one is missing.
+ *   the manifest      never touched. The browser fetches and keeps it itself.
  *   everything else   network first, falling back to cache. Documents and RSC
  *                     payloads have to be allowed to change.
  *
@@ -23,7 +24,7 @@
  * and an offline shell that fails silently is the worst kind.
  */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = `quriosity-shell-${VERSION}`;
 const RUNTIME = `quriosity-runtime-${VERSION}`;
 
@@ -37,6 +38,7 @@ const PRECACHE = [
   "/",
   "/start",
   "/path",
+  "/daily",
   "/build",
   "/challenges",
   "/playground",
@@ -65,6 +67,10 @@ const PRECACHE = [
   "/lesson/u3.n3",
   "/lesson/u3.n4",
   "/lesson/u3.n5",
+  "/lesson/u4.n1",
+  "/lesson/u4.n2",
+  "/lesson/u4.n3",
+  "/lesson/u4.n4",
 ];
 
 const OFFLINE_PAGE = `<!doctype html>
@@ -139,8 +145,9 @@ async function networkFirst(request) {
   try {
     const fresh = await fetch(request);
     // Opaque and error responses are not worth keeping; a cached 404 outlives
-    // the deploy that fixes it.
-    if (fresh && fresh.ok && fresh.type === "basic") {
+    // the deploy that fixes it. Nor is a redirect's destination, which would be
+    // served back under the address that redirected.
+    if (fresh && fresh.ok && fresh.type === "basic" && !fresh.redirected) {
       const cache = await caches.open(RUNTIME);
       cache.put(request, fresh.clone());
     }
@@ -154,7 +161,10 @@ async function networkFirst(request) {
         headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
-    throw new Error("offline and uncached");
+    // Not only offline: a request redirected off-origin (a preview deployment's
+    // login wall, say) fails here too. Fail it the way the browser would have,
+    // rather than with an uncaught rejection that reads like a bug in the app.
+    return Response.error();
   }
 }
 
@@ -167,9 +177,13 @@ self.addEventListener("fetch", (event) => {
 
   // The tutor streams; a replayed stream is worse than no answer.
   if (url.pathname.startsWith("/api/")) return;
-  // Lesson videos are tens of megabytes and already degrade to their
+  // Lesson videos are several megabytes each and already degrade to their
   // transcript, which is committed and cached with the document.
   if (url.pathname.startsWith("/video/")) return;
+  // The browser fetches the manifest itself, without credentials, and keeps
+  // its own copy. Behind a login wall it is redirected off-origin; left to the
+  // browser, that is one quiet failure instead of two loud ones.
+  if (url.pathname === "/manifest.webmanifest") return;
 
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(cacheFirst(request));

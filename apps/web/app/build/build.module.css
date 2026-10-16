@@ -52,9 +52,10 @@
 
 .stage {
   position: relative;
-  background: var(--paper);
+  background: var(--surface);
   border: var(--frame-w) solid var(--frame);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .stageBody {
@@ -102,7 +103,7 @@
 .stepValue {
   min-width: 62px;
   text-align: center;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -122,9 +123,10 @@
   flex-wrap: wrap;
   margin-top: var(--s-4);
   padding: var(--s-4);
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .control {
@@ -154,10 +156,11 @@
 
 .panel {
   position: relative;
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
   padding: var(--s-5);
+  box-shadow: var(--shadow-card);
 }
 
 .panelHead {
@@ -191,8 +194,50 @@
 
 .scrubTrack { flex: 1; }
 
+.play {
+  min-height: 28px;
+  padding: 2px 10px;
+  border: 1px solid var(--rule-3);
+  border-radius: 2px;
+  background: none;
+  color: var(--ink-2);
+  font-family: var(--font-label);
+  font-size: var(--t-micro);
+  letter-spacing: var(--ls-micro);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.play:hover { color: var(--ink); border-color: var(--ink-2); }
+.play[aria-pressed="true"] { color: var(--measure); border-color: var(--measure); }
+.play:focus-visible { outline: 2px solid var(--cta); outline-offset: 2px; }
+
+/* `[` folds the state lane away; the canvas takes the width. */
+.lanes[data-side="closed"] { grid-template-columns: minmax(0, 1fr) auto; }
+/* `hidden` alone loses to .side's display: flex. */
+.side[hidden] { display: none; }
+.sideShow {
+  position: sticky;
+  top: 76px;
+  writing-mode: vertical-rl;
+  padding: var(--s-3) 6px;
+  border: 1px solid var(--rule-3);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-label);
+  cursor: pointer;
+}
+.sideShow:hover { color: var(--ink); }
+.sideShow:focus-visible { outline: 2px solid var(--cta); outline-offset: 2px; }
+.sideShow kbd { font-family: var(--font-mono); }
+@media (max-width: 1100px) {
+  .lanes[data-side="closed"] { grid-template-columns: minmax(0, 1fr); }
+  .sideShow { position: static; writing-mode: horizontal-tb; justify-self: start; }
+}
+
 .scrubLabel {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -247,7 +292,7 @@
 }
 
 .restoredDismiss {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
@@ -275,9 +320,10 @@
   flex-wrap: wrap;
   margin-bottom: var(--s-4);
   padding: var(--s-3) var(--s-4);
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .saveLabel {
@@ -295,9 +341,10 @@
 .library {
   margin-bottom: var(--s-4);
   padding: var(--s-4);
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--rule-2);
   border-radius: var(--r-panel);
+  box-shadow: var(--shadow-card);
 }
 
 .libraryHead {
@@ -339,7 +386,7 @@
 .libraryName:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .libraryMeta {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--t-micro);
   letter-spacing: var(--ls-micro);
   text-transform: uppercase;
