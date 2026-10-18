@@ -4,7 +4,7 @@
 | Field | Value |
 |---|---|
 | PS ID | 26140 |
-| Team | Logic Sorcerers |
+| Team | Quantum Latte |
 | Version | 1.0 |
 | Parent document | 01-Ideation-Document-v2.md |
 | Child documents | 03-Design-Document.md, 04-Technical-Requirements-Document.md |

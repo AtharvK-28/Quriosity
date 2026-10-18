@@ -84,7 +84,7 @@ await shot("09-reference");
 
 /* 11. The tutor, docked beside the Bell state on the bench. */
 await page.goto(`${BASE}/build`, { waitUntil: "networkidle" });
-await page.getByRole("button", { name: /Ask the tutor/ }).click();
+await page.getByRole("button", { name: /Ask Ket/ }).click();
 await page.getByLabel("Your question").fill("What does my circuit do?");
 await page.keyboard.press("Enter");
 await page.waitForSelector("text=/built-in guide|claude/i", { timeout: 30000 });

@@ -309,6 +309,7 @@ await check("workbench mode hides XP and never speaks unprompted", async () => {
 
   const body = await page.locator("body").innerText();
   assert.doesNotMatch(body, /still separable/i, "the tutor spoke unprompted in workbench mode");
+  assert.equal(await page.locator('aside[aria-label^="Ket, watching"]').count(), 0, "Ket appeared in workbench mode");
 
   // But it answers when invoked.
   await page.getByRole("button", { name: "Diagnosis" }).click();
@@ -757,23 +758,32 @@ await check("progress reports beliefs as open or worked out", async () => {
 
 const theme = () => page.evaluate(() => document.documentElement.dataset.theme);
 
-await check("night is the default theme, and day survives a reload", async () => {
+await check("the theme follows the device until chosen, and a choice survives a reload", async () => {
   await page.goto(`${BASE}/reference`, { waitUntil: "networkidle" });
-  assert.equal(await theme(), "night");
-  await page.getByRole("button", { name: /Switch to day/ }).click();
-  assert.equal(await theme(), "day");
+  await page.evaluate(() => localStorage.removeItem("quriosity.theme.v1"));
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.reload({ waitUntil: "networkidle" });
-  assert.equal(await theme(), "day", "the day theme did not survive a reload");
+  assert.equal(await theme(), "night", "a dark device did not get night");
+  // The device changing its mind takes the page with it, live.
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.waitForTimeout(150);
+  assert.equal(await theme(), "day", "a light device did not get day");
+  // An explicit choice wins over the device, and survives a reload.
   await page.getByRole("button", { name: /Switch to night/ }).click();
-  assert.equal(await theme(), "night");
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await theme(), "night", "a chosen night did not survive a reload on a light device");
+  // Back to following the device, for the checks after this one.
+  await page.evaluate(() => localStorage.removeItem("quriosity.theme.v1"));
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await theme(), "day");
 })();
 
 await check("the tutor answers on the bench and says which engine replied", async () => {
   await freshBench();
-  await page.getByRole("button", { name: /Ask the tutor/ }).click();
+  await page.getByRole("button", { name: /Ask Ket/ }).click();
   await page.getByLabel("Your question").fill("What does the Hadamard gate do?");
   await page.keyboard.press("Enter");
-  await page.waitForSelector("text=/built-in guide|claude/i", { timeout: 30000 });
+  await page.waitForSelector("text=/built-in guide|claude|gemini/i", { timeout: 30000 });
   await page.waitForFunction(
     () => !document.querySelector('[aria-label="The tutor is thinking"]'),
     null,
@@ -839,6 +849,150 @@ await check("a barrier spans the wires it is dragged across, from the keyboard",
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   assert.match(await summary(), /Barrier across qubits 0 to 1/);
+})();
+
+await check("gates drag from the tray onto a wire, and a dragged control dot flips a CNOT", async () => {
+  await freshBench();
+  const canvas = page.locator('[role="application"]');
+  const slot = async (q, c) => {
+    const b = await canvas.boundingBox();
+    return { x: b.x + 44 + c * 64 + 32, y: b.y + 28 + q * 56 + 28 };
+  };
+  const centre = async (loc) => {
+    const b = await loc.boundingBox();
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  };
+  const drag = async (from, to) => {
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 10; i++) await page.mouse.move(from.x + ((to.x - from.x) * i) / 10, from.y + ((to.y - from.y) * i) / 10);
+    await page.mouse.up();
+    await page.waitForTimeout(120);
+  };
+
+  await drag(await centre(page.locator('button[data-gate="h"]').first()), await slot(0, 0));
+  // Dropped on the bottom wire, the CNOT is controlled from there: upside down.
+  await drag(await centre(page.locator('button[data-gate="cx"]').first()), await slot(1, 1));
+  assert.match(await summary(), /Hadamard on qubit 0, column 0/);
+  assert.match(await summary(), /CNOT, control on qubit 1, target on qubit 0, column 1/);
+
+  await drag(await slot(1, 1), await slot(0, 1));
+  assert.match(await summary(), /CNOT, control on qubit 0, target on qubit 1, column 1/);
+
+  // A press that does not move is still a click that picks the gate up.
+  await page.locator('button[data-gate="x"]').first().click();
+  assert.equal(await page.locator('button[data-gate="x"][data-held="true"]').count(), 1);
+  await page.keyboard.press("Escape");
+})();
+
+/** The top bar's mode tag cycles guided → workbench → track; click until it reads `want`. */
+async function switchMode(want) {
+  for (let i = 0; i < 3; i++) {
+    const tag = page.getByRole("button", { name: /^(guided|workbench|track)$/ }).first();
+    if ((await tag.innerText()).trim().toLowerCase() === want) return;
+    await tag.click();
+    await page.waitForTimeout(150);
+  }
+}
+
+await check("in a lesson, Ket's antenna follows the wire live and loses it when the wire is entangled", async () => {
+  await switchMode("guided");
+  await seedThrough("u3.n3");
+  await page.goto(`${BASE}/lesson/u3.n3`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Build it" }).click();
+  const canvas = page.locator('[role="application"]');
+  await canvas.waitFor();
+  const said = () => page.locator('aside[aria-label^="Ket, watching"] [role="status"]').innerText();
+  assert.match(await said(), /\|0⟩/);
+  await canvas.focus();
+  await page.keyboard.press("h");
+  assert.match(await said(), /\|\+⟩/, "Ket did not follow H");
+  await page.keyboard.press("c");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  assert.match(await said(), /Entangled/, "Ket kept a state of its own inside a Bell pair");
+})();
+
+await check("the bench has no Ket", async () => {
+  await freshBench();
+  assert.equal(await page.locator('aside[aria-label^="Ket, watching"]').count(), 0, "Ket is on the bench");
+})();
+
+await check("Ket points at the gate a failed run was about, and leaves when it is fixed", async () => {
+  await seedThrough("u3.n3");
+  await page.goto(`${BASE}/challenges/c.bell`, { waitUntil: "networkidle" });
+  const canvas = page.locator('[role="application"]');
+  await canvas.focus();
+  await page.keyboard.press("h");
+  // An upside-down CNOT: control on q1, target on q0.
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("c");
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: /^Run/ }).first().click();
+  await page.waitForTimeout(600);
+  assert.equal(await page.locator('[class*="ketPoint"]').count(), 1, "Ket did not point at the gate");
+  await page.keyboard.press("Escape");
+  await canvas.focus();
+  await page.keyboard.press("Control+z");
+  await page.waitForTimeout(200);
+  assert.equal(await page.locator('[class*="ketPoint"]').count(), 0, "Ket kept pointing after an edit");
+  // The checks after these run in workbench, as they did before Ket.
+  await switchMode("workbench");
+})();
+
+await check("a first visit meets Ket, who flips with X, and a return visit goes straight to the choice", async () => {
+  await page.goto(`${BASE}/start`, { waitUntil: "networkidle" });
+  await page.evaluate(() => localStorage.removeItem("quriosity.met-ket.v1"));
+  await page.reload({ waitUntil: "networkidle" });
+  const say = () => page.locator('section[aria-label="Meet Ket"] [role="status"]').innerText();
+  assert.match(await say(), /I'm Ket/);
+  await page.getByRole("button", { name: "Hi, Ket" }).click();
+  await page.keyboard.press("x");
+  await page.waitForFunction(
+    () => /\|1⟩, antenna down/.test(document.querySelector('section[aria-label="Meet Ket"] [role="status"]')?.textContent ?? ""),
+    null,
+    { timeout: 5000 },
+  );
+  await page.getByRole("button", { name: /Skip the intro/ }).click();
+  await page.waitForSelector("text=How do you want to learn?");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForSelector("text=How do you want to learn?");
+  assert.equal(await page.locator('section[aria-label="Meet Ket"]').count(), 0, "Ket was met twice");
+})();
+
+await check("Deutsch passes only when one circuit is right for every function the box hides", async () => {
+  await seedThrough("u4.n2");
+  await page.goto(`${BASE}/lesson/u4.n2`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Build it" }).click();
+  const canvas = page.locator('[role="application"]');
+  await canvas.waitFor();
+  const summary = () => canvas.getAttribute("aria-label");
+  const before = await summary();
+
+  // The lesson's own gates cannot be deleted.
+  await canvas.focus();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Delete");
+  assert.equal(await summary(), before, "a locked gate was deleted");
+  await page.keyboard.press("ArrowUp");
+
+  // An empty circuit is right for the constant functions and wrong for the balanced ones.
+  await page.getByRole("button", { name: /^Run/ }).first().click();
+  await page.waitForSelector("text=right for this f");
+  const chips = (await page.locator('[aria-label="Function in the box"] button').allInnerTexts()).join(" ");
+  assert.match(chips, /✓/);
+  assert.match(chips, /✗/);
+
+  // Deutsch's algorithm: H before the box, H after it. A gate typed inside the box lands after it.
+  await canvas.focus();
+  await page.keyboard.press("h");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("h");
+  assert.match(await summary(), /Hadamard on qubit 0, column 4/, "the second H did not land after the box");
+  await page.getByRole("button", { name: /^Run/ }).first().click();
+  await page.waitForSelector("text=What the box hid");
+  assert.match(await page.locator("body").innerText(), /you used 2[.]/i, "par counted the lesson's own gates");
 })();
 
 await check("the keyboard places rotations and controlled-Z", async () => {
@@ -998,7 +1152,8 @@ await check("settings change the mode and export the data", async () => {
 })();
 
 await check("a finished track issues a record that verifies, and a forged one does not", async () => {
-  await seedThrough("u3");
+  // A track covers the whole path, through the last unit.
+  await seedThrough("u4");
   await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem("quriosity.session.v1"));
     for (const id of ["c.third", "g.bell", "c.ghz"]) {

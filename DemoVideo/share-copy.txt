@@ -1,0 +1,1 @@
+A qubit is not a coin. Quriosity is a quantum circuit bench where you drag gates, watch the Qiskit write itself, and get told exactly which gate on which wire is wrong, all in your browser with nothing to install. Built for SIH 26140 by Quantum Latte: quriosity-livid.vercel.app

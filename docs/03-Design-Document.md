@@ -4,7 +4,7 @@
 | Field | Value |
 |---|---|
 | PS ID | 26140 |
-| Team | Logic Sorcerers |
+| Team | Quantum Latte |
 | Version | 1.0 |
 | Parent documents | 01-Ideation-Document-v2.md, 02-Product-Requirements-Document.md |
 | Scope | Brand, tokens, components, screens, interaction, motion, accessibility, copy |

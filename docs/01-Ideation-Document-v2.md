@@ -8,7 +8,7 @@
 | Theme | Smart Education |
 | Category | Software |
 | Organisation | Egreen Quanta |
-| Team | Logic Sorcerers |
+| Team | Quantum Latte |
 | Product name | Quriosity |
 | Document status | Internal ideation — parent document for the PRD, Design Doc and TRD |
 | Version | 2.0 |

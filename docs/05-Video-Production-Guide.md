@@ -1,6 +1,6 @@
 # Video Production Guide
 
-**Quriosity · SIH 26140 · Logic Sorcerers**
+**Quriosity · SIH 26140 · Quantum Latte**
 
 Fourteen videos covering nineteen curriculum nodes, generated with NotebookLM
 Video Overviews. This document is the complete brief pack: for each video, a

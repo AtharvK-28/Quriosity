@@ -1,6 +1,6 @@
 # Quriosity
 
-**SIH 26140 · Logic Sorcerers · AI-Based Interactive Quantum Algorithm Learning Platform**
+**SIH 26140 · Quantum Latte · AI-Based Interactive Quantum Algorithm Learning Platform**
 
 A quantum circuit workbench that teaches. Drag a gate, watch the Qiskit write
 itself, run it, and — when it is wrong — be told which gate on which wire, and
@@ -9,7 +9,7 @@ what to do about it.
 ```bash
 npm install
 npm run dev          # http://localhost:3000
-npm test             # 421 tests: physics, tutor, curriculum, import/export, optimiser, density, placement, media, offline
+npm test             # 765 web + 114 server tests: physics, tutor, firewall, curriculum, import/export, sync, arena, accounts
 ```
 
 **Demo from a production build, not from `npm run dev`:**
@@ -27,10 +27,10 @@ because the effect consumed its own one-shot flag on the first pass).
 No Docker, and no database to install. The simulator, the grader and the
 tutor's rule engine all run in the browser, and everything works as a guest. An
 API key is optional — it switches the tutor chat from the built-in guide to
-Claude:
+Claude or Gemini:
 
 ```bash
-cp apps/web/.env.example apps/web/.env.local   # then set ANTHROPIC_API_KEY
+cp apps/web/.env.example apps/web/.env.local   # then set ANTHROPIC_API_KEY or GEMINI_API_KEY
 ```
 
 **Accounts, sync, classes and the ranked arena** need the server as well:
@@ -65,6 +65,7 @@ a function over the IR.
 | Workbench — five state views, editable Qiskit and OpenQASM, import, export, save, share | `/build` | Built |
 | **Shared circuit** — read-only, run on arrival, fork into your bench | `/build/[circuitId]` | Built |
 | **Tutor chat** — docked beside the circuit on the bench, lessons and challenges | ⌘/ or "Ask the tutor" | Built |
+| **Tutor pop-ups** — the tutor speaking from its corner: new-word flashcards, hints, cheers and rewards (quests, streak, rank), queued one at a time | automatic | Built |
 | **Qubit playground** — θ and φ, six gates, measure and collapse, a hundred fresh copies | `/playground` | Built |
 | **Instructor console** — misconception heatmap, cohort completion, CSV export | `/teach` | Built |
 | **Challenge authoring** — build the answer, the target is derived from it | `/teach/author` | Built |
@@ -78,7 +79,9 @@ a function over the IR.
 | **Accounts** — sign up, sign in, student / instructor / admin roles, delete account | `/auth/signup`, `/auth/login`, Settings | Built |
 | **Sync** — progress and saved circuits follow the account; guest progress merges in on sign-up | automatic | Built |
 | **Classes** — instructors create a class with a join code and see its real progress and misconceptions | `/teach` | Built |
-| **Arena modes** — Blitz, Circuit golf (3-minute cap, fewest gates) and Bug hunt (same broken circuit, first fix), with the copy check | `/arena` | Built |
+| **Arena** — Blitz, Circuit golf and Bug hunt; ranks with divisions (Novice → Quantum), a 3-2-1 countdown, emotes, resign, rematch, the opponent's circuit revealed after the match, rating trend and recent matches, weekly and all-time ladders, and an unrated bot when nobody is online | `/arena` | Built |
+| **Daily puzzle** — one challenge a day for everyone, timed and graded on the server, a daily leaderboard and a Wordle-style share line | `/daily` | Built |
+| **The daily loop** — a streak with freezes (earned every 7 days), a week strip, three daily quests with XP, arena XP with a first-win-of-the-day bonus | path, arena, top bar | Built |
 | **Assignments and attempt review** — set a lesson or challenge with a deadline, see completion roll up from synced progress, open any student's failed attempt with its diagnosis | `/teach`, `/path` | Built |
 
 ### The engine
@@ -144,16 +147,18 @@ a reload — or a first visit to a node nobody opened — works with the wifi of
 It installs, too. `app/manifest.ts` declares it, and the claim is honest rather
 than decorative:
 
-- there is no backend; execution, grading and the tutor's rule engine are all
-  on the device
+- execution, grading and the tutor's rule engine are all on the device; the
+  server only syncs accounts, classes and the arena, and nothing on the
+  learning path waits for it
 - `next/font` self-hosts the three typefaces at build time
 - nothing in `app/`, `components/` or `lib/` requests anything off-origin
 
 Two things are deliberately never cached. **`/api/*`**, because the tutor streams
 NDJSON and a replayed stream is a wrong answer with a confident face. And
-**`/video/*`**, because the lesson videos are ~20MB each — offline, a video
+**`/video/*`**, because the lesson videos are several megabytes each — offline, a video
 fails and the player falls back to its committed transcript, which is the same
-content by another route.
+content by another route. The manifest is left to the browser too, and a request
+that fails with nothing cached fails quietly rather than as an uncaught error.
 
 Losing the network puts a chip in the top bar reading *offline · still works*.
 It is measurement green, not error red, because nothing here has failed.
@@ -243,12 +248,12 @@ challenge. It opens beside the circuit, not over it, and only when asked — in
 every mode. If the rule engine already has a finding for the current run, it
 sits at the top of an empty conversation, instantly and with no model call.
 
-Two engines behind one wire format (`POST /api/tutor`, NDJSON):
+Three engines behind one wire format (`POST /api/tutor`, NDJSON):
 
-| | With `ANTHROPIC_API_KEY` | Without |
-|---|---|---|
-| Answers from | Claude (`claude-opus-5`, low effort, streamed) | The built-in guide: the rule engine's finding, or the best passage from the platform's own lessons, gate registry and misconception list |
-| Labelled | "Claude" | "Built-in guide" |
+| | With `ANTHROPIC_API_KEY` | With `GEMINI_API_KEY` only | Without a key |
+|---|---|---|---|
+| Answers from | Claude (`claude-opus-5`, low effort, streamed) | Gemini (`gemini-2.5-flash`, falling back to `gemini-3.5-flash-lite`) | The built-in guide: the rule engine's finding, or the best passage from the platform's own lessons, gate registry and misconception list |
+| Labelled | "Claude" | "Gemini" | "Built-in guide" |
 
 What keeps it honest:
 
@@ -260,6 +265,14 @@ What keeps it honest:
   question. The system prompt — instructions plus the whole curriculum as
   reference — stays byte-identical and is prompt-cached, and learner text
   cannot pose as platform context.
+- **The physics firewall.** Every sentence is also checked against the laws of
+  quantum mechanics (`lib/tutor/firewall.ts`): all fourteen misconceptions in
+  their commonest phrasings, plus claims about what a gate does, worked out from
+  the gate matrices — single-qubit gates on |0⟩, |1⟩, |±⟩, |±i⟩, and CNOT, CZ,
+  SWAP and Toffoli on basis states under either bit order. A broken answer is
+  withdrawn and replaced with the correction the curriculum teaches. How often
+  each check fires is counted under Settings → Tutor checks, and every answer
+  can be marked helpful or not.
 - **Every sentence is checked before it streams.** Gate references
   (`[[gate:h]]`, rendered as chips that link to the reference row) must name a
   registry gate; stray tags are stripped.
@@ -371,7 +384,7 @@ it opens is read-only with a fork button.
 ## Testing
 
 ```bash
-npm test                            # 421 unit tests, blocking
+npm test                            # 765 web + 114 server tests, blocking
 node tests/e2e/demo.spec.mjs        # 54 browser checks (needs a running server)
 node tests/e2e/shots.mjs            # screenshots of every surface
 ```
@@ -402,23 +415,46 @@ parts of the TRD it does not have: Redis, Celery and the Docker sandbox (§8).
 | E3-S3 (M) | **Arbitrary Python** → IR | Straight-line Qiskit is read in the browser; anything needing execution is refused by name |
 | E4-S1, S2, S6, S7 (M/S) | Queued, sandboxed execution on Aer/Cirq/PennyLane, result cache | Runs in the browser simulator |
 | E10-S1 | Roster CSV import with emailed invitations | Students join with the class code instead; sending invitations needs an email service |
-| E8-S5, E8-S6 | Signed records, publishing authored challenges | Records are tamper-evident but unsigned; authored challenges stay in the browser that made them |
-| E1-S6 | Guest 5-qubit cap | Guests get the full bench |
 
 ### Not done, and not blocked
 
-- **Internationalisation** (PRD §7.7). UI strings are still written in the
-  components. Externalising them is a mechanical sweep across every screen and
-  was left for its own pass.
+- **Internationalisation** (PRD §7.7), partly. The catalogue, `t()` and
+  Indian-grouped number formatting are in `lib/i18n/`, and the shared chrome —
+  top bar, tutor dock, command palette — reads from it. The remaining screens
+  still write their strings inline and move over one at a time; the curriculum
+  is already its own translatable layer.
 - **Units U4–U8.** Content, not code, and decision D9 chose U0–U3 deep.
 - **Grover rule L06** exists but cannot fire yet: there is no Grover content
   and no multi-controlled Z.
-- **`tutor_feedback`** is in the event taxonomy but the dock has no
-  helpful/not-helpful control.
-- Design Doc keys **⌘K** (command palette), **[ ]** (collapse lanes) and
-  **Space** (play the scrubber); the optional **placement check** at onboarding.
+- The optional **placement check** at onboarding.
 - The density-matrix grid draws up to four wires; wider registers offer single
   wires and pairs.
+
+### Decided against
+
+- **E1-S6's guest 5-qubit cap.** Guests keep the full bench. The demo, the
+  offline promise and a judge who will not make an account all depend on the
+  bench working without one. What E1-S6 is for — turning a guest into an
+  account without losing work — is kept: saving as a guest offers sign-up, and
+  the saved circuit merges into the new account.
+
+### Closed in the backend completion pass
+
+- **Signed completion records** (E8-S5). Signed in, the server rebuilds the
+  record from the account's synced progress, puts the account's name on it and
+  signs it with Ed25519 (key derived from `JWT_SECRET`). The record page checks
+  the signature against the server, and `GET /records/key` publishes the key.
+  A guest's record keeps its checksum and says it cannot prove who earned it.
+- **Publishing authored challenges** (E8-S6). An instructor publishes a
+  challenge to a class they run; members find it under Challenges → From your
+  classes, graded like the built-in set.
+- **The physics firewall's full coverage**: laws for all fourteen
+  misconceptions, multi-qubit gate claims, and a per-browser count of what each
+  check caught (Settings → Tutor checks).
+- **`tutor_feedback`**: every tutor answer can be marked helpful or not.
+- Design Doc keys **⌘K** (go anywhere: pages, lessons, challenges, terms,
+  gates), **[ ]** (fold the state lane away) and **Space** (play the scrubber
+  through, a column every 400ms).
 
 ### Closed in the frontend completion pass
 

@@ -1,6 +1,6 @@
 # Quriosity — SIH 26140 document set
 
-Team **Logic Sorcerers** · PS 26140 · AI-Based Interactive Quantum Algorithm Learning Platform · Egreen Quanta · Smart Education
+Team **Quantum Latte** · PS 26140 · AI-Based Interactive Quantum Algorithm Learning Platform · Egreen Quanta · Smart Education
 
 | # | Document | What it answers | Read it when |
 |---|---|---|---|

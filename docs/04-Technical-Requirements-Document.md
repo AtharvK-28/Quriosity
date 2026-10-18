@@ -4,7 +4,7 @@
 | Field | Value |
 |---|---|
 | PS ID | 26140 |
-| Team | Logic Sorcerers |
+| Team | Quantum Latte |
 | Version | 1.1 — adds §0, the as-built record |
 | Parent documents | 01-Ideation-Document-v2.md, 02-Product-Requirements-Document.md, 03-Design-Document.md |
 | Audience | Implementers, and Claude Code as an implementation agent |
@@ -31,6 +31,8 @@ Sections 1–16 are the design. This section records where the build that exists
 | Qdrant + RAG over SDK docs (§11.4) | BM25 over the platform's own corpus (lessons, gate registry, misconceptions); Claude answers from a server-built summary of the learner's circuit | Grounding in the platform's own content and the simulator result; retrieval over official SDK docs is still to do |
 | LangChain + LLM API (§11) | Claude (`claude-opus-5`, Anthropic TypeScript SDK) when `ANTHROPIC_API_KEY` is set; otherwise Gemini (`gemini-2.5-flash`, falling back to `gemini-3.5-flash-lite`) when `GEMINI_API_KEY` is set; otherwise the built-in guide. All streamed | One call needs no orchestration layer. Every model's text passes the same claim check and physics firewall, so the guarantees do not depend on the vendor |
 | Guardrails G1–G7 (§11.3) | G1 (probabilities checked against the simulator, placeholders filled from it), G2 (gate references validated), G3 (low-confidence refusal), G4 (length cap), G5 (no proactive output in Workbench), G7 (solution disclosure gated server-side) — plus a **physics firewall** that withdraws any answer breaking a law of quantum mechanics or misstating what a fixed gate does, checked against the gate matrices | G6 (per-response source tagging) is partial: the learner is told which engine answered |
+| Completion records (PRD E8-S5) | Guests get a checksummed record link. Signed in, the server rebuilds the record from the account's synced progress and appends an Ed25519 signature; the key is derived from `JWT_SECRET` with HKDF (`apps/server/src/records/sign.ts`), verified at `GET /records/verify` and published at `GET /records/key` | No second secret to manage; rotating `JWT_SECRET` retires every signature, which is right for a leaked secret |
+| Authored challenges (PRD E8-S6) | Stored per browser; an instructor can publish one to a class (`class_challenges` table). Members' browsers derive the target from the reference circuit, exactly as for the built-in set | The server validates the reference circuit and the palette, so what members download is what the runner expects |
 | Arena anti-cheat (§12.4) | Impossible-solve-time and known-solution copy checks, both flagging and withholding rating; same-IP collusion check not built | |
 
 ### 0.2 What is built exactly as designed

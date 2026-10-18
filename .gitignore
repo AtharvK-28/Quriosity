@@ -19,3 +19,7 @@ arena.db-*
 
 # Local PGlite database — created by apps/server when DATABASE_URL is unset
 apps/server/data/
+
+# Temporary video render frames
+frames/
+
